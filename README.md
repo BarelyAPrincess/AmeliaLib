@@ -1,2 +1,2 @@
-# Base Branch
-Provides some base setup for all other branches of AmeliaLib. See `docs` branch for more information.
+# ScriptingLib Branch
+Contains ScriptingLib code from the AmeliaLib project. See `docs` branch for more information.
