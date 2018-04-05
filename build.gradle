@@ -31,7 +31,8 @@ dependencies {
 	compile group: 'org.yaml', name: 'snakeyaml', version: '1.13'
 
 	/* Network and Security */
-	compile group: 'io.netty', name: 'netty-all', version: '4.0.33.Final'
+	compile group: 'io.netty', name: 'netty-all', version: '5.0.0.Alpha2'
+	// compile group: 'io.netty', name: 'netty-all', version: '4.0.33.Final'
 	compile group: 'org.bouncycastle', name: 'bcpkix-jdk15on', version: '1.53'
 
 	/* Console ANSI Colors */
