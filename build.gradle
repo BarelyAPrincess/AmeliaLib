@@ -18,8 +18,7 @@ dependencies {
 		exclude group: 'org.hamcrest'
 	}
 
-	compile project( ":AmeliaLibCommon" )
-	compile project( ':HPFoundation' )
+	compile project( ":AmeliaCommonLib" )
 
 	testCompile 'org.hamcrest:hamcrest-library:1.3'
 }
