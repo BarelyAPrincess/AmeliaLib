@@ -15,16 +15,21 @@ import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Enumeration;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Spliterator;
+import java.util.Spliterators;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Nonnull;
 
@@ -433,6 +438,28 @@ public class Objs
 				sb.append( "\nnull" );
 
 		return sb.length() < 1 ? "" : sb.substring( 1 );
+	}
+
+	public static <T> Stream<T> enumerationAsStream( Enumeration<T> e )
+	{
+		return StreamSupport.stream( new Spliterators.AbstractSpliterator<T>( Long.MAX_VALUE, Spliterator.ORDERED )
+		{
+			public void forEachRemaining( Consumer<? super T> action )
+			{
+				while ( e.hasMoreElements() )
+					action.accept( e.nextElement() );
+			}
+
+			public boolean tryAdvance( Consumer<? super T> action )
+			{
+				if ( e.hasMoreElements() )
+				{
+					action.accept( e.nextElement() );
+					return true;
+				}
+				return false;
+			}
+		}, false );
 	}
 
 	@SuppressWarnings( "unchecked" )

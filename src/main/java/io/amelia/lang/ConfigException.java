@@ -13,9 +13,49 @@ import io.amelia.foundation.ConfigMap;
 
 public class ConfigException
 {
+	public static ConfigException.Error error( ConfigMap node )
+	{
+		return new ConfigException.Error( node );
+	}
+
+	public static ConfigException.Error error( ConfigMap node, String message )
+	{
+		return new ConfigException.Error( node, message );
+	}
+
+	public static ConfigException.Error error( ConfigMap node, String message, Throwable cause )
+	{
+		return new ConfigException.Error( node, message, cause );
+	}
+
+	public static ConfigException.Error error( ConfigMap node, Throwable cause )
+	{
+		return new ConfigException.Error( node, cause );
+	}
+
+	public static ConfigException.Ignorable ignorable( ConfigMap node )
+	{
+		return new ConfigException.Ignorable( node );
+	}
+
+	public static ConfigException.Ignorable ignorable( ConfigMap node, String message )
+	{
+		return new ConfigException.Ignorable( node, message );
+	}
+
+	public static ConfigException.Ignorable ignorable( ConfigMap node, String message, Throwable cause )
+	{
+		return new ConfigException.Ignorable( node, message, cause );
+	}
+
+	public static ConfigException.Ignorable ignorable( ConfigMap node, Throwable cause )
+	{
+		return new ConfigException.Ignorable( node, cause );
+	}
+
 	private ConfigException()
 	{
-
+		// Static Access
 	}
 
 	public static class Error extends ParcelableException.Error

@@ -18,22 +18,22 @@ public final class ConfigMap extends StackerWithValue<ConfigMap, Object> impleme
 {
 	private String loadedValueHash = null;
 
-	protected ConfigMap()
+	public ConfigMap()
 	{
 		super( ConfigMap::new, "" );
 	}
 
-	protected ConfigMap( String key )
+	public ConfigMap( String key )
 	{
 		super( ConfigMap::new, key );
 	}
 
-	protected ConfigMap( ConfigMap parent, String key )
+	public ConfigMap( ConfigMap parent, String key )
 	{
 		super( ConfigMap::new, parent, key );
 	}
 
-	protected ConfigMap( ConfigMap parent, String key, Object value )
+	public ConfigMap( ConfigMap parent, String key, Object value )
 	{
 		super( ConfigMap::new, parent, key, value );
 	}

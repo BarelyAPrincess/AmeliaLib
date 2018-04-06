@@ -54,6 +54,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
+import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.imageio.ImageIO;
@@ -304,12 +305,12 @@ public class IO
 		return copy( inputStream, new FileOutputStream( file ) );
 	}
 
-	public static String dirname( File path )
+	public static String dirname( @Nonnull File path )
 	{
 		return dirname( path, 1 );
 	}
 
-	public static String dirname( @Nonnull File path, @Nonnull int levels )
+	public static String dirname( @Nonnull File path, int levels )
 	{
 		Objs.notNull( path );
 		Objs.notFalse( levels > 0 );
@@ -758,6 +759,11 @@ public class IO
 		}
 	}
 
+	public static void fileExists( File file )
+	{
+		Objs.notFalse( file.exists(), String.format( "%s does not exist!", file.getAbsolutePath() ) );
+	}
+
 	public static String fileExtension( File file )
 	{
 		return fileExtension( file.getName() );
@@ -768,24 +774,28 @@ public class IO
 		return Strs.regexCapture( fileName, ".*\\.(.*)$" );
 	}
 
-	public static String getFileName( @Nonnull String path )
+	public static String getLocalName( @Nonnull String path )
 	{
-		path = path.replace( "\\/", "/" );
-		if ( path.contains( File.pathSeparator ) )
-			return path.substring( path.lastIndexOf( File.pathSeparator ) + 1 );
-		if ( path.contains( "/" ) )
-			return path.substring( path.lastIndexOf( "/" ) + 1 );
-		if ( path.contains( "\\" ) )
-			return path.substring( path.lastIndexOf( "\\" ) + 1 );
+		for ( String separator : new String[] {File.pathSeparator, "\\", "/"} )
+			if ( path.contains( separator ) )
+				return path.substring( path.lastIndexOf( separator ) + 1 );
 		return path;
 	}
 
-	public static String getFileNameWithoutExtension( String path )
+	public static String getLocalNameWithoutExtension( String path )
 	{
-		path = getFileName( path );
+		path = getLocalName( path );
 		if ( path.contains( "." ) )
 			path = path.substring( 0, path.lastIndexOf( "." ) );
 		return path;
+	}
+
+	public static String getParentPath( @Nonnull String path )
+	{
+		for ( String separator : new String[] {File.pathSeparator, "\\", "/"} )
+			if ( path.contains( separator ) )
+				return path.substring( 0, path.lastIndexOf( separator ) );
+		return "";
 	}
 
 	/**
@@ -981,12 +991,17 @@ public class IO
 		return dir.startsWith( "/" ) || dir.startsWith( ":\\", 1 );
 	}
 
-	public static boolean isDirectoryEmpty( File file )
+	public static void isDirectory( File directory )
 	{
-		Objs.notNull( file );
-		if ( file.isDirectory() )
+		Objs.notFalse( directory.isDirectory(), String.format( "%s is not a directory!", directory.getAbsolutePath() ) );
+	}
+
+	public static boolean isDirectoryEmpty( File directory )
+	{
+		Objs.notNull( directory );
+		if ( directory.isDirectory() )
 		{
-			String[] lst = file.list();
+			String[] lst = directory.list();
 			return lst != null && lst.length == 0;
 		}
 		return false;
@@ -1176,26 +1191,37 @@ public class IO
 		return Strs.encodeDefault( readStreamToByteArray( inputStream ).toByteArray() );
 	}
 
-	public static List<File> recursiveFiles( final File dir )
+	public static List<File> recursiveFiles( @Nonnull final File dir )
 	{
-		return recursiveFiles( dir, 9999 );
+		return recursiveFiles( dir, -1 );
 	}
 
-	private static List<File> recursiveFiles( final File start, final File current, final int depth, final int maxDepth, final String regexPattern )
+	/**
+	 * Gathers files into a list with each entry being the full file
+	 *
+	 * @param start        Starting file
+	 * @param current      Current file
+	 * @param depth        Current depth - used internally
+	 * @param maxDepth     The maximum depth to traverse
+	 * @param regexPattern The regex pattern to match to each full path. Be sure to use forward slash `/` on all OSs, including Windows
+	 *
+	 * @return Return a recursive list of files
+	 */
+	private static List<File> recursiveFiles( @Nonnull final File start, @Nonnull final File current, @Nonnegative final int depth, final int maxDepth, @Nullable final String regexPattern )
 	{
 		final List<File> files = new ArrayList<>();
 
 		current.list( ( dir, name ) -> {
 			dir = new File( dir, name );
 
-			if ( dir.isDirectory() && depth < maxDepth )
+			if ( dir.isDirectory() && ( depth < maxDepth || maxDepth < 1 ) )
 				files.addAll( recursiveFiles( start, dir, depth + 1, maxDepth, regexPattern ) );
 
 			if ( dir.isFile() )
 			{
 				String filename = dir.getAbsolutePath();
 				filename = filename.substring( start.getAbsolutePath().length() + 1 );
-				if ( regexPattern == null || filename.matches( regexPattern ) )
+				if ( regexPattern == null || filename.replaceAll( "\\\\", "/" ).matches( regexPattern ) )
 					files.add( dir );
 			}
 
@@ -1205,12 +1231,12 @@ public class IO
 		return files;
 	}
 
-	public static List<File> recursiveFiles( final File dir, final int maxDepth )
+	public static List<File> recursiveFiles( @Nonnull final File dir, final int maxDepth )
 	{
 		return recursiveFiles( dir, maxDepth, null );
 	}
 
-	public static List<File> recursiveFiles( final File dir, final int maxDepth, final String regexPattern )
+	public static List<File> recursiveFiles( @Nonnull final File dir, final int maxDepth, @Nullable final String regexPattern )
 	{
 		return recursiveFiles( dir, dir, 0, maxDepth, regexPattern );
 	}
@@ -1342,7 +1368,7 @@ public class IO
 
 	private IO()
 	{
-
+		// Static Access
 	}
 
 	static class LibraryPath

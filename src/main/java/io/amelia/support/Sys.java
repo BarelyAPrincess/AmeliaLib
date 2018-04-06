@@ -49,7 +49,7 @@ public class Sys
 			File file = new File( URLDecoder.decode( Sys.class.getProtectionDomain().getCodeSource().getLocation().getPath(), "UTF-8" ) );
 			if ( file.isDirectory() || !file.getAbsolutePath().endsWith( ".jar" ) )
 				return def;
-			return IO.getFileNameWithoutExtension( file.getAbsolutePath() );
+			return IO.getLocalNameWithoutExtension( file.getAbsolutePath() );
 		}
 		catch ( Exception e )
 		{
