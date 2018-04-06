@@ -19,8 +19,8 @@ dependencies {
 	}
 	testCompile 'org.hamcrest:hamcrest-library:1.3'
 
-	compile project( ":AmeliaLibCommon" )
-	compile project( ':HPStorage' )
+	compile project( ":AmeliaCommonLib" )
+	compile project( ":AmeliaStorageLib" )
 
 	// Used for Groovy Scripting
 	compile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.4.9'
