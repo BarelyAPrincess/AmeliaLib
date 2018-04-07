@@ -15,7 +15,7 @@ public class ConfigStorageLoader implements ConfigRegistryLoader
 	{
 		try
 		{
-			new ContainerToStackerMethod( new FileStorageDriver( Kernel.getPath( Kernel.PATH_CONFIG, true ) ) ).toStacker( config, ConfigMap::new );
+			new ContainerToStackerMethod().toStacker( new FileStorageDriver( Kernel.getPath( Kernel.PATH_CONFIG, true ) ), config, ConfigMap::new );
 		}
 		catch ( StorageException.Error e )
 		{

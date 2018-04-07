@@ -6,6 +6,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import io.amelia.lang.StorageException;
 import io.amelia.storage.StorageContainerTrait;
@@ -21,14 +22,7 @@ import io.amelia.support.data.StackerWithValue;
 
 public class ContainerToStackerMethod implements StorageMethod
 {
-	private final StorageContainerTrait storageContainer;
-
-	public ContainerToStackerMethod( @Nonnull StorageContainerTrait storageContainer )
-	{
-		this.storageContainer = storageContainer;
-	}
-
-	public <Stacker extends StackerWithValue> void toStacker( @Nonnull Stacker parcel, @Nonnull Supplier<Stacker> supplier, @Nonnull StorageContainerTrait storageContainer, @Nonnull String nestingPrefix ) throws StorageException.Error
+	public <Stacker extends StackerWithValue> void toStacker( @Nonnull StorageContainerTrait storageContainer, @Nonnull Stacker parcel, @Nonnull Supplier<Stacker> supplier, @Nonnull String nestingPrefix ) throws StorageException.Error
 	{
 		for ( StorageEntry nextEntry : storageContainer.streamEntries( new ParcelStorageMapper() ).collect( Collectors.toList() ) )
 		{
@@ -37,7 +31,7 @@ public class ContainerToStackerMethod implements StorageMethod
 			try
 			{
 				if ( nextEntry.isContainer() )
-					toStacker( parcel, supplier, ( StorageContainerTrait ) nextEntry, newNestingPrefix );
+					toStacker( ( StorageContainerTrait ) nextEntry, parcel, supplier, newNestingPrefix );
 				else
 					( ( StorageEntryConfig ) nextEntry ).parseToStacker( parcel, supplier, newNestingPrefix );
 			}
@@ -48,15 +42,16 @@ public class ContainerToStackerMethod implements StorageMethod
 		}
 	}
 
-	public <Stacker extends StackerWithValue> void toStacker( @Nonnull Stacker stacker, @Nonnull Supplier<Stacker> supplier ) throws StorageException.Error
+	public <Stacker extends StackerWithValue> void toStacker( @Nonnull StorageContainerTrait storageContainer, @Nonnull Stacker stacker, @Nonnull Supplier<Stacker> supplier ) throws StorageException.Error
 	{
-		toStacker( stacker, supplier, storageContainer, "" );
+		toStacker( storageContainer, stacker, supplier, "" );
 	}
 
 	private class ParcelStorageMapper implements StorageMapper
 	{
+		@Nullable
 		@Override
-		public StorageEntry mapStorageContext( StorageContext storageContext ) throws StorageException.Error
+		public StorageEntry mapStorageContext( @Nonnull StorageContext storageContext ) throws StorageException.Error
 		{
 			try
 			{

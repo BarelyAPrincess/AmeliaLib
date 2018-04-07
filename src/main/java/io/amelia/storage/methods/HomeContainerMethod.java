@@ -14,20 +14,30 @@ import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import io.amelia.lang.StorageException;
+import io.amelia.storage.StorageContainerTrait;
+import io.amelia.storage.StorageContext;
+import io.amelia.storage.StorageEntry;
 import io.amelia.storage.StorageEntryContainer;
+import io.amelia.storage.StorageMapper;
 import io.amelia.storage.StorageMethod;
 
 public class HomeContainerMethod implements StorageMethod
 {
-	private final StorageEntryContainer directoryStorageEntry;
-
-	public HomeContainerMethod( @Nonnull StorageEntryContainer directoryStorageEntry )
+	public Stream<StorageEntryContainer> getEntries( @Nonnull StorageContainerTrait storageContainer, @Nullable String regexPattern )
 	{
-		this.directoryStorageEntry = directoryStorageEntry;
+		return storageContainer.streamEntriesRecursive( regexPattern, StorageEntryContainer.class, new HomeContainerStorageMapper() );
 	}
 
-	public Stream<StorageEntryContainer> getEntries( @Nullable String regexPattern )
+	private class HomeContainerStorageMapper implements StorageMapper
 	{
-		return directoryStorageEntry.streamEntriesRecursive( regexPattern, StorageEntryContainer.class );
+		@Nullable
+		@Override
+		public StorageEntry mapStorageContext( @Nonnull StorageContext storageContext ) throws StorageException.Error
+		{
+			if ( storageContext.isContainer() )
+				return null;
+			return new HomeStorageEntry( storageContext );
+		}
 	}
 }

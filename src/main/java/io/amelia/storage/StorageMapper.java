@@ -1,8 +1,12 @@
 package io.amelia.storage;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import io.amelia.lang.StorageException;
 
 public interface StorageMapper
 {
-	StorageEntry mapStorageContext( StorageContext storageContext ) throws StorageException.Error;
+	@Nullable
+	StorageEntry mapStorageContext( @Nonnull StorageContext storageContext ) throws StorageException.Error;
 }

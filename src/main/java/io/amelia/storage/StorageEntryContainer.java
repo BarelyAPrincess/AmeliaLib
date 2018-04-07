@@ -9,7 +9,6 @@
  */
 package io.amelia.storage;
 
-import java.io.IOException;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
@@ -19,7 +18,7 @@ import io.amelia.lang.StorageException;
 
 public class StorageEntryContainer extends StorageEntry implements StorageContainerTrait
 {
-	public StorageEntryContainer( @Nonnull StorageContext storageContext ) throws IOException
+	public StorageEntryContainer( @Nonnull StorageContext storageContext )
 	{
 		super( storageContext );
 	}
