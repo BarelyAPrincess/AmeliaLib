@@ -9,13 +9,13 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import io.amelia.lang.StorageException;
+import io.amelia.storage.StorageContainerEntry;
 import io.amelia.storage.StorageContainerTrait;
 import io.amelia.storage.StorageContext;
 import io.amelia.storage.StorageEntry;
-import io.amelia.storage.StorageEntryContainer;
-import io.amelia.storage.StorageEntryObject;
 import io.amelia.storage.StorageMapper;
 import io.amelia.storage.StorageMethod;
+import io.amelia.storage.StorageObjectEntry;
 import io.amelia.support.Strs;
 import io.amelia.support.data.ParcelLoader;
 import io.amelia.support.data.StackerWithValue;
@@ -55,7 +55,7 @@ public class ContainerToStackerMethod implements StorageMethod
 		{
 			try
 			{
-				return storageContext.isContainer() ? new StorageEntryContainer( storageContext ) : new StorageEntryConfig( storageContext );
+				return storageContext.isContainer() ? new StorageContainerEntry( storageContext ) : new StorageEntryConfig( storageContext );
 			}
 			catch ( IOException e )
 			{
@@ -64,7 +64,7 @@ public class ContainerToStackerMethod implements StorageMethod
 		}
 	}
 
-	private class StorageEntryConfig extends StorageEntryObject
+	private class StorageEntryConfig extends StorageObjectEntry
 	{
 		public StorageEntryConfig( StorageContext storageContext ) throws IOException
 		{

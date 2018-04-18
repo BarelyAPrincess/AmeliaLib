@@ -9,7 +9,7 @@
  */
 package io.amelia.storage;
 
-public abstract class StorageDriver implements StorageContainerTrait
+public abstract class StorageBackend implements StorageContainerTrait
 {
 	public StorageMapper getMapper()
 	{

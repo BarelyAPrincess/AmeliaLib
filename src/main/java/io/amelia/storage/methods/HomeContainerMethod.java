@@ -15,18 +15,26 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import io.amelia.lang.StorageException;
+import io.amelia.storage.StorageContainerEntry;
+import io.amelia.storage.StorageContainerPolicy;
 import io.amelia.storage.StorageContainerTrait;
 import io.amelia.storage.StorageContext;
 import io.amelia.storage.StorageEntry;
-import io.amelia.storage.StorageEntryContainer;
 import io.amelia.storage.StorageMapper;
 import io.amelia.storage.StorageMethod;
 
 public class HomeContainerMethod implements StorageMethod
 {
-	public Stream<StorageEntryContainer> getEntries( @Nonnull StorageContainerTrait storageContainer, @Nullable String regexPattern )
+	public final StorageContainerPolicy policy;
+
+	public HomeContainerMethod( StorageContainerPolicy policy )
 	{
-		return storageContainer.streamEntriesRecursive( regexPattern, StorageEntryContainer.class, new HomeContainerStorageMapper() );
+		this.policy = policy;
+	}
+
+	public Stream<StorageContainerEntry> getEntries( @Nonnull StorageContainerTrait storageContainer, @Nullable String regexPattern )
+	{
+		return storageContainer.streamEntriesRecursive( regexPattern, StorageContainerEntry.class, new HomeContainerStorageMapper() );
 	}
 
 	private class HomeContainerStorageMapper implements StorageMapper
@@ -35,9 +43,9 @@ public class HomeContainerMethod implements StorageMethod
 		@Override
 		public StorageEntry mapStorageContext( @Nonnull StorageContext storageContext ) throws StorageException.Error
 		{
-			if ( storageContext.isContainer() )
+			if ( !storageContext.isContainer() )
 				return null;
-			return new HomeStorageEntry( storageContext );
+			return new HomeStorageEntry( storageContext, policy );
 		}
 	}
 }

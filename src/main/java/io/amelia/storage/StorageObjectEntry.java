@@ -8,15 +8,17 @@ import io.amelia.support.NIO;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
-public class StorageEntryObject extends StorageEntry
+public class StorageObjectEntry extends StorageEntry
 {
 	private ByteBuf content;
 
-	public StorageEntryObject( @Nonnull StorageContext storageContext ) throws IOException
+	public StorageObjectEntry( @Nonnull StorageContext storageContext ) throws IOException
 	{
 		super( storageContext );
 
 		content = storageContext.getContent();
+
+
 	}
 
 	public ByteBuf getContent()

@@ -1,9 +1,9 @@
 package io.amelia.storage.file;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 
 import javax.annotation.Nonnull;
@@ -14,20 +14,20 @@ import io.amelia.support.IO;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
-public class FileStorageContext extends StorageContext<FileStorageDriver>
+public class FileStorageContext extends StorageContext<FileStorageBackend>
 {
-	private final File file;
 	private final BasicFileAttributes fileAttr;
+	private final Path path;
 
-	public FileStorageContext( @Nonnull FileStorageDriver storageDriver, File file ) throws StorageException.Error
+	public FileStorageContext( @Nonnull FileStorageBackend backend, Path path ) throws StorageException.Error
 	{
-		super( storageDriver );
+		super( backend );
 
-		this.file = file;
+		this.path = path;
 
 		try
 		{
-			this.fileAttr = Files.readAttributes( file.toPath(), BasicFileAttributes.class );
+			this.fileAttr = Files.readAttributes( path, BasicFileAttributes.class );
 		}
 		catch ( IOException e )
 		{
@@ -38,7 +38,7 @@ public class FileStorageContext extends StorageContext<FileStorageDriver>
 	@Override
 	public ByteBuf getContent() throws IOException
 	{
-		return Unpooled.wrappedBuffer( IO.readStreamToNIOBuffer( new FileInputStream( file ) ) );
+		return Unpooled.wrappedBuffer( IO.readStreamToNIOBuffer( new FileInputStream( path.toFile() ) ) );
 	}
 
 	@Override
@@ -62,18 +62,18 @@ public class FileStorageContext extends StorageContext<FileStorageDriver>
 	@Override
 	public String getLocalName()
 	{
-		return file.getName();
+		return path.getFileName().toString();
 	}
 
 	@Override
 	public String getPath()
 	{
-		return IO.relPath( file.getParentFile(), storageDriver.getDirectory() ).replaceAll( "\\\\", "/" );
+		return IO.relPath( path.getParent(), backend.getDirectory() ).replaceAll( "\\\\", "/" );
 	}
 
 	@Override
 	public boolean isContainer()
 	{
-		return file.isDirectory();
+		return Files.isDirectory( path );
 	}
 }

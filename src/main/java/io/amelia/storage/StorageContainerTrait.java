@@ -9,6 +9,31 @@ import io.amelia.lang.StorageException;
 
 public interface StorageContainerTrait
 {
+	@Nonnull
+	default StorageContainerEntry createContainerEntry( @Nonnull String localName ) throws StorageException.Error
+	{
+		return createContainerEntry( localName, null );
+	}
+
+	@Nonnull
+	StorageContainerEntry createContainerEntry( @Nonnull String localName, @Nullable StorageMapper storageMapper ) throws StorageException.Error;
+
+	@Nonnull
+	default StorageObjectEntry createObjectEntry( @Nonnull String localName ) throws StorageException.Error
+	{
+		return createObjectEntry( localName, null );
+	}
+
+	@Nonnull
+	StorageObjectEntry createObjectEntry( @Nonnull String localName, @Nullable StorageMapper storageMapper ) throws StorageException.Error;
+
+	default boolean deleteEntry( @Nonnull StorageEntry storageEntry )
+	{
+		return deleteEntry( storageEntry.getFullPath() );
+	}
+
+	boolean deleteEntry( @Nonnull String localName );
+
 	default StorageEntry getEntry( @Nonnull String localName ) throws StorageException.Error
 	{
 		return getEntry( localName, null );

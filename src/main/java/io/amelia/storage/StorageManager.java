@@ -22,7 +22,7 @@ public class StorageManager
 	public static StorageEntry getEntry( @Nonnull StorageContext storageContext, @Nullable StorageMapper storageMapper ) throws StorageException.Error
 	{
 		if ( storageMapper == null )
-			storageMapper = storageContext.getStorageDriver().getMapper();
+			storageMapper = storageContext.getStorageBackend().getMapper();
 
 		return storageMapper.mapStorageContext( storageContext );
 	}

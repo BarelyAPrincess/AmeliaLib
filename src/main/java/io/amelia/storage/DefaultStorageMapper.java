@@ -14,7 +14,7 @@ public class DefaultStorageMapper implements StorageMapper
 	{
 		try
 		{
-			return storageContext.isContainer() ? new StorageEntryContainer( storageContext ) : new StorageEntry( storageContext );
+			return storageContext.isContainer() ? new StorageContainerEntry( storageContext ) : new StorageObjectEntry( storageContext );
 		}
 		catch ( IOException e )
 		{

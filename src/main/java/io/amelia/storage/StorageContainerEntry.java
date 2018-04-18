@@ -16,17 +16,37 @@ import javax.annotation.Nullable;
 
 import io.amelia.lang.StorageException;
 
-public class StorageEntryContainer extends StorageEntry implements StorageContainerTrait
+public class StorageContainerEntry extends StorageEntry implements StorageContainerTrait
 {
-	public StorageEntryContainer( @Nonnull StorageContext storageContext )
+	public StorageContainerEntry( @Nonnull StorageContext storageContext )
 	{
 		super( storageContext );
 	}
 
+	@Nonnull
 	@Override
-	public StorageEntry getEntry( @Nonnull String path, @Nullable StorageMapper storageMapper ) throws StorageException.Error
+	public StorageContainerEntry createContainerEntry( @Nonnull String localName, @Nullable StorageMapper storageMapper ) throws StorageException.Error
 	{
-		return getStorageDriver().getEntry( getFullPath() + "/" + path, storageMapper );
+		return getStorageDriver().createContainerEntry( getFullPath() + "/" + localName, storageMapper );
+	}
+
+	@Nonnull
+	@Override
+	public StorageObjectEntry createObjectEntry( @Nonnull String localName, @Nullable StorageMapper storageMapper ) throws StorageException.Error
+	{
+		return getStorageDriver().createObjectEntry( getFullPath() + "/" + localName, storageMapper );
+	}
+
+	@Override
+	public boolean deleteEntry( @Nonnull String localName )
+	{
+		return getStorageDriver().deleteEntry( localName );
+	}
+
+	@Override
+	public StorageEntry getEntry( @Nonnull String localName, @Nullable StorageMapper storageMapper ) throws StorageException.Error
+	{
+		return getStorageDriver().getEntry( getFullPath() + "/" + localName, storageMapper );
 	}
 
 	@Override
@@ -36,21 +56,15 @@ public class StorageEntryContainer extends StorageEntry implements StorageContai
 	}
 
 	@Override
-	public Stream<StorageEntry> streamEntries( @Nullable StorageMapper storageMapper )
-	{
-		return getStorageDriver().streamEntries( storageMapper );
-	}
-
-	@Override
 	public <Entry extends StorageEntry> Stream<Entry> streamEntries( @Nonnull Class<Entry> storageEntryClass, @Nullable StorageMapper storageMapper )
 	{
 		return getStorageDriver().streamEntries( storageEntryClass, storageMapper );
 	}
 
 	@Override
-	public Stream<StorageEntry> streamEntriesRecursive( @Nullable StorageMapper storageMapper )
+	public Stream<StorageEntry> streamEntries( @Nullable StorageMapper storageMapper )
 	{
-		return getStorageDriver().streamEntriesRecursive( storageMapper );
+		return getStorageDriver().streamEntries( storageMapper );
 	}
 
 	@Override
@@ -69,5 +83,11 @@ public class StorageEntryContainer extends StorageEntry implements StorageContai
 	public <Entry extends StorageEntry> Stream<Entry> streamEntriesRecursive( @Nullable String regexPattern, @Nonnull Class<Entry> storageEntryClass, @Nullable StorageMapper storageMapper )
 	{
 		return getStorageDriver().streamEntriesRecursive( regexPattern, storageEntryClass, storageMapper );
+	}
+
+	@Override
+	public Stream<StorageEntry> streamEntriesRecursive( @Nullable StorageMapper storageMapper )
+	{
+		return getStorageDriver().streamEntriesRecursive( storageMapper );
 	}
 }

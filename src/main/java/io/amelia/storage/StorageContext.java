@@ -6,13 +6,13 @@ import javax.annotation.Nonnull;
 
 import io.netty.buffer.ByteBuf;
 
-public abstract class StorageContext<Driver extends StorageDriver>
+public abstract class StorageContext<Backend extends StorageBackend>
 {
-	protected final Driver storageDriver;
+	protected final Backend backend;
 
-	public StorageContext( @Nonnull Driver storageDriver )
+	public StorageContext( @Nonnull Backend backend )
 	{
-		this.storageDriver = storageDriver;
+		this.backend = backend;
 	}
 
 	public abstract ByteBuf getContent() throws IOException;
@@ -27,9 +27,9 @@ public abstract class StorageContext<Driver extends StorageDriver>
 
 	public abstract String getPath();
 
-	public Driver getStorageDriver()
+	public Backend getStorageBackend()
 	{
-		return storageDriver;
+		return backend;
 	}
 
 	public abstract boolean isContainer();

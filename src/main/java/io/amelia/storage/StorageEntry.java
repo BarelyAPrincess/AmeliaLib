@@ -29,6 +29,16 @@ public abstract class StorageEntry
 		this.storageContext = storageContext;
 	}
 
+	/**
+	 * Delete the entry from the storage backend.
+	 *
+	 * @return Was deletion a success?
+	 */
+	public boolean delete()
+	{
+		return storageContext.backend.deleteEntry( this );
+	}
+
 	public String getFullPath()
 	{
 		return storageContext.getPath() + "/" + storageContext.getLocalName();
@@ -44,9 +54,9 @@ public abstract class StorageEntry
 		return storageContext.getPath();
 	}
 
-	public StorageDriver getStorageDriver()
+	public StorageBackend getStorageDriver()
 	{
-		return storageContext.getStorageDriver();
+		return storageContext.getStorageBackend();
 	}
 
 	public abstract boolean isContainer();

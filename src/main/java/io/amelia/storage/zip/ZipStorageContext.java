@@ -12,14 +12,14 @@ import io.amelia.support.IO;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
-public class ZipStorageContext extends StorageContext<ZipStorageDriver>
+public class ZipStorageContext extends StorageContext<ZipStorageBackend>
 {
 	private final InputStream inputStream;
 	private final ZipEntry zipEntry;
 
-	public ZipStorageContext( @Nonnull ZipStorageDriver storageDriver, @Nonnull ZipEntry zipEntry, @Nonnull InputStream inputStream ) throws StorageException.Error
+	public ZipStorageContext( @Nonnull ZipStorageBackend backend, @Nonnull ZipEntry zipEntry, @Nonnull InputStream inputStream ) throws StorageException.Error
 	{
-		super( storageDriver );
+		super( backend );
 
 		this.zipEntry = zipEntry;
 		this.inputStream = inputStream;
