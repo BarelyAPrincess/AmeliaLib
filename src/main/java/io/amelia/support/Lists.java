@@ -12,6 +12,7 @@ package io.amelia.support;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -176,6 +177,12 @@ public class Lists
 	public static <T> List<T> newArrayList( T... elements )
 	{
 		return new ArrayList<>( Arrays.asList( elements ) );
+	}
+
+	@SafeVarargs
+	public static <T> Set<T> newHashSet( T... elements )
+	{
+		return new HashSet<>( Arrays.asList( elements ) );
 	}
 
 	public static <T> List<T> subList( @Nonnull List<T> list, int start, int length )

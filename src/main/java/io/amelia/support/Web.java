@@ -15,7 +15,6 @@ import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -23,6 +22,8 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
@@ -50,6 +51,16 @@ public class Web
 
 	public static void downloadFile( String url, File dest, BiConsumer<Long, Integer> progressConsumer ) throws IOException
 	{
+		downloadFile( url, dest.toPath(), progressConsumer );
+	}
+
+	public static void downloadFile( String url, Path destPath ) throws IOException
+	{
+		downloadFile( url, destPath, null );
+	}
+
+	public static void downloadFile( String url, Path destPath, BiConsumer<Long, Integer> progressConsumer ) throws IOException
+	{
 		InputStream is = null;
 		OutputStream os = null;
 
@@ -59,7 +70,7 @@ public class Web
 
 			int length = conn.getContentLength();
 			is = conn.getInputStream();
-			os = new FileOutputStream( dest );
+			os = Files.newOutputStream( destPath );
 
 			IO.copyLarge( is, os, progressConsumer == null ? null : ( progress, count ) -> {
 				progressConsumer.accept( progress, length < 0 ? count : length );

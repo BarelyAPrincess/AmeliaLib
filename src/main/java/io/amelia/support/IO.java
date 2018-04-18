@@ -31,12 +31,18 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.PosixFilePermission;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
@@ -151,7 +157,7 @@ public class IO
 
 	public static File buildFile( File file, String... args )
 	{
-		return new File( file, buildPath( args ) );
+		return new File( file, joinPath( args ) );
 	}
 
 	public static File buildFile( String... args )
@@ -159,9 +165,19 @@ public class IO
 		return buildFile( false, args );
 	}
 
-	public static String buildPath( @Nonnull String... paths )
+	public static Path buildPath( boolean absolute, String... args )
 	{
-		return Arrays.stream( paths ).filter( n -> !Objs.isEmpty( n ) ).map( n -> Strs.trimAll( n, '/' ) ).collect( Collectors.joining( PATH_SEPERATOR ) );
+		return Paths.get( ( absolute ? PATH_SEPERATOR : "" ) + buildPath( args ) );
+	}
+
+	public static Path buildPath( Path file, String... args )
+	{
+		return Paths.get( joinPath( args ) ).resolve( file );
+	}
+
+	public static Path buildPath( String... args )
+	{
+		return buildPath( false, args );
 	}
 
 	public static Byte[] bytesToBytes( byte[] bytes )
@@ -211,41 +227,48 @@ public class IO
 		return ( int ) count;
 	}
 
+	public static boolean copy( File inFile, File outFile )
+	{
+		return copy( inFile.toPath(), outFile.toPath() );
+	}
+
 	/**
 	 * This method copies one file to another location
 	 *
-	 * @param inFile  the source filename
-	 * @param outFile the target filename
+	 * @param inPath  the source filename
+	 * @param outPath the target filename
 	 *
 	 * @return true on success
 	 */
 	@SuppressWarnings( "resource" )
-	public static boolean copy( File inFile, File outFile )
+	public static boolean copy( Path inPath, Path outPath )
 	{
-		if ( !inFile.exists() )
+		if ( !Files.exists( inPath ) )
 			return false;
 
-		if ( inFile.isDirectory() )
+		if ( Files.isDirectory( inPath ) )
 		{
-			outFile.mkdirs();
-			for ( File file : inFile.listFiles() )
-				copy( file, new File( outFile, file.getName() ) );
+			try
+			{
+				forceCreateDirectory( outPath );
+				Files.list( inPath ).forEach( file -> copy( file, file.getFileName().resolve( outPath ) ) );
+			}
+			catch ( IOException e )
+			{
+				return false;
+			}
 		}
 		else
 		{
-			FileChannel in = null;
-			FileChannel out = null;
+			InputStream in = null;
+			OutputStream out = null;
 
 			try
 			{
-				in = new FileInputStream( inFile ).getChannel();
-				out = new FileOutputStream( outFile ).getChannel();
+				in = Files.newInputStream( inPath );
+				out = Files.newOutputStream( outPath );
 
-				long pos = 0;
-				long size = in.size();
-
-				while ( pos < size )
-					pos += in.transferTo( pos, 10 * 1024 * 1024, out );
+				copy( in, out );
 			}
 			catch ( IOException ioe )
 			{
@@ -253,17 +276,8 @@ public class IO
 			}
 			finally
 			{
-				try
-				{
-					if ( in != null )
-						in.close();
-					if ( out != null )
-						out.close();
-				}
-				catch ( IOException ioe )
-				{
-					return false;
-				}
+				closeQuietly( in );
+				closeQuietly( out );
 			}
 		}
 
@@ -303,6 +317,27 @@ public class IO
 	private static long copyToFile( InputStream inputStream, File file ) throws IOException
 	{
 		return copy( inputStream, new FileOutputStream( file ) );
+	}
+
+	private static long copyToPath( InputStream inputStream, Path path ) throws IOException
+	{
+		return copy( inputStream, new FileOutputStream( path.toFile() ) );
+	}
+
+	public static void deleteIfExists( File file ) throws IOException
+	{
+		deleteIfExists( file.toPath() );
+	}
+
+	public static void deleteIfExists( Path path ) throws IOException
+	{
+		if ( !Files.exists( path ) )
+			return;
+
+		if ( Files.isDirectory( path, LinkOption.NOFOLLOW_LINKS ) )
+			Streams.forEachWithException( Files.list( path ), IO::deleteIfExists );
+
+		Files.delete( path );
 	}
 
 	public static String dirname( @Nonnull File path )
@@ -399,17 +434,17 @@ public class IO
 		return result;
 	}
 
-	public static void extractLibraries( File jarFile, File baseDir )
+	public static void extractLibraries( @Nonnull Path jarPath, @Nonnull Path basePath )
 	{
 		try
 		{
-			baseDir = new File( baseDir, "libraries" );
-			// FileFunc.directoryHealthCheck( baseDir );
+			basePath = Paths.get( "libraries" ).resolve( basePath );
+			forceCreateDirectory( basePath );
 
-			if ( jarFile == null || !jarFile.exists() || !jarFile.getName().endsWith( ".jar" ) )
+			if ( !Files.isRegularFile( jarPath ) || jarPath.getFileName().toString().toLowerCase().endsWith( ".jar" ) )
 				L.severe( "There was a problem with the provided jar file, it was either null, not existent or did not end with jar." );
 
-			JarFile jar = new JarFile( jarFile );
+			JarFile jar = new JarFile( jarPath.toFile() );
 
 			try
 			{
@@ -423,14 +458,14 @@ public class IO
 						JarEntry entry = entries.nextElement();
 						if ( entry.getName().startsWith( libDir.getName() ) && !entry.isDirectory() && entry.getName().endsWith( ".jar" ) )
 						{
-							File lib = new File( baseDir, entry.getName().substring( libDir.getName().length() + 1 ) );
+							Path lib = Paths.get( entry.getName().substring( libDir.getName().length() + 1 ) ).resolve( basePath );
 
-							if ( !lib.exists() )
+							if ( !Files.exists( lib ) )
 							{
-								lib.getParentFile().mkdirs();
-								L.info( EnumColor.GOLD + "Extracting bundled library '" + entry.getName() + "' to '" + lib.getAbsolutePath() + "'." );
+								forceCreateDirectory( lib.getParent() );
+								L.info( EnumColor.GOLD + "Extracting bundled library '" + entry.getName() + "' to '" + lib.toString() + "'." );
 								InputStream is = jar.getInputStream( entry );
-								FileOutputStream out = new FileOutputStream( lib );
+								OutputStream out = Files.newOutputStream( lib );
 								copy( is, out );
 								is.close();
 								out.close();
@@ -448,22 +483,22 @@ public class IO
 		}
 		catch ( Throwable t )
 		{
-			L.severe( "We had a problem extracting bundled libraries from jar file '" + jarFile.getAbsolutePath() + "'", t );
+			L.severe( "We had a problem extracting bundled libraries from jar file '" + jarPath.toString() + "'", t );
 		}
 	}
 
-	public static boolean extractNatives( File libFile, File baseDir ) throws IOException
+	public static boolean extractNatives( @Nonnull Path libPath, @Nonnull Path basePath ) throws IOException
 	{
 		List<String> nativesExtracted = new ArrayList<>();
 		boolean foundArchMatchingNative = false;
 
-		baseDir = new File( baseDir, "natives" );
-		// FileFunc.directoryHealthCheck( baseDir );
+		basePath = Paths.get( "natives" ).resolve( basePath );
+		forceCreateDirectory( basePath );
 
-		if ( libFile == null || !libFile.exists() || !libFile.getName().endsWith( ".jar" ) )
-			throw new IOException( "There was a problem with the provided jar file, it was either null, not existent or did not end with jar." );
+		if ( !Files.isRegularFile( libPath ) || libPath.getFileName().toString().toLowerCase().endsWith( ".jar" ) )
+			throw new IOException( "The library " + libPath.toString() + " either does not exist or is not a jar file." );
 
-		JarFile jar = new JarFile( libFile );
+		JarFile jar = new JarFile( libPath.toFile() );
 		Enumeration<JarEntry> entries = jar.entries();
 
 		while ( entries.hasMoreElements() )
@@ -490,17 +525,18 @@ public class IO
 					if ( Arrays.asList( OSInfo.NATIVE_SEARCH_PATHS ).contains( parent ) )
 						foundArchMatchingNative = true;
 
-					File lib = new File( baseDir, newName );
+					Path lib = Paths.get( newName ).resolve( basePath );
 
-					if ( lib.exists() && nativesExtracted.contains( lib.getAbsolutePath() ) )
-						L.warning( EnumColor.GOLD + "We detected more than one file with the destination '" + lib.getAbsolutePath() + "', if these files from for different architectures, you might need to separate them into their separate folders, i.e., windows, linux-x86, linux-x86_64, etc." );
+					if ( Files.exists( lib ) && nativesExtracted.contains( lib.toString() ) )
+						;
+					L.warning( EnumColor.GOLD + "We found more than one library with the same destination '" + lib.toString() + "', if these files for different architectures, they must be in separate directories, i.e., windows, linux-x86, linux-x86_64, etc." );
 
-					if ( !lib.exists() )
+					if ( Files.exists( lib ) )
 					{
-						lib.getParentFile().mkdirs();
-						L.info( EnumColor.GOLD + "Extracting native library '" + entry.getName() + "' to '" + lib.getAbsolutePath() + "'." );
+						forceCreateDirectory( lib );
+						L.info( EnumColor.GOLD + "Extracting native library '" + entry.getName() + "' to '" + lib.toString() + "'." );
 						InputStream is = jar.getInputStream( entry );
-						FileOutputStream out = new FileOutputStream( lib );
+						OutputStream out = Files.newOutputStream( lib );
 						byte[] buf = new byte[0x1000];
 						while ( true )
 						{
@@ -513,13 +549,13 @@ public class IO
 						out.close();
 					}
 
-					if ( !nativesExtracted.contains( lib.getAbsolutePath() ) )
-						nativesExtracted.add( lib.getAbsolutePath() );
+					if ( !nativesExtracted.contains( lib.toString() ) )
+						nativesExtracted.add( lib.toString() );
 				}
 				catch ( FileNotFoundException e )
 				{
 					jar.close();
-					throw new IOException( "We had a problem extracting native library '" + entry.getName() + "' from jar file '" + libFile.getAbsolutePath() + "'", e );
+					throw new IOException( "There was a problem extracting native library '" + entry.getName() + "' from jar file '" + libPath.toString() + "'", e );
 				}
 		}
 
@@ -528,9 +564,9 @@ public class IO
 		if ( nativesExtracted.size() > 0 )
 		{
 			if ( !foundArchMatchingNative )
-				L.warning( "We found native libraries contained within jar '" + libFile.getAbsolutePath() + "' but according to conventions none of them had the required architecture, the dependency may fail to load the required native if our theory is correct." );
+				L.warning( "We found native libraries contained within jar '" + libPath.toString() + "' but according to conventions none of them had the required architecture, the dependency may fail to load the required native if our theory is correct." );
 
-			String path = baseDir.getAbsolutePath().contains( " " ) ? "\"" + baseDir.getAbsolutePath() + "\"" : baseDir.getAbsolutePath();
+			String path = basePath.toString().contains( " " ) ? "\"" + basePath.toString() + "\"" : basePath.toString();
 			System.setProperty( "java.library.path", System.getProperty( "java.library.path" ) + ":" + path );
 
 			try
@@ -541,26 +577,26 @@ public class IO
 			}
 			catch ( NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e )
 			{
-				L.severe( "We could not force the ClassAppLoader to reinitialize the LD_LIBRARY_PATH variable. You may need to set '-Djava.library.path=" + baseDir.getAbsolutePath() + "' on next load because one or more dependencies may fail to load their native libraries.", e );
+				L.severe( "We could not force the ClassAppLoader to reinitialize the LD_LIBRARY_PATH variable. You may need to set '-Djava.library.path=" + basePath.toString() + "' on next load because one or more dependencies may fail to load their native libraries.", e );
 			}
 		}
 
 		return nativesExtracted.size() > 0;
 	}
 
-	public static boolean extractNatives( Map<String, List<String>> natives, File libFile, File baseDir ) throws IOException
+	public static boolean extractNatives( @Nonnull Map<String, List<String>> natives, @Nonnull Path libPath, @Nonnull Path basePath ) throws IOException
 	{
 		if ( !Objs.containsKeys( natives, Arrays.asList( OSInfo.NATIVE_SEARCH_PATHS ) ) )
-			L.warning( String.format( "%sWe were unable to locate any natives libraries that match architectures '%s' within plugin '%s'.", EnumColor.DARK_GRAY, Strs.join( OSInfo.NATIVE_SEARCH_PATHS ), libFile.getAbsolutePath() ) );
+			L.warning( String.format( "%sWe were unable to locate any natives libraries that match architectures '%s' within plugin '%s'.", EnumColor.DARK_GRAY, Strs.join( OSInfo.NATIVE_SEARCH_PATHS ), libPath.toString() ) );
 
 		List<String> nativesExtracted = new ArrayList<>();
-		baseDir = new File( baseDir, "natives" );
-		// FileFunc.directoryHealthCheck( baseDir );
+		basePath = Paths.get( "natives" ).resolve( basePath );
+		forceCreateDirectory( basePath );
 
-		if ( libFile == null || !libFile.exists() || !libFile.getName().endsWith( ".jar" ) )
-			throw new IOException( "There was a problem with the provided jar file, it was either null, not existent or did not end with jar." );
+		if ( !Files.isRegularFile( libPath ) || libPath.getFileName().toString().toLowerCase().endsWith( ".jar" ) )
+			throw new IOException( "The jar file " + libPath.toString() + " either does not exist or is not a jar file." );
 
-		JarFile jar = new JarFile( libFile );
+		JarFile jar = new JarFile( libPath.toFile() );
 
 		for ( String arch : OSInfo.NATIVE_SEARCH_PATHS )
 		{
@@ -576,15 +612,15 @@ public class IO
 							entry = jar.getEntry( "natives/" + lib );
 
 							if ( entry == null || entry.isDirectory() )
-								L.warning( String.format( "We were unable to load the native lib '%s' for arch '%s' for it was non-existent (or it's a directory) within plugin '%s'.", lib, arch, libFile ) );
+								L.warning( String.format( "We were unable to load the native lib '%s' for arch '%s' for it was non-existent (or it's a directory) within plugin '%s'.", lib, arch, libPath ) );
 						}
 
 						if ( entry != null && !entry.isDirectory() )
 						{
 							if ( !entry.getName().endsWith( ".so" ) && !entry.getName().endsWith( ".dll" ) && !entry.getName().endsWith( ".jnilib" ) && !entry.getName().endsWith( ".dylib" ) )
-								L.warning( String.format( "We found native lib '%s' for arch '%s' within plugin '%s', but it did not end with a known native library ext. We will extract it anyways but you may have problems.", lib, arch, libFile ) );
+								L.warning( String.format( "We found native lib '%s' for arch '%s' within plugin '%s', but it did not end with a known native library ext. We will extract it anyways but you may have problems.", lib, arch, libPath ) );
 
-							File newNative = new File( baseDir + "/" + arch + "/" + new File( entry.getName() ).getName() );
+							File newNative = new File( basePath + "/" + arch + "/" + new File( entry.getName() ).getName() );
 
 							if ( !newNative.exists() )
 							{
@@ -604,7 +640,7 @@ public class IO
 					catch ( FileNotFoundException e )
 					{
 						jar.close();
-						throw new IOException( String.format( "We had a problem extracting native library '%s' from jar file '%s'", lib, libFile.getAbsolutePath() ), e );
+						throw new IOException( String.format( "We had a problem extracting native library '%s' from jar file '%s'", lib, libPath.toString() ), e );
 					}
 		}
 
@@ -614,9 +650,9 @@ public class IO
 		if ( nativesExtracted.size() > 0 )
 		{
 			LibraryPath path = new LibraryPath();
-			path.add( baseDir.getAbsolutePath() );
+			path.add( basePath.toString() );
 			for ( String arch : OSInfo.NATIVE_SEARCH_PATHS )
-				path.add( baseDir.getAbsolutePath() + "/" + arch );
+				path.add( basePath.toString() + "/" + arch );
 			path.set();
 
 			try
@@ -627,28 +663,26 @@ public class IO
 			}
 			catch ( NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e )
 			{
-				L.severe( "We could not force the ClassAppLoader to reinitialize the LD_LIBRARY_PATH variable. You may need to set '-Djava.library.path=" + baseDir.getAbsolutePath() + "' on next load because one or more dependencies may fail to load their native libraries.", e );
+				L.severe( "We could not force the ClassAppLoader to reinitialize the LD_LIBRARY_PATH variable. You may need to set '-Djava.library.path=" + basePath.toString() + "' on next load because one or more dependencies may fail to load their native libraries.", e );
 			}
 		}
 
 		return nativesExtracted.size() > 0;
 	}
 
-	public static void extractResourceDirectory( String path, File dest ) throws IOException
+	public static void extractResourceDirectory( String path, Path dest ) throws IOException
 	{
 		extractResourceDirectory( path, dest, IO.class );
 	}
 
-	public static void extractResourceDirectory( @Nonnull String path, @Nonnull File dest, @Nonnull Class<?> clazz ) throws IOException
+	public static void extractResourceDirectory( @Nonnull String path, @Nonnull Path dest, @Nonnull Class<?> clazz ) throws IOException
 	{
 		Objs.notEmpty( path );
 		Objs.notNull( dest );
 		Objs.notNull( clazz );
 
-		dest = dest.getAbsoluteFile();
-
-		if ( !dest.isDirectory() )
-			throw new IOException( "Specified dest '" + IO.relPath( dest ) + "' is not a directory or does not exist." );
+		if ( !Files.isDirectory( dest ) )
+			throw new IOException( "Specified destination '" + IO.relPath( dest ) + "' is not a directory or does not exist." );
 
 		final File jarFile = new File( clazz.getProtectionDomain().getCodeSource().getLocation().getPath() );
 
@@ -661,13 +695,13 @@ public class IO
 				final JarEntry entry = entries.nextElement();
 				if ( entry.getName().startsWith( path + "/" ) )
 				{ //filter according to the path
-					File save = new File( dest, entry.getName() );
+					Path savePath = Paths.get( entry.getName() ).resolve( dest );
 					if ( entry.isDirectory() )
-						save.mkdirs();
-					else
+						forceCreateDirectory( savePath );
+					else if ( savePath.getParent() != null )
 					{
-						save.getParentFile().mkdirs();
-						copyToFile( jar.getInputStream( entry ), save );
+						forceCreateDirectory( savePath.getParent() );
+						copyToPath( jar.getInputStream( entry ), savePath );
 					}
 				}
 			}
@@ -680,13 +714,12 @@ public class IO
 			{
 				try
 				{
-					final File dir = new File( url.toURI() );
+					final Path dir = Paths.get( url.toURI() );
 
-					if ( !dir.isDirectory() )
+					if ( !Files.isDirectory( dir ) )
 						throw new IOException( "Specified resource path '" + IO.relPath( dir ) + "' is not a directory." );
 
-					for ( File file : dir.listFiles() )
-						copy( file, new File( dest, file.getName() ) );
+					Files.list( dir ).forEach( file -> copy( file, file.getFileName().resolve( dest ) ) );
 				}
 				catch ( URISyntaxException ex )
 				{
@@ -696,33 +729,34 @@ public class IO
 		}
 	}
 
-	public static void extractResourceZip( @Nonnull String path, @Nonnull File dest ) throws IOException
+	public static void extractResourceZip( @Nonnull String res, @Nonnull Path dest ) throws IOException
 	{
-		extractResourceZip( path, dest, IO.class );
+		extractResourceZip( res, dest, IO.class );
 	}
 
-	public static void extractResourceZip( @Nonnull String path, @Nonnull File dest, @Nonnull Class<?> clz ) throws IOException
+	public static void extractResourceZip( @Nonnull String res, @Nonnull Path dest, @Nonnull Class<?> clz ) throws IOException
 	{
-		File cache = Kernel.getPath( Kernel.PATH_CACHE );
-		if ( !cache.exists() )
-			cache.mkdirs();
-		File temp = new File( cache, "temp.zip" );
-		putResource( clz, path, temp );
+		Path cache = Kernel.getPath( Kernel.PATH_CACHE );
+		forceCreateDirectory( cache );
+
+		Path temp = Paths.get( "temp.zip" ).resolve( cache );
+
+		putResource( clz, res, temp );
 
 		extractZip( temp, dest, null );
 	}
 
-	public static void extractZip( @Nonnull File zipFile, @Nonnull File destDirectory ) throws IOException
+	public static void extractZip( @Nonnull Path zipPath, @Nonnull Path dest ) throws IOException
 	{
-		extractZip( zipFile, destDirectory, null );
+		extractZip( zipPath, dest, null );
 	}
 
-	public static void extractZip( @Nonnull File zipFile, @Nonnull File destDirectory, BiConsumer<String, Integer> progressConsumer ) throws IOException
+	public static void extractZip( @Nonnull Path zipPath, @Nonnull Path dest, BiConsumer<String, Integer> progressConsumer ) throws IOException
 	{
-		Objs.notFalse( zipFile.exists() );
-		Objs.notFalse( destDirectory.isDirectory() );
+		Objs.notFalse( Files.isRegularFile( zipPath ) );
+		Objs.notFalse( Files.isDirectory( dest ) );
 
-		ZipFile zip = new ZipFile( zipFile );
+		ZipFile zip = new ZipFile( zipPath.toFile() );
 		int count = 0;
 
 		try
@@ -734,18 +768,18 @@ public class IO
 				count++;
 
 				ZipEntry entry = entries.nextElement();
-				File save = new File( destDirectory, entry.getName() );
+				Path savePath = Paths.get( entry.getName() ).resolve( dest );
 				if ( entry.isDirectory() )
-					save.mkdirs();
-				else if ( save.getParentFile() != null )
+					forceCreateDirectory( savePath );
+				else if ( savePath.getParent() != null )
 				{
-					save.getParentFile().mkdirs();
-					copyToFile( zip.getInputStream( entry ), save );
+					forceCreateDirectory( savePath.getParent() );
+					copyToPath( zip.getInputStream( entry ), savePath );
 
 					// Temporary workaround for file execution based on file extension.
 					String ext = fileExtension( entry.getName() );
 					if ( ext != null && Sys.isUnixLikeOS() && excutableExts.contains( ext.toLowerCase() ) )
-						save.setExecutable( true );
+						Files.setPosixFilePermissions( savePath, Lists.newHashSet( PosixFilePermission.OWNER_EXECUTE ) );
 
 					// TODO Report bytes copied
 					if ( progressConsumer != null )
@@ -772,6 +806,30 @@ public class IO
 	public static String fileExtension( @Nonnull String fileName )
 	{
 		return Strs.regexCapture( fileName, ".*\\.(.*)$" );
+	}
+
+	public static void forceCreateDirectory( Path path ) throws IOException
+	{
+		if ( Files.isDirectory( path ) )
+			return;
+		if ( Files.isRegularFile( path ) )
+			deleteIfExists( path );
+		Files.createDirectories( path );
+	}
+
+	public static long getCreation( @Nonnull Path path ) throws IOException
+	{
+		return Files.readAttributes( path, BasicFileAttributes.class ).creationTime().toMillis();
+	}
+
+	public static long getLastAccess( @Nonnull Path path ) throws IOException
+	{
+		return Files.readAttributes( path, BasicFileAttributes.class ).lastAccessTime().toMillis();
+	}
+
+	public static long getLastModified( @Nonnull Path path ) throws IOException
+	{
+		return Files.readAttributes( path, BasicFileAttributes.class ).lastModifiedTime().toMillis();
 	}
 
 	public static String getLocalName( @Nonnull String path )
@@ -853,27 +911,38 @@ public class IO
 		throw new UnsupportedOperationException( "Cannot list files for URL " + dirURL );
 	}
 
-	public static void gzFile( File source ) throws IOException
+	public static void gzFile( File srcFile ) throws IOException
 	{
-		gzFile( source, new File( source + ".gz" ) );
+		gzFile( srcFile, new File( srcFile + ".gz" ) );
 	}
 
-	public static void gzFile( File source, File dest ) throws IOException
+	public static void gzFile( File srcFile, File destFile ) throws IOException
 	{
-		byte[] buffer = new byte[1024];
+		gzFile( srcFile.toPath(), destFile.toPath() );
+	}
 
-		GZIPOutputStream gzos = new GZIPOutputStream( new FileOutputStream( dest ) );
+	public static void gzFile( Path srcPath ) throws IOException
+	{
+		gzFile( srcPath, Paths.get( srcPath.toString() + ".gz" ) );
+	}
 
-		FileInputStream in = new FileInputStream( source );
+	public static void gzFile( Path srcPath, Path destPath ) throws IOException
+	{
+		InputStream is = null;
+		OutputStream os = null;
 
-		int len;
-		while ( ( len = in.read( buffer ) ) > 0 )
-			gzos.write( buffer, 0, len );
+		try
+		{
+			is = Files.newInputStream( srcPath );
+			os = new GZIPOutputStream( Files.newOutputStream( destPath ) );
 
-		in.close();
-
-		gzos.finish();
-		gzos.close();
+			copy( is, os );
+		}
+		finally
+		{
+			closeQuietly( is );
+			closeQuietly( os );
+		}
 	}
 
 	public static String hex2Readable( byte... elements )
@@ -991,6 +1060,11 @@ public class IO
 		return dir.startsWith( "/" ) || dir.startsWith( ":\\", 1 );
 	}
 
+	public static void isDirectory( Path directory )
+	{
+		Objs.notFalse( Files.isDirectory( directory ), String.format( "%s is not a directory!", relPath( directory ) ) );
+	}
+
 	public static void isDirectory( File directory )
 	{
 		Objs.notFalse( directory.isDirectory(), String.format( "%s is not a directory!", directory.getAbsolutePath() ) );
@@ -1007,6 +1081,12 @@ public class IO
 		return false;
 	}
 
+	public static String joinPath( @Nonnull String... paths )
+	{
+		return Arrays.stream( paths ).filter( n -> !Objs.isEmpty( n ) ).map( n -> Strs.trimAll( n, '/' ) ).collect( Collectors.joining( PATH_SEPERATOR ) );
+	}
+
+	@Deprecated
 	public static Stream<File> listFiles( File dir )
 	{
 		File[] files = dir.listFiles();
@@ -1029,14 +1109,14 @@ public class IO
 		return result;
 	}
 
-	public static void putResource( Class<?> clz, String resource, File file ) throws IOException
+	public static void putResource( Class<?> clz, String resource, Path path ) throws IOException
 	{
 		try
 		{
 			InputStream is = clz.getClassLoader().getResourceAsStream( resource );
 			if ( is == null )
 				throw new IOException( String.format( "The resource %s does not exist.", resource ) );
-			FileOutputStream os = new FileOutputStream( file );
+			FileOutputStream os = new FileOutputStream( path.toFile() );
 			copy( is, os );
 			is.close();
 			os.close();
@@ -1047,9 +1127,9 @@ public class IO
 		}
 	}
 
-	public static void putResource( String resource, File file ) throws IOException
+	public static void putResource( String resource, Path path ) throws IOException
 	{
-		putResource( IO.class, resource, file );
+		putResource( IO.class, resource, path );
 	}
 
 	public static List<String> readFileToLines( @Nonnull File file, @Nonnull String ignorePrefix ) throws FileNotFoundException
@@ -1248,20 +1328,53 @@ public class IO
 	 *
 	 * @return The relative path to the file, will return absolute if file is not relative to server root
 	 */
-	public static String relPath( File file )
+	@Nullable
+	public static String relPath( @Nullable Path file )
 	{
-		return relPath( file, Kernel.getPath() );
+		return file == null ? null : relPath( file.toAbsolutePath().toString() );
 	}
 
-	public static String relPath( File file, File relTo )
+	@Nullable
+	public static String relPath( @Nullable Path file, @Nonnull File relTo )
 	{
-		if ( file == null || relTo == null )
-			return null;
-		String root = relTo.getAbsolutePath();
-		if ( file.getAbsolutePath().startsWith( root ) )
-			return file.getAbsolutePath().substring( root.length() + 1 );
-		else
-			return file.getAbsolutePath();
+		return file == null ? null : relPath( file.toAbsolutePath().toString(), relTo.getAbsolutePath() );
+	}
+
+	@Nullable
+	public static String relPath( @Nullable Path file, @Nonnull Path relTo )
+	{
+		return file == null ? null : relPath( file.toAbsolutePath().toString(), relTo.toAbsolutePath().toString() );
+	}
+
+	@Nullable
+	public static String relPath( @Nullable String file )
+	{
+		return relPath( file, Kernel.getPath().toString() );
+	}
+
+	@Nullable
+	public static String relPath( @Nullable String file, @Nonnull String relTo )
+	{
+		return file == null ? null : file.startsWith( relTo ) ? file.substring( relTo.length() + 1 ) : file;
+	}
+
+	/**
+	 * Constructs a relative path from the server root
+	 *
+	 * @param file The file you wish to get relative to
+	 *
+	 * @return The relative path to the file, will return absolute if file is not relative to server root
+	 */
+	@Nullable
+	public static String relPath( @Nullable File file )
+	{
+		return file == null ? null : relPath( file.getAbsolutePath() );
+	}
+
+	@Nullable
+	public static String relPath( @Nullable File file, @Nonnull File relTo )
+	{
+		return file == null ? null : relPath( file.getAbsolutePath(), relTo.getAbsolutePath() );
 	}
 
 	public static String resourceToString( String resource ) throws IOException
@@ -1279,6 +1392,7 @@ public class IO
 		return new String( readStreamToBytes( is ), "UTF-8" );
 	}
 
+	@Deprecated
 	public static boolean setDirectoryAccess( File file )
 	{
 		if ( file.exists() && file.isDirectory() && file.canRead() && file.canWrite() )
@@ -1302,10 +1416,26 @@ public class IO
 		return true;
 	}
 
+	@Deprecated
 	public static void setDirectoryAccessWithException( File file )
 	{
 		if ( !setDirectoryAccess( file ) )
 			throw new UncaughtException( ReportingLevel.E_ERROR, "Experienced a problem setting read and write access to directory \"" + relPath( file ) + "\"!" );
+	}
+
+	public static void setGroupReadWritePermissions( Path path ) throws IOException
+	{
+		Files.setPosixFilePermissions( path, Lists.newHashSet( PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE ) );
+	}
+
+	public static void setOthersReadWritePermissions( Path path ) throws IOException
+	{
+		Files.setPosixFilePermissions( path, Lists.newHashSet( PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE ) );
+	}
+
+	public static void setOwnerReadWritePermissions( Path path ) throws IOException
+	{
+		Files.setPosixFilePermissions( path, Lists.newHashSet( PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE ) );
 	}
 
 	public static void writeStringToFile( File file, String data ) throws IOException
@@ -1326,6 +1456,11 @@ public class IO
 			if ( out != null )
 				out.close();
 		}
+	}
+
+	public static void writeStringToOutputStream( @Nonnull String content, @Nonnull OutputStream output ) throws IOException
+	{
+		output.write( Strs.decodeDefault( content ) );
 	}
 
 	public static void zipDir( File src, File dest ) throws IOException
@@ -1693,6 +1828,30 @@ public class IO
 			CPU_ID = strings[1].toString();
 			ARCH_NAME = strings[2].toString();
 			NATIVE_SEARCH_PATHS = ( String[] ) strings[3];
+		}
+	}
+
+	public static class PathComparatorByCreated implements Comparator<Path>
+	{
+		@Override
+		public int compare( Path leftPath, Path rightPath )
+		{
+			long left = Objs.getOrDefault( () -> getCreation( leftPath ), 0L );
+			long right = Objs.getOrDefault( () -> getCreation( rightPath ), 0L );
+
+			return Long.compare( left, right );
+		}
+	}
+
+	public static class PathComparatorByLastModified implements Comparator<Path>
+	{
+		@Override
+		public int compare( Path leftPath, Path rightPath )
+		{
+			long left = Objs.getOrDefault( () -> getLastModified( leftPath ), 0L );
+			long right = Objs.getOrDefault( () -> getLastModified( rightPath ), 0L );
+
+			return Long.compare( left, right );
 		}
 	}
 

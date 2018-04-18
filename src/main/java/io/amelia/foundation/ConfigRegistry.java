@@ -9,8 +9,9 @@
  */
 package io.amelia.foundation;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 
 import javax.annotation.Nonnegative;
@@ -19,6 +20,7 @@ import javax.annotation.Nonnull;
 import io.amelia.lang.ConfigException;
 import io.amelia.support.IO;
 import io.amelia.support.Objs;
+import io.amelia.support.Streams;
 import io.amelia.support.Strs;
 
 public class ConfigRegistry
@@ -35,18 +37,24 @@ public class ConfigRegistry
 		config.setValueIfAbsent( ConfigKeys.DEVELOPMENT_MODE, false );
 	}
 
-	public static void clearCache( @Nonnull File path, @Nonnegative long keepHistory )
+	public static void clearCache( @Nonnull Path path, @Nonnegative long keepHistory )
 	{
 		Objs.notNull( path );
 		Objs.notNull( keepHistory );
 
-		if ( path.isDirectory() )
+		try
 		{
-			for ( File f : path.listFiles() )
-				if ( f.isFile() && f.lastModified() < System.currentTimeMillis() - keepHistory * 24 * 60 * 60 )
-					f.delete();
-				else if ( f.isDirectory() )
-					clearCache( f, keepHistory );
+			if ( Files.isDirectory( path ) )
+				Streams.forEachWithException( Files.list( path ), file -> {
+					if ( Files.isDirectory( file ) )
+						clearCache( file, keepHistory );
+					else if ( Files.isRegularFile( file ) && IO.getLastModified( file ) < System.currentTimeMillis() - keepHistory * 24 * 60 * 60 )
+						Files.delete( file );
+				} );
+		}
+		catch ( IOException e )
+		{
+			Kernel.L.warning( "Exception thrown while clearing cache for directory " + path.toString(), e );
 		}
 	}
 
@@ -67,7 +75,7 @@ public class ConfigRegistry
 
 	public static void init( Env env, ConfigRegistryLoader loader ) throws ConfigException.Error
 	{
-		Kernel.setAppPath( IO.buildFile( false, env.getString( "app-dir" ).orElse( null ) ) );
+		Kernel.setAppPath( IO.buildPath( false, env.getString( "app-dir" ).orElse( null ) ) );
 
 		env.getStringsMap().filter( e -> e.getKey().startsWith( "dir-" ) ).forEach( e -> Kernel.setPath( e.getKey().substring( 4 ), Strs.split( e.getValue(), "/" ).toArray( String[]::new ) ) );
 
@@ -102,7 +110,7 @@ public class ConfigRegistry
 	{
 		// WIP Copies config from resources and plugins to config directories.
 
-		File configPath = Kernel.getPath( Kernel.PATH_CONFIG, true );
+		Path configPath = Kernel.getPath( Kernel.PATH_CONFIG, true );
 
 		IO.extractResourceDirectory( "config", configPath, ConfigRegistry.class );
 	}

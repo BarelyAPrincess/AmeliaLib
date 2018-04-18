@@ -504,6 +504,18 @@ public class Objs
 		}
 	}
 
+	public static <T> T getOrDefault( SupplierWithException<T, ?> supplier, T def )
+	{
+		try
+		{
+			return supplier.get();
+		}
+		catch ( Exception e )
+		{
+			return def;
+		}
+	}
+
 	public static <T, E extends Exception> void ifPresent( @Nonnull Optional<T> value, @Nonnull ConsumerWithException<T, E> consumer ) throws E
 	{
 		if ( value.isPresent() )

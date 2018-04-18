@@ -295,6 +295,20 @@ public class Strs
 		return new String( bytes, StandardCharsets.UTF_8 );
 	}
 
+	/**
+	 * Provides a shorthand for changing if strings match while allowing for a case sensitive check.
+	 *
+	 * @param left          The first string
+	 * @param right         The second string
+	 * @param caseSensitive Is case sensitive
+	 *
+	 * @return Returns true if they match
+	 */
+	public static boolean equals( @Nonnull String left, @Nonnull String right, boolean caseSensitive )
+	{
+		return caseSensitive ? left.equals( right ) : left.equalsIgnoreCase( right );
+	}
+
 	public static String escapeHtml( String str )
 	{
 		return EscapeTranslator.HTML_ESCAPE().translate( str );

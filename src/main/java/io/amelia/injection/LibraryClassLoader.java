@@ -15,6 +15,8 @@ import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 
 /**
@@ -25,17 +27,22 @@ public class LibraryClassLoader
 {
 	private static final Class[] parameters = new Class[] {URL.class};
 
-	public static void addPath( File f ) throws IOException
+	public static void addPath( File file ) throws IOException
 	{
-		addPath( f.toURI().toURL() );
+		addPath( file.toURI().toURL() );
 	}
 
-	public static void addPath( String s ) throws IOException
+	public static void addPath( Path path ) throws IOException
 	{
-		addPath( new File( s ) );
+		addPath( path.toUri().toURL() );
 	}
 
-	public static void addPath( URL u ) throws IOException
+	public static void addPath( String path ) throws IOException
+	{
+		addPath( Paths.get( path ) );
+	}
+
+	public static void addPath( URL url ) throws IOException
 	{
 		URLClassLoader sysloader = ( URLClassLoader ) ClassLoader.getSystemClassLoader();
 		Class sysclass = URLClassLoader.class;
@@ -44,28 +51,33 @@ public class LibraryClassLoader
 		{
 			Method method = sysclass.getDeclaredMethod( "addURL", parameters );
 			method.setAccessible( true );
-			method.invoke( sysloader, u );
+			method.invoke( sysloader, url );
 		}
 		catch ( Throwable t )
 		{
-			throw new IOException( String.format( "Error, could not add path '%s' to system classloader", u.toString() ), t );
+			throw new IOException( String.format( "Error, could not add path '%s' to system classloader", url.toString() ), t );
 		}
 
 	}
 
-	public static boolean pathLoaded( File f ) throws MalformedURLException
+	public static boolean pathLoaded( Path path ) throws MalformedURLException
 	{
-		return pathLoaded( f.toURI().toURL() );
+		return pathLoaded( path.toUri().toURL() );
 	}
 
-	public static boolean pathLoaded( String s ) throws MalformedURLException
+	public static boolean pathLoaded( File file ) throws MalformedURLException
 	{
-		return pathLoaded( new File( s ) );
+		return pathLoaded( file.toURI().toURL() );
 	}
 
-	public static boolean pathLoaded( URL u )
+	public static boolean pathLoaded( String path ) throws MalformedURLException
+	{
+		return pathLoaded( Paths.get( path ) );
+	}
+
+	public static boolean pathLoaded( URL url )
 	{
 		URLClassLoader sysloader = ( URLClassLoader ) ClassLoader.getSystemClassLoader();
-		return Arrays.asList( sysloader.getURLs() ).contains( u );
+		return Arrays.asList( sysloader.getURLs() ).contains( url );
 	}
 }

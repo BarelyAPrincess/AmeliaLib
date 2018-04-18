@@ -9,7 +9,12 @@
  */
 package io.amelia.injection;
 
-import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+import io.amelia.lang.ApplicationException;
+import io.amelia.support.IO;
 
 /**
  * Used to parse for a new library
@@ -63,17 +68,18 @@ public class MavenReference
 	 *
 	 * @return Library base directory, e.g., libraries/com/dropbox/core/dropbox-core-sdk/1.7.7
 	 */
-	public File baseDir()
+	public Path basePath()
 	{
-		File dir = new File( Libraries.LIBRARY_DIR, getGroup().replaceAll( "\\.", "/" ) + "/" + getName() + "/" + getVersion() );
-
-		if ( dir.isFile() )
-			dir.delete();
-
-		if ( !dir.exists() )
-			dir.mkdirs();
-
-		return dir;
+		Path basePath = Paths.get( getGroup().replaceAll( "\\.", "/" ) + "/" + getName() + "/" + getVersion() ).resolve( Libraries.LIBRARY_DIR );
+		try
+		{
+			IO.forceCreateDirectory( basePath );
+		}
+		catch ( IOException e )
+		{
+			throw ApplicationException.runtime( e );
+		}
+		return basePath;
 	}
 
 	/**
@@ -131,15 +137,16 @@ public class MavenReference
 	 *
 	 * @return JAR file path, e.g., libraries/com/dropbox/core/dropbox-core-sdk/1.7.7/dropbox-core-sdk-1.7.7.jar
 	 */
-	public File jarFile()
+	public Path jarPath()
 	{
-		return new File( baseDir(), getName() + "-" + getVersion() + ".jar" );
+		return Paths.get( getName() + "-" + getVersion() + ".jar" ).resolve( basePath() );
 	}
 
 	/**
 	 * Produces a Maven Download URL
 	 *
 	 * @param ext The url extension, i.e., jar or pom
+	 *
 	 * @return Maven Download URL, e.g., http://jcenter.bintray.com/org/xerial/sqlite-jdbc/3.8.11.2/sqlite-jdbc-3.8.11.2.jar
 	 */
 	public String mavenUrl( String ext )
@@ -151,6 +158,7 @@ public class MavenReference
 	 * Produces a Maven Download URL using the alternative base URL
 	 *
 	 * @param ext The url extension, i.e., jar or pom
+	 *
 	 * @return Maven Download URL, e.g., http://jcenter.bintray.com/org/xerial/sqlite-jdbc/3.8.11.2/sqlite-jdbc-3.8.11.2.jar
 	 */
 	public String mavenUrlAlt( String ext )
@@ -163,9 +171,9 @@ public class MavenReference
 	 *
 	 * @return POM file path, e.g., libraries/com/dropbox/core/dropbox-core-sdk/1.7.7/dropbox-core-sdk-1.7.7.pom
 	 */
-	public File pomFile()
+	public Path pomPath()
 	{
-		return new File( baseDir(), getName() + "-" + getVersion() + ".pom" );
+		return Paths.get( getName() + "-" + getVersion() + ".pom" ).resolve( basePath() );
 	}
 
 	/**

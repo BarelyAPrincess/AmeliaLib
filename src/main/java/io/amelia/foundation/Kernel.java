@@ -9,7 +9,8 @@
  */
 package io.amelia.foundation;
 
-import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -71,7 +72,7 @@ public class Kernel
 	// the CPU with background work
 	static final int THREAD_POOL_SIZE_CORE = Math.max( 4, Math.min( CPU_COUNT - 1, 1 ) );
 	public static long startTime = System.currentTimeMillis();
-	private static File appPath;
+	private static Path appPath;
 	private static ImplDevMeta devMeta;
 	private static ExceptionRegistrar exceptionContext = null;
 	static final ThreadFactory threadFactory = new ThreadFactory()
@@ -166,17 +167,17 @@ public class Kernel
 		return new Logger( source );
 	}
 
-	public static File getPath( @Nonnull String slug )
+	public static Path getPath( @Nonnull String slug )
 	{
 		return getPath( new String[] {slug} );
 	}
 
-	public static File getPath( @Nonnull String slug, boolean createPath )
+	public static Path getPath( @Nonnull String slug, boolean createPath )
 	{
 		return getPath( new String[] {slug}, createPath );
 	}
 
-	public static File getPath( @Nonnull String[] slugs )
+	public static Path getPath( @Nonnull String[] slugs )
 	{
 		return getPath( slugs, false );
 	}
@@ -214,7 +215,7 @@ public class Kernel
 	 *
 	 * @throws ApplicationException.Ignorable
 	 */
-	public static File getPath( @Nonnull String[] slugs, boolean createPath )
+	public static Path getPath( @Nonnull String[] slugs, boolean createPath )
 	{
 		Objs.notNull( slugs );
 
@@ -225,7 +226,7 @@ public class Kernel
 		{
 			String key = slugs[0].substring( 2 );
 			if ( key.equals( "app" ) )
-				slugs[0] = getPath().getAbsolutePath();
+				slugs[0] = getPath().toString();
 			else if ( Kernel.APP_PATHS.containsKey( key ) )
 				slugs = Stream.concat( Kernel.APP_PATHS.get( key ).stream(), Arrays.stream( slugs ).skip( 1 ) ).toArray( String[]::new );
 			else
@@ -236,16 +237,24 @@ public class Kernel
 		else if ( !slugs[0].startsWith( "/" ) )
 			slugs = Arrs.prepend( slugs, getPath().toString() );
 
-		File path = IO.buildFile( true, slugs );
+		Path path = IO.buildPath( true, slugs );
 
-		if ( createPath && !path.exists() )
-			if ( !path.mkdirs() )
-				throw ApplicationException.ignorable( "The app path \"" + path.getAbsolutePath() + "\" does not exist and we couldn't create it." );
+		if ( createPath )
+		{
+			try
+			{
+				IO.forceCreateDirectory( path );
+			}
+			catch ( IOException e )
+			{
+				throw ApplicationException.ignorable( "The app path \"" + path.toString() + "\" does not exist and we couldn't create it.", e );
+			}
+		}
 
 		return path;
 	}
 
-	public static File getPath()
+	public static Path getPath()
 	{
 		Objs.notEmpty( appPath, "The app path has not been set." );
 		return appPath;
@@ -335,7 +344,7 @@ public class Kernel
 		panic( String.format( reason, objs ) );
 	}
 
-	protected static void setAppPath( @Nonnull File appPath )
+	protected static void setAppPath( @Nonnull Path appPath )
 	{
 		Objs.notNull( appPath );
 		Kernel.appPath = appPath;

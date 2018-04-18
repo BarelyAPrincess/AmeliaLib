@@ -22,6 +22,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -269,6 +271,11 @@ public class ParcelLoader
 			return decodeYamlToMap( encoded );
 
 		throw new ParcelableException.Ignorable( null, "Could not decode." );
+	}
+
+	public static Parcel decodeYaml( Path path ) throws IOException
+	{
+		return decodeYaml( IO.readStreamToString( Files.newInputStream( path ) ) );
 	}
 
 	public static Parcel decodeYaml( File file ) throws IOException

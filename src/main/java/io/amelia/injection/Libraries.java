@@ -9,12 +9,16 @@
  */
 package io.amelia.injection;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import javax.annotation.Nonnull;
 
 import io.amelia.foundation.Kernel;
 import io.amelia.lang.ReportingLevel;
@@ -31,8 +35,8 @@ public class Libraries implements LibrarySource
 {
 	public static final String BASE_MAVEN_URL = "http://jcenter.bintray.com/";
 	public static final String BASE_MAVEN_URL_ALT = "http://search.maven.org/remotecontent?filepath=";
-	public static final File INCLUDES_DIR;
-	public static final File LIBRARY_DIR;
+	public static final Path INCLUDES_DIR;
+	public static final Path LIBRARY_DIR;
 	public static final Libraries SELF = new Libraries();
 	private static final Kernel.Logger L = Kernel.getLogger( Libraries.class );
 	public static Map<String, MavenReference> loadedLibraries = new HashMap<>();
@@ -40,20 +44,33 @@ public class Libraries implements LibrarySource
 	static
 	{
 		LIBRARY_DIR = Kernel.getPath( Kernel.PATH_LIBS );
+		INCLUDES_DIR = Paths.get( "local" ).resolve( LIBRARY_DIR );
 
-		INCLUDES_DIR = new File( LIBRARY_DIR, "local" );
+		try
+		{
+			IO.forceCreateDirectory( LIBRARY_DIR );
+			IO.forceCreateDirectory( INCLUDES_DIR );
 
-		if ( !IO.setDirectoryAccess( LIBRARY_DIR ) )
-			throw new UncaughtException( ReportingLevel.E_ERROR, "This application experienced a problem setting read and write access to directory \"" + IO.relPath( LIBRARY_DIR ) + "\"!" );
+			IO.setOwnerReadWritePermissions( LIBRARY_DIR );
+			IO.setOwnerReadWritePermissions( INCLUDES_DIR );
+		}
+		catch ( IOException e )
+		{
+			throw new UncaughtException( ReportingLevel.E_ERROR, "There was a problem confirming Read/Write permissions on the libraries directory." );
+		}
 
-		if ( !IO.setDirectoryAccess( INCLUDES_DIR ) )
-			throw new UncaughtException( ReportingLevel.E_ERROR, "This application experienced a problem setting read and write access to directory \"" + IO.relPath( INCLUDES_DIR ) + "\"!" );
-
-		// Scans the 'libraries/local' directory for jar files that can be injected into the classpath
-		IO.listFiles( INCLUDES_DIR ).filter( file -> file.getName().toLowerCase().endsWith( ".jar" ) ).forEach( Libraries::loadLibrary );
+		try
+		{
+			// Scans the 'libraries/local' directory for jar files that can be injected into the classpath
+			Files.list( INCLUDES_DIR ).filter( file -> file.getFileName().toString().toLowerCase().endsWith( ".jar" ) ).forEach( Libraries::loadLibrary );
+		}
+		catch ( IOException e )
+		{
+			// Do Nothing!
+		}
 	}
 
-	public static File getLibraryDir()
+	public static Path getLibraryDir()
 	{
 		return LIBRARY_DIR;
 	}
@@ -97,16 +114,16 @@ public class Libraries implements LibrarySource
 		return loadedLibraries.containsKey( lib.getKey() );
 	}
 
-	public static boolean loadLibrary( File lib )
+	public static boolean loadLibrary( @Nonnull Path libPath )
 	{
-		if ( lib == null || !lib.exists() )
+		if ( !Files.isRegularFile( libPath ) )
 			return false;
 
-		L.info( EnumColor.GRAY + "Loading the library `" + lib.getName() + "`" );
+		L.info( EnumColor.GRAY + "Loading the library `" + IO.relPath( libPath ) + "`" );
 
 		try
 		{
-			LibraryClassLoader.addPath( lib );
+			LibraryClassLoader.addPath( libPath );
 		}
 		catch ( Throwable t )
 		{
@@ -116,11 +133,11 @@ public class Libraries implements LibrarySource
 
 		try
 		{
-			IO.extractNatives( lib, lib.getParentFile() );
+			IO.extractNatives( libPath, libPath.getParent() );
 		}
 		catch ( IOException e )
 		{
-			L.severe( "We had a problem trying to extract native libraries from jar file '" + lib.getAbsolutePath() + "'", e );
+			L.severe( "We had a problem trying to extract native libraries from jar file '" + libPath.toString() + "'", e );
 		}
 
 		return true;
@@ -131,15 +148,15 @@ public class Libraries implements LibrarySource
 		String urlJar = lib.mavenUrl( "jar" );
 		String urlPom = lib.mavenUrl( "pom" );
 
-		File mavenLocalJar = lib.jarFile();
-		File mavenLocalPom = lib.pomFile();
+		Path mavenLocalJar = lib.jarPath();
+		Path mavenLocalPom = lib.pomPath();
 
 		if ( urlJar == null || urlJar.isEmpty() || urlPom == null || urlPom.isEmpty() )
 			return false;
 
 		try
 		{
-			if ( !mavenLocalPom.exists() || !mavenLocalJar.exists() )
+			if ( !Files.isRegularFile( mavenLocalPom ) || !Files.isRegularFile( mavenLocalJar ) )
 			{
 				L.info( EnumColor.GOLD + "Downloading the library `" + lib.toString() + "` from url `" + urlJar + "`... Please Wait!" );
 
@@ -183,11 +200,11 @@ public class Libraries implements LibrarySource
 		loadedLibraries.put( lib.getKey(), lib );
 		try
 		{
-			IO.extractNatives( lib.jarFile(), lib.baseDir() );
+			IO.extractNatives( lib.jarPath(), lib.basePath() );
 		}
 		catch ( IOException e )
 		{
-			L.severe( "We had a problem trying to extract native libraries from jar file '" + lib.jarFile() + "'", e );
+			L.severe( "We had a problem trying to extract native libraries from jar file '" + lib.jarPath() + "'", e );
 		}
 
 		return true;

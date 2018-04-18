@@ -25,8 +25,9 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.Enumeration;
 
-import io.amelia.foundation.Foundation;
-import io.amelia.logcompat.LogBuilder;
+import javax.annotation.Nonnull;
+
+import io.amelia.foundation.Kernel;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -247,7 +248,7 @@ public class NIO
 	 * TODO This was lagging the server! WHY???
 	 * Maybe we should change our metrics system
 	 */
-	public static boolean sendTracking( String category, String action, String label )
+	public static boolean sendTracking( @Nonnull String instanceId, @Nonnull String category, @Nonnull String action, @Nonnull String label )
 	{
 		try
 		{
@@ -257,7 +258,7 @@ public class NIO
 			HttpURLConnection con = ( HttpURLConnection ) urlObj.openConnection();
 			con.setRequestMethod( "POST" );
 
-			String urlParameters = "v=1&tid=UA-60405654-1&cid=" + Foundation.getApplication().getId() + "&t=event&ec=" + category + "&ea=" + action + "&el=" + label;
+			String urlParameters = "v=1&tid=UA-60405654-1&cid=" + instanceId + "&t=event&ec=" + category + "&ea=" + action + "&el=" + label;
 
 			con.setDoOutput( true );
 			DataOutputStream wr = new DataOutputStream( con.getOutputStream() );
@@ -266,7 +267,7 @@ public class NIO
 			wr.close();
 
 			int responseCode = con.getResponseCode();
-			LogBuilder.get().fine( "Analytics Response [" + category + "]: " + responseCode );
+			Kernel.L.fine( "Analytics Response [" + category + "]: " + responseCode );
 
 			BufferedReader in = new BufferedReader( new InputStreamReader( con.getInputStream() ) );
 			String inputLine;
