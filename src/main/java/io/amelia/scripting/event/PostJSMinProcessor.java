@@ -9,21 +9,19 @@
  */
 package io.amelia.scripting.event;
 
-import com.chiorichan.event.EventHandler;
-import com.chiorichan.event.Listener;
 import com.google.javascript.jscomp.CompilationLevel;
 import com.google.javascript.jscomp.CompilerOptions;
 import com.google.javascript.jscomp.SourceFile;
-
-import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import io.amelia.events.EventHandler;
+
 public class PostJSMinProcessor implements Listener
 {
-	@EventHandler()
+	@EventHandler
 	public void onEvent( PostEvalEvent event )
 	{
 		if ( !event.context().contentType().equals( "application/javascript-x" ) || !event.context().filename().endsWith( "js" ) )

@@ -9,9 +9,6 @@
  */
 package io.amelia.scripting.event;
 
-import com.chiorichan.event.EventHandler;
-import com.chiorichan.event.Listener;
-
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.JavaScriptException;
 import org.mozilla.javascript.Scriptable;
@@ -21,9 +18,11 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 
+import io.amelia.events.EventHandler;
+
 public class PreCoffeeProcessor implements Listener
 {
-	@EventHandler( )
+	@EventHandler
 	public void onEvent( PreEvalEvent event )
 	{
 		if ( !event.context().contentType().endsWith( "coffee" ) && !event.context().contentType().endsWith( "litcoffee" ) && !event.context().contentType().endsWith( "coffee.md" ) )
