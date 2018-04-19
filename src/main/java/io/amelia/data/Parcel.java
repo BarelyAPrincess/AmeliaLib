@@ -7,7 +7,7 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.support.data;
+package io.amelia.data;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
@@ -18,9 +18,6 @@ import javax.annotation.Nonnull;
 import io.amelia.lang.ParcelableException;
 import io.amelia.support.Reflection;
 
-/**
- * TODO Add value filter method?
- */
 public class Parcel extends StackerWithValue<Parcel, Object> implements ValueTypesTrait
 {
 	public Parcel()

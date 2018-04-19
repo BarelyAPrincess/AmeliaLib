@@ -22,6 +22,7 @@ import java.util.function.Consumer;
 
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.foundation.Kernel;
+import io.amelia.lang.ExceptionReport;
 import io.amelia.looper.queue.AbstractEntry;
 import io.amelia.looper.queue.AbstractQueue;
 
@@ -284,7 +285,7 @@ public abstract class AbstractLooper<Q extends AbstractQueue>
 		}
 		catch ( Throwable t )
 		{
-			Kernel.handleExceptions( t );
+			ExceptionReport.handleSingleException( t );
 		}
 		finally
 		{
@@ -320,22 +321,6 @@ public abstract class AbstractLooper<Q extends AbstractQueue>
 	}
 
 	/**
-	 * Quits the looper.
-	 * <p>
-	 * Causes the {@link #joinLoop()} method to terminate without processing any more messages in the queue.
-	 * <p>
-	 * Using this method may be unsafe because some messages may not be delivered
-	 * before the looper terminates.  Consider using {@link #quitSafely} instead to ensure
-	 * that all pending work is completed in an orderly manner.
-	 *
-	 * @see #quitSafely
-	 */
-	public final void quitUnsafe()
-	{
-		quit( true );
-	}
-
-	/**
 	 * Does some final tasks before the Looper is permanently disposed of.
 	 */
 	protected abstract void quitFinal();
@@ -351,6 +336,22 @@ public abstract class AbstractLooper<Q extends AbstractQueue>
 	public final void quitSafely()
 	{
 		quit( false );
+	}
+
+	/**
+	 * Quits the looper.
+	 * <p>
+	 * Causes the {@link #joinLoop()} method to terminate without processing any more messages in the queue.
+	 * <p>
+	 * Using this method may be unsafe because some messages may not be delivered
+	 * before the looper terminates.  Consider using {@link #quitSafely} instead to ensure
+	 * that all pending work is completed in an orderly manner.
+	 *
+	 * @see #quitSafely
+	 */
+	public final void quitUnsafe()
+	{
+		quit( true );
 	}
 
 	public void setExceptionHandler( Consumer<Exception> exceptionHandler )
@@ -434,7 +435,7 @@ public abstract class AbstractLooper<Q extends AbstractQueue>
 		{
 			if ( exceptionHandler == null )
 			{
-				Kernel.handleExceptions( exception );
+				ExceptionReport.handleSingleException( exception );
 				quitUnsafe();
 			}
 			else

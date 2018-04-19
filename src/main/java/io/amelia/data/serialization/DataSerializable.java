@@ -7,7 +7,7 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.support.data.serialization;
+package io.amelia.data.serialization;
 
 import java.util.Map;
 

@@ -7,7 +7,7 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.support.data;
+package io.amelia.data;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -33,13 +33,13 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 
+import io.amelia.data.yaml.YamlConstructor;
+import io.amelia.data.yaml.YamlRepresenter;
 import io.amelia.lang.ParcelableException;
 import io.amelia.support.Encrypt;
 import io.amelia.support.IO;
 import io.amelia.support.Maps;
 import io.amelia.support.Strs;
-import io.amelia.support.data.yaml.YamlConstructor;
-import io.amelia.support.data.yaml.YamlRepresenter;
 
 public class ParcelLoader
 {

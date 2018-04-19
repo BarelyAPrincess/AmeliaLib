@@ -7,10 +7,11 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.support.data;
+package io.amelia.data;
 
 import java.awt.Color;
 import java.io.File;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalDouble;
@@ -42,6 +43,11 @@ import io.amelia.support.Strs;
  */
 public interface ValueTypesTrait
 {
+	default Boolean getBoolean( TypeBase.TypeBoolean type )
+	{
+		return getBoolean( type.getPath() ).orElse( type.getDefault() );
+	}
+
 	default OptionalBoolean getBoolean( String key )
 	{
 		return OptionalBoolean.ofNullable( getValue( key ).map( Objs::castToBoolean ).orElse( null ) );
@@ -57,6 +63,11 @@ public interface ValueTypesTrait
 		return getValue( key ).filter( v -> v instanceof Color ).map( v -> ( Color ) v );
 	}
 
+	default Color getColor( TypeBase.TypeColor type )
+	{
+		return getColor( type.getPath() ).orElse( type.getDefault() );
+	}
+
 	default OptionalDouble getDouble()
 	{
 		return getDouble( "" );
@@ -64,7 +75,12 @@ public interface ValueTypesTrait
 
 	default OptionalDouble getDouble( String key )
 	{
-		return OptionalDouble.of( getValue( key ).map( Objs::castToDouble ).orElse( -1D ) );
+		return Objs.ifPresent( getValue( key ).map( Objs::castToDouble ), OptionalDouble::of, OptionalDouble::empty );
+	}
+
+	default Double getDouble( TypeBase.TypeDouble type )
+	{
+		return getDouble( type.getPath() ).orElse( type.getDefault() );
 	}
 
 	default <T extends Enum<T>> Optional<T> getEnum( Class<T> enumClass )
@@ -77,6 +93,11 @@ public interface ValueTypesTrait
 		return getString( key ).map( e -> Enum.valueOf( enumClass, e ) );
 	}
 
+	default <T extends Enum<T>> T getEnum( TypeBase.TypeEnum<T> type )
+	{
+		return getEnum( type.getPath(), type.getEnumClass() ).orElse( type.getDefault() );
+	}
+
 	default OptionalInt getInteger()
 	{
 		return getInteger( "" );
@@ -84,7 +105,12 @@ public interface ValueTypesTrait
 
 	default OptionalInt getInteger( String key )
 	{
-		return OptionalInt.of( getValue( key ).map( Objs::castToInt ).orElse( -1 ) );
+		return Objs.ifPresent( getValue( key ).map( Objs::castToInt ), OptionalInt::of, OptionalInt::empty );
+	}
+
+	default Integer getInteger( TypeBase.TypeInteger type )
+	{
+		return getInteger( type.getPath() ).orElse( type.getDefault() );
 	}
 
 	default <T> Optional<List<T>> getList()
@@ -114,7 +140,12 @@ public interface ValueTypesTrait
 
 	default OptionalLongExt getLong( @Nonnull String key )
 	{
-		return OptionalLongExt.of( getValue( key ).map( Objs::castToLong ).orElse( -1L ) );
+		return Objs.ifPresent( getValue( key ).map( Objs::castToLong ), OptionalLongExt::of, OptionalLongExt::empty );
+	}
+
+	default Long getLong( TypeBase.TypeLong type )
+	{
+		return getLong( type.getPath() ).orElse( type.getDefault() );
 	}
 
 	default Optional<String> getString()
@@ -125,6 +156,11 @@ public interface ValueTypesTrait
 	default Optional<String> getString( @Nonnull String key )
 	{
 		return Optional.ofNullable( getValue( key ).map( Objs::castToString ).orElse( null ) );
+	}
+
+	default String getString( TypeBase.TypeString type )
+	{
+		return getString( type.getPath() ).orElse( type.getDefault() );
 	}
 
 	default <T> Optional<Class<T>> getStringAsClass()
@@ -140,7 +176,7 @@ public interface ValueTypesTrait
 	@SuppressWarnings( "unchecked" )
 	default <T> Optional<Class<T>> getStringAsClass( @Nonnull String key, @Nonnull Class<T> expectedClass )
 	{
-		return getString( key ).map( str -> ( Class<T> ) Objs.getClassByName( str ) ).filter( cls -> expectedClass == null || expectedClass.isAssignableFrom( cls ) );
+		return getString( key ).map( str -> ( Class<T> ) Objs.getClassByName( str ) ).filter( expectedClass::isAssignableFrom );
 	}
 
 	default Optional<File> getStringAsFile( File rel )
@@ -163,6 +199,11 @@ public interface ValueTypesTrait
 		return getStringAsFile( "" );
 	}
 
+	default File getStringAsFile( TypeBase.TypeFile type )
+	{
+		return getStringAsFile( type.getPath() ).orElse( type.getDefault() );
+	}
+
 	default Optional<List<String>> getStringAsList()
 	{
 		return getStringAsList( "", "|" );
@@ -176,6 +217,31 @@ public interface ValueTypesTrait
 	default Optional<List<String>> getStringAsList( String key, String delimiter )
 	{
 		return getString( key ).map( s -> Strs.split( s, delimiter ).collect( Collectors.toList() ) );
+	}
+
+	default Optional<Path> getStringAsPath( Path rel )
+	{
+		return getStringAsPath( "", rel );
+	}
+
+	default Optional<Path> getStringAsPath( String key, Path rel )
+	{
+		return getString( key ).map( s -> IO.buildPath( rel, s ) );
+	}
+
+	default Optional<Path> getStringAsPath( String key )
+	{
+		return getString( key ).map( IO::buildPath );
+	}
+
+	default Optional<Path> getStringAsPath()
+	{
+		return getStringAsPath( "" );
+	}
+
+	default Path getStringAsPath( TypeBase.TypePath type )
+	{
+		return getStringAsPath( type.getPath() ).orElse( type.getDefault() );
 	}
 
 	Optional<?> getValue( String key );

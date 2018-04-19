@@ -45,6 +45,7 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 public class Strs
 {
@@ -510,11 +511,13 @@ public class Strs
 		return sb.toString();
 	}
 
+	@Nullable
 	public static String regexCapture( @Nonnull String var, @Nonnull String regex )
 	{
 		return regexCapture( var, regex, 1 );
 	}
 
+	@Nullable
 	public static String regexCapture( @Nonnull String var, @Nonnull String regex, int group )
 	{
 		Objs.notNull( var );

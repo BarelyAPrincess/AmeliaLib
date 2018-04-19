@@ -7,7 +7,7 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.support.data;
+package io.amelia.data;
 
 import java.util.ArrayList;
 import java.util.Arrays;

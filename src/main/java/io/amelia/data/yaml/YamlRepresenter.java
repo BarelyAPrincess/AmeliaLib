@@ -7,16 +7,17 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.support.data.yaml;
+package io.amelia.data.yaml;
 
-import io.amelia.support.data.StackerWithValue;
-import io.amelia.support.data.serialization.DataSerializable;
-import io.amelia.support.data.serialization.DataSerialization;
 import org.yaml.snakeyaml.nodes.Node;
 import org.yaml.snakeyaml.representer.Representer;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+
+import io.amelia.data.StackerWithValue;
+import io.amelia.data.serialization.DataSerializable;
+import io.amelia.data.serialization.DataSerialization;
 
 public class YamlRepresenter extends Representer
 {
