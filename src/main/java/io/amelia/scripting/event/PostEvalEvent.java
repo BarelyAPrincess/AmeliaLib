@@ -11,20 +11,21 @@ package io.amelia.scripting.event;
 
 import io.amelia.foundation.events.AbstractEvent;
 import io.amelia.foundation.events.Cancellable;
+import io.amelia.scripting.ScriptingContext;
 
 public class PostEvalEvent extends AbstractEvent implements Cancellable
 {
 	private boolean cancelled;
-	private ScriptingContext context;
+	private ScriptingContext scriptingContext;
 
-	public PostEvalEvent( ScriptingContext context )
+	public PostEvalEvent( ScriptingContext scriptingContext )
 	{
-		this.context = context;
+		this.scriptingContext = scriptingContext;
 	}
 
-	public ScriptingContext context()
+	public ScriptingContext getScriptingContext()
 	{
-		return context;
+		return scriptingContext;
 	}
 
 	@Override

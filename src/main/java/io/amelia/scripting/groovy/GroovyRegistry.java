@@ -27,6 +27,8 @@ import java.lang.reflect.Constructor;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import groovy.lang.Binding;
 import groovy.lang.GroovyRuntimeException;
@@ -34,11 +36,15 @@ import groovy.lang.GroovyShell;
 import groovy.lang.MissingMethodException;
 import groovy.lang.Script;
 import groovy.transform.TimedInterrupt;
+import io.amelia.data.TypeBase;
 import io.amelia.foundation.ConfigRegistry;
+import io.amelia.foundation.Kernel;
 import io.amelia.lang.ExceptionCallback;
-import io.amelia.lang.ExceptionContext;
+import io.amelia.lang.ExceptionRegistrar;
 import io.amelia.lang.ExceptionReport;
 import io.amelia.lang.ReportingLevel;
+import io.amelia.lang.SandboxSecurityException;
+import io.amelia.lang.ScriptingException;
 import io.amelia.scripting.ScriptingContext;
 import io.amelia.scripting.ScriptingEngine;
 import io.amelia.scripting.ScriptingFactory;
@@ -72,7 +78,7 @@ public class GroovyRegistry implements ScriptingRegistry
 		imports.addStaticStars( staticImports );
 
 		// Transforms scripts to limit their execution to 30 seconds.
-		long timeout = ConfigRegistry.config.getLong( ConfigKeys.DEFAULT_SCRIPT_TIMEOUT ).orElse( 30L );
+		long timeout = ConfigRegistry.config.getLong( Config.DEFAULT_SCRIPT_TIMEOUT );
 		if ( timeout > 0 )
 		{
 			Map<String, Object> timedInterruptParams = Maps.newHashMap();
@@ -85,15 +91,15 @@ public class GroovyRegistry implements ScriptingRegistry
 	{
 		try
 		{
-			if ( scriptCacheMd5.containsKey( context.site().getId() + "//" + context.scriptClassName() ) && scriptCacheMd5.get( context.site().getId() + "//" + context.scriptClassName() ).equals( context.md5() ) )
+			if ( scriptCacheMd5.containsKey( context.site().getId() + "//" + context.getScriptClassName() ) && scriptCacheMd5.get( context.site().getId() + "//" + context.getScriptClassName() ).equals( context.md5Hash() ) )
 			{
-				Class<?> scriptClass = Class.forName( context.scriptClassName() );
+				Class<?> scriptClass = Class.forName( context.getScriptClassName() );
 				Constructor<?> con = scriptClass.getConstructor( Binding.class );
 				Script script = ( Script ) con.newInstance( binding );
 				return script;
 			}
 			else
-				scriptCacheMd5.put( context.site().getId() + "//" + context.scriptClassName(), context.md5() );
+				scriptCacheMd5.put( context.site().getId() + "//" + context.getScriptClassName(), context.md5Hash() );
 		}
 		catch ( Throwable t )
 		{
@@ -102,6 +108,14 @@ public class GroovyRegistry implements ScriptingRegistry
 		return null;
 	}
 
+	/**
+	 * {@link TimeoutException} is thrown when a script does not exit within an alloted amount of time.<br>
+	 * {@link MissingMethodException} is thrown when a groovy script tries to call a non-existent method<br>
+	 * {@link SyntaxException} is for when the user makes a syntax coding error<br>
+	 * {@link CompilationFailedException} is for when compilation fails from source errors<br>
+	 * {@link SandboxSecurityException} thrown when script attempts to access a blacklisted API<br>
+	 * {@link GroovyRuntimeException} thrown for basically all remaining Groovy exceptions not caught above
+	 */
 	public GroovyRegistry()
 	{
 		// if ( Loader.getConfig().getBoolean( "advanced.scripting.gspEnabled", true ) )
@@ -114,32 +128,32 @@ public class GroovyRegistry implements ScriptingRegistry
 		ExceptionReport.registerException( new ExceptionCallback()
 		{
 			@Override
-			public ReportingLevel callback( Throwable cause, ExceptionReport report, ExceptionContext context )
+			public ReportingLevel callback( Throwable cause, ExceptionReport report, ExceptionRegistrar registrar )
 			{
 				MultipleCompilationErrorsException exp = ( MultipleCompilationErrorsException ) cause;
 				ErrorCollector e = exp.getErrorCollector();
 				boolean abort = false;
 
-				for ( Object err : e.getErrors() )
-					if ( err instanceof Throwable )
+				for ( Object errors : e.getErrors() )
+					if ( errors instanceof Throwable )
 					{
-						if ( report.handleException( ( Throwable ) err, context ) )
+						if ( report.handleException( ( Throwable ) errors, registrar ) )
 							abort = true;
 					}
-					else if ( err instanceof ExceptionMessage )
+					else if ( errors instanceof ExceptionMessage )
 					{
-						if ( report.handleException( ( ( ExceptionMessage ) err ).getCause(), context ) )
+						if ( report.handleException( ( ( ExceptionMessage ) errors ).getCause(), registrar ) )
 							abort = true;
 					}
-					else if ( err instanceof SyntaxErrorMessage )
+					else if ( errors instanceof SyntaxErrorMessage )
 					{
-						report.handleException( ( ( SyntaxErrorMessage ) err ).getCause(), context );
+						report.handleException( ( ( SyntaxErrorMessage ) errors ).getCause(), registrar );
 						abort = true;
 					}
-					else if ( err instanceof Message )
+					else if ( errors instanceof Message )
 					{
 						StringWriter writer = new StringWriter();
-						( ( Message ) err ).write( new PrintWriter( writer, true ) );
+						( ( Message ) errors ).write( new PrintWriter( writer, true ) );
 						report.handleException( new ScriptingException( ReportingLevel.E_NOTICE, writer.toString() ), context );
 					}
 				return abort ? ReportingLevel.E_ERROR : ReportingLevel.E_IGNORABLE;
@@ -149,7 +163,7 @@ public class GroovyRegistry implements ScriptingRegistry
 		ExceptionReport.registerException( new ExceptionCallback()
 		{
 			@Override
-			public ReportingLevel callback( Throwable cause, ExceptionReport report, ExceptionContext context )
+			public ReportingLevel callback( Throwable cause, ExceptionReport report, ExceptionRegistrar registrar )
 			{
 				report.addException( ReportingLevel.E_ERROR, cause );
 				return ReportingLevel.E_ERROR;
@@ -159,21 +173,12 @@ public class GroovyRegistry implements ScriptingRegistry
 		ExceptionReport.registerException( new ExceptionCallback()
 		{
 			@Override
-			public ReportingLevel callback( Throwable cause, ExceptionReport report, ExceptionContext context )
+			public ReportingLevel callback( Throwable cause, ExceptionReport report, ExceptionRegistrar registrar )
 			{
 				report.addException( ReportingLevel.E_PARSE, cause );
 				return ReportingLevel.E_PARSE;
 			}
 		}, SyntaxException.class );
-
-		/**
-		 * {@link TimeoutException} is thrown when a script does not exit within an alloted amount of time.<br>
-		 * {@link MissingMethodException} is thrown when a groovy script tries to call a non-existent method<br>
-		 * {@link SyntaxException} is for when the user makes a syntax coding error<br>
-		 * {@link CompilationFailedException} is for when compilation fails from source errors<br>
-		 * {@link SandboxSecurityException} thrown when script attempts to access a blacklisted API<br>
-		 * {@link GroovyRuntimeException} thrown for basically all remaining Groovy exceptions not caught above
-		 */
 	}
 
 	public GroovyShell getNewShell( ScriptingContext context, Binding binding )
@@ -191,13 +196,13 @@ public class GroovyRegistry implements ScriptingRegistry
 			configuration.setScriptBaseClass( context.getScriptBaseClass() );
 
 		/* Set default encoding */
-		configuration.setSourceEncoding( context.factory().charset().name() );
+		configuration.setSourceEncoding( context.getScriptingFactory().charset().name() );
 
 		/* Set compiled script execute directory */
-		configuration.setTargetDirectory( context.cacheDirectory() );
+		configuration.setTargetDirectory( context.getCachePath() );
 
 		/* Create and return new GroovyShell instance */
-		return new GroovyShell( ServerLoader.class.getClassLoader(), binding, configuration );
+		return new GroovyShell( Kernel.class.getClassLoader(), binding, configuration );
 	}
 
 	@Override
@@ -206,29 +211,36 @@ public class GroovyRegistry implements ScriptingRegistry
 		return new ScriptingEngine[] {new GroovyEngine( this ), new EmbeddedGroovyEngine( this )};
 	}
 
-	public Script makeScript( GroovyShell shell, ScriptingContext context ) throws ScriptingException
+	public Script makeScript( GroovyShell shell, ScriptingContext context ) throws ScriptingException.Error
 	{
 		return makeScript( shell, context.readString(), context );
 	}
 
-	public Script makeScript( GroovyShell shell, String source, ScriptingContext context ) throws ScriptingException
+	public Script makeScript( GroovyShell shell, String source, ScriptingContext context ) throws ScriptingException.Error
 	{
 		// TODO Determine if a package node is prohibited and replace with an alternative, e.g., public, private, etc.
 
-		if ( source.contains( "package " ) )
-			throw new ScriptingException( ReportingLevel.E_ERROR, "Package path is predefined by Groovy Engine, remove `package ` directive from source." );
+		Pattern p = Pattern.compile( "[ \\t]*package\\s+([a-zA_Z_][\\.\\w]*)\\s*;?\\s*\\n" );
+		Matcher m = p.matcher( source );
 
-		if ( !Objs.isEmpty( context.scriptPackage() ) )
+		if ( m.find() )
 		{
-			source = "package " + context.scriptPackage() + "; " + source;
-			context.baseSource( source );
+			String packageName = m.group( 1 );
+			ScriptingFactory.L.warning( "The script " + context.getFileName() + " contains the directive `package " + packageName + "`, however, the GroovyEngine sets the package and this will be overwritten." );
+
+			context.setBaseSource( source );
+		}
+		else if ( !Objs.isEmpty( context.getScriptPackage() ) )
+		{
+			source = "package " + context.getScriptPackage() + "; " + source;
+			context.setBaseSource( source );
 		}
 
-		return shell.parse( source, context.scriptName() );
+		return shell.parse( source, context.getScriptName() );
 	}
 
-	private static class ConfigKeys
+	public static class Config
 	{
-		public static final String DEFAULT_SCRIPT_TIMEOUT = ScriptingFactory.ConfigKeys.SCRIPTING_BASE + ".defaultScriptTimeout";
+		public static final TypeBase.TypeLong DEFAULT_SCRIPT_TIMEOUT = new TypeBase.TypeLong( ScriptingFactory.Config.SCRIPTING_BASE, "defaultScriptTimeout", 30L );
 	}
 }

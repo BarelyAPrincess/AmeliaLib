@@ -7,10 +7,8 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.scripting.event;
+package io.amelia.scripting.processing;
 
-import com.chiorichan.event.EventHandler;
-import com.chiorichan.event.Listener;
 import com.google.common.collect.Maps;
 import com.google.gson.GsonBuilder;
 
@@ -26,18 +24,20 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.util.Map;
 
-import io.amelia.logging.LogBuilder;
+import io.amelia.foundation.events.EventHandler;
+import io.amelia.scripting.ScriptingFactory;
+import io.amelia.scripting.event.PreEvalEvent;
 
-public class PreLessProcessor implements Listener
+public class PreLessProcessor
 {
-	@EventHandler( )
+	@EventHandler
 	public void onEvent( PreEvalEvent event )
 	{
-		if ( !event.context().contentType().equals( "stylesheet/less" ) || !event.context().shell().equals( "less" ) )
+		if ( !event.getScriptingContext().getContentType().equals( "stylesheet/less" ) || !event.getScriptingContext().getShell().equals( "less" ) )
 			return;
 
 		ClassLoader classLoader = getClass().getClassLoader();
-		InputStream inputStream = classLoader.getResourceAsStream( "com/chiorichan/less-rhino-1.7.4.js" );
+		InputStream inputStream = classLoader.getResourceAsStream( "less-rhino-1.7.4.js" );
 
 		try
 		{
@@ -54,12 +54,12 @@ public class PreLessProcessor implements Listener
 
 				Scriptable compileScope = context.newObject( globalScope );
 				compileScope.setParentScope( globalScope );
-				compileScope.put( "lessSource", compileScope, event.context().readString() );
+				compileScope.put( "lessSource", compileScope, event.getScriptingContext().readString() );
 
 				String filename = "dummyFile.less";
 
-				if ( event.context().filename() != null && !event.context().filename().isEmpty() )
-					filename = new File( event.context().filename() ).getName();
+				if ( event.getScriptingContext().getFileName() != null && !event.getScriptingContext().getFileName().isEmpty() )
+					filename = new File( event.getScriptingContext().getFileName() ).getName();
 
 				/*
 				 * try
@@ -83,14 +83,14 @@ public class PreLessProcessor implements Listener
 
 				// String script = "parser.parse(lessSource, function (e, tree) { source = 'Hello World'; } );";
 
-				// Loader.getLogger().debug( "" + context.evaluateString( compileScope, script, "less2css.js", 0, null ) );
+				// Loader.getLogger().debug( "" + getScriptingContext.evaluateString( compileScope, script, "less2css.js", 0, null ) );
 
 				// Loader.getLogger().debug( "" + globalScope.get( "source" ) );
 
 				if ( globalScope.get( "source" ) != null && globalScope.get( "source" ) instanceof String )
-					event.context().resetAndWrite( ( String ) globalScope.get( "source" ) );
+					event.getScriptingContext().resetAndWrite( ( String ) globalScope.get( "source" ) );
 				else if ( globalScope.get( "source" ) != null )
-					LogBuilder.get().warning( "We did not get what we expected back from Less.js: " + globalScope.get( "source" ) );
+					ScriptingFactory.L.warning( "We did not get what we expected back from Less.js: " + globalScope.get( "source" ) );
 			}
 			finally
 			{

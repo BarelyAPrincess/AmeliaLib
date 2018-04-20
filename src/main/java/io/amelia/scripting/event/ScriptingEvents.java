@@ -7,10 +7,12 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.scripting;
+package io.amelia.scripting.event;
+
+import io.amelia.scripting.ScriptingContext;
 
 /**
- * Provides an interface for which the Scripting Engine to notify Scripts of events, such as exception or before execution.
+ * Provides an interface which allows the ScriptingEngine to pass events into scripts, such as, pre-eval, post-eval and that exceptions were thrown.
  */
 public interface ScriptingEvents
 {

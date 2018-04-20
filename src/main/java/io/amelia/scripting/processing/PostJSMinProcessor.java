@@ -7,7 +7,7 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.scripting.event;
+package io.amelia.scripting.processing;
 
 import com.google.javascript.jscomp.CompilationLevel;
 import com.google.javascript.jscomp.CompilerOptions;
@@ -17,23 +17,24 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import io.amelia.events.EventHandler;
+import io.amelia.foundation.events.EventHandler;
+import io.amelia.scripting.event.PostEvalEvent;
 
-public class PostJSMinProcessor implements Listener
+public class PostJSMinProcessor
 {
 	@EventHandler
 	public void onEvent( PostEvalEvent event )
 	{
-		if ( !event.context().contentType().equals( "application/javascript-x" ) || !event.context().filename().endsWith( "js" ) )
+		if ( !event.getScriptingContext().getContentType().equals( "application/javascript-x" ) || !event.getScriptingContext().getFileName().endsWith( "js" ) )
 			return;
 
 		// A simple way to ignore JS files that might already be minimized
-		if ( event.context().filename() != null && event.context().filename().toLowerCase().endsWith( ".min.js" ) )
+		if ( event.getScriptingContext().getFileName() != null && event.getScriptingContext().getFileName().toLowerCase().endsWith( ".min.js" ) )
 			return;
 
-		String code = event.context().readString();
+		String code = event.getScriptingContext().readString();
 		List<SourceFile> externals = new ArrayList<>();
-		List<SourceFile> inputs = Arrays.asList( SourceFile.fromCode( ( event.context().filename() == null || event.context().filename().isEmpty() ) ? "fakefile.js" : event.context().filename(), code ) );
+		List<SourceFile> inputs = Arrays.asList( SourceFile.fromCode( ( event.getScriptingContext().getFileName() == null || event.getScriptingContext().getFileName().isEmpty() ) ? "fakefile.js" : event.getScriptingContext().getFileName(), code ) );
 
 		Compiler compiler = new Compiler();
 
@@ -43,7 +44,7 @@ public class PostJSMinProcessor implements Listener
 
 		compiler.compile( externals, inputs, options );
 
-		event.context().resetAndWrite( StringUtils.trimToNull( compiler.toSource() ) );
+		event.getScriptingContext().resetAndWrite( StringUtils.trimToNull( compiler.toSource() ) );
 	}
 
 }

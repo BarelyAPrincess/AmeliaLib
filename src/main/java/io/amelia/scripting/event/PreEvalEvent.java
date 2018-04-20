@@ -15,17 +15,17 @@ import io.amelia.scripting.ScriptingContext;
 
 public class PreEvalEvent extends AbstractEvent implements Cancellable
 {
-	private final ScriptingContext context;
+	private final ScriptingContext scriptingContext;
 	private boolean cancelled;
 
-	public PreEvalEvent( ScriptingContext context )
+	public PreEvalEvent( ScriptingContext scriptingContext )
 	{
-		this.context = context;
+		this.scriptingContext = scriptingContext;
 	}
 
-	public ScriptingContext context()
+	public ScriptingContext getScriptingContext()
 	{
-		return context;
+		return scriptingContext;
 	}
 
 	@Override

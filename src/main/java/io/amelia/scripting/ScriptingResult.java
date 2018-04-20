@@ -14,16 +14,16 @@ import java.nio.charset.Charset;
 import groovy.lang.Script;
 import io.amelia.lang.ExceptionReport;
 import io.amelia.lang.ReportingLevel;
-import io.amelia.support.Objs;
 import io.netty.buffer.ByteBuf;
 
 /**
  * Contains the end result of {@link ScriptingFactory#eval(ScriptingContext)}
  */
-public class ScriptingResult extends ExceptionReport
+public class ScriptingResult
 {
 	private final ScriptingContext context;
 	private ByteBuf content;
+	private ExceptionReport exceptionReport = new ExceptionReport();
 	private Object obj = null;
 	private String reason = null;
 	private Script script = null;
@@ -44,8 +44,8 @@ public class ScriptingResult extends ExceptionReport
 			{
 				// If this EvalException never had it's script trace populated, we handle it here
 				if ( !( ( ScriptingException ) exception ).hasScriptTrace() )
-					if ( context.factory() != null )
-						( ( ScriptingException ) exception ).populateScriptTrace( context.factory().stack() );
+					if ( context.getScriptingFactory() != null )
+						( ( ScriptingException ) exception ).populateScriptTrace( context.getScriptingFactory().stack() );
 					else if ( context.request() != null )
 						( ( ScriptingException ) exception ).populateScriptTrace( context.request().getScriptingFactory().stack() );
 				caughtExceptions.add( exception );
@@ -63,14 +63,14 @@ public class ScriptingResult extends ExceptionReport
 			{
 				// If this EvalException never had it's script trace populated, we handle it here
 				if ( !( ( ScriptingException ) throwable ).hasScriptTrace() )
-					if ( context.factory() != null )
-						( ( ScriptingException ) throwable ).populateScriptTrace( context.factory().stack() );
+					if ( context.getScriptingFactory() != null )
+						( ( ScriptingException ) throwable ).populateScriptTrace( context.getScriptingFactory().stack() );
 					else if ( context.request() != null )
 						( ( ScriptingException ) throwable ).populateScriptTrace( context.request().getScriptingFactory().stack() );
 				caughtExceptions.add( ( ScriptingException ) throwable );
 			}
 			else
-				caughtExceptions.add( new ScriptingException( level, throwable ).populateScriptTrace( context.factory().stack() ) );
+				caughtExceptions.add( new ScriptingException( level, throwable ).populateScriptTrace( context.getScriptingFactory().stack() ) );
 		return this;
 	}
 
@@ -82,6 +82,11 @@ public class ScriptingResult extends ExceptionReport
 	public ScriptingContext context()
 	{
 		return context;
+	}
+
+	public ExceptionReport getExceptionReport()
+	{
+		return exceptionReport;
 	}
 
 	public IException[] getExceptions()
@@ -124,12 +129,17 @@ public class ScriptingResult extends ExceptionReport
 
 	public String getString()
 	{
-		return getString( false );
+		return ( content == null ? "" : content.toString( Charset.defaultCharset() ) );
 	}
 
-	public String getString( boolean includeObj )
+	public void handleException( ScriptingContext context, Throwable throwable ) throws EvalSevereError
 	{
-		return ( content == null ? "" : content.toString( Charset.defaultCharset() ) ) + ( includeObj ? Objs.castToString( obj ) : "" );
+
+	}
+
+	public boolean hasObject()
+	{
+		return obj != null;
 	}
 
 	public boolean isSuccessful()
@@ -137,9 +147,15 @@ public class ScriptingResult extends ExceptionReport
 		return success;
 	}
 
-	public ScriptingResult success( boolean success )
+	public ScriptingResult setFailure()
 	{
-		this.success = success;
+		success = false;
+		return this;
+	}
+
+	public ScriptingResult setSuccess()
+	{
+		success = true;
 		return this;
 	}
 

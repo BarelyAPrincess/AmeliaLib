@@ -15,8 +15,8 @@ import java.util.List;
 import io.netty.buffer.ByteBuf;
 
 /**
- * ScriptingEngines are commonly used to process commands and create dynamic content, most notably the groovy scripts.
- * ScriptingEngines are kept persistent for exactly one full request.
+ * The ScriptingEngine is commonly used to evaluate scripts and produce dynamic content.
+ * They are most notably used to compile Groovy scripts at runtime.
  */
 public interface ScriptingEngine
 {

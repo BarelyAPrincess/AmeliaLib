@@ -11,22 +11,39 @@ package io.amelia.scripting;
 
 import com.google.common.collect.Maps;
 
-import java.io.File;
 import java.nio.charset.Charset;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import io.amelia.data.TypeBase;
+import io.amelia.foundation.events.EventException;
+import io.amelia.foundation.events.Events;
 import io.amelia.foundation.ConfigRegistry;
-import io.amelia.lang.ReportingLevel;
+import io.amelia.foundation.Kernel;
+import io.amelia.lang.ScriptingException;
+import io.amelia.scripting.event.PostEvalEvent;
+import io.amelia.scripting.event.PreEvalEvent;
 import io.amelia.scripting.groovy.GroovyRegistry;
+import io.amelia.scripting.processing.ImageProcessor;
+import io.amelia.scripting.processing.PostJSMinProcessor;
+import io.amelia.scripting.processing.PreCoffeeProcessor;
+import io.amelia.scripting.processing.PreLessProcessor;
+import io.amelia.support.Encrypt;
+import io.amelia.support.IO;
+import io.amelia.support.Objs;
+import io.amelia.support.Pair;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
 public class ScriptingFactory
 {
+	public static final Kernel.Logger L = Kernel.getLogger( ScriptingFactory.class );
+	private static List<ScriptingProcessor> processors = new ArrayList<>();
 	private static volatile List<ScriptingRegistry> scripting = new ArrayList<>();
 
 	static
@@ -36,21 +53,21 @@ public class ScriptingFactory
 		/*
 		 * Register Pre-Processors
 		 */
-		register( new PreLinksParserWrapper() );
-		register( new PreIncludesParserWrapper() );
-		if ( ConfigRegistry.config.getBoolean( ConfigKeys.PROCESSORS_COFFEE ).orElse( true ) )
+		// register( new PreLinksParserWrapper() );
+		// register( new PreIncludesParserWrapper() );
+		if ( ConfigRegistry.config.getBoolean( Config.PROCESSORS_COFFEE ) )
 			register( new PreCoffeeProcessor() );
-		if ( ConfigRegistry.config.getBoolean( ConfigKeys.PROCESSORS_LESS ).orElse( true ) )
+		if ( ConfigRegistry.config.getBoolean( Config.PROCESSORS_LESS ) )
 			register( new PreLessProcessor() );
 		// register( new SassPreProcessor() );
 
 		/*
 		 * Register Post-Processors
 		 */
-		if ( ConfigRegistry.config.getBoolean( ConfigKeys.PROCESSORS_MINIFY_JS ).orElse( true ) )
+		if ( ConfigRegistry.config.getBoolean( Config.PROCESSORS_MINIFY_JS ) )
 			register( new PostJSMinProcessor() );
-		if ( ConfigRegistry.config.getBoolean( ConfigKeys.PROCESSORS_IMAGES ).orElse( true ) )
-			register( new PostImageProcessor() );
+		if ( ConfigRegistry.config.getBoolean( Config.PROCESSORS_IMAGES ) )
+			register( new ImageProcessor() );
 	}
 
 	// For Web Use
@@ -71,9 +88,10 @@ public class ScriptingFactory
 		return new ScriptingFactory( binding );
 	}
 
-	public static void register( Listener listener )
+	public static void register( ScriptingProcessor scriptingProcessor )
 	{
-		EventDispatcher.i().registerEvents( listener, new RegistrarContext( AppLoader.instances().get( 0 ) ) );
+		if ( !processors.contains( scriptingProcessor ) )
+			processors.add( scriptingProcessor );
 	}
 
 	/**
@@ -92,12 +110,12 @@ public class ScriptingFactory
 	private final Map<ScriptingEngine, List<String>> engines = Maps.newLinkedHashMap();
 	private final ByteBuf output = Unpooled.buffer();
 	private final StackFactory stackFactory = new StackFactory();
-	private Charset charset = Charsets.toCharset( ConfigRegistry.config.getString( "server.defaultEncoding", "UTF-8" ) );
+	private Charset charset = Charset.forName( ConfigRegistry.config.getString( "server.defaultEncoding" ).orElse( "UTF-8" ) );
 	private YieldBuffer yieldBuffer = null;
 
 	private ScriptingFactory( ScriptBinding binding )
 	{
-		Validate.notNull( binding, "The EvalBinding can't be null" );
+		Objs.notNull( binding, "The ScriptBinding can't be null" );
 		this.binding = binding;
 	}
 
@@ -166,61 +184,59 @@ public class ScriptingFactory
 
 	public ScriptingResult eval( ScriptingContext context )
 	{
-		final ScriptingResult result = context.result();
+		final ScriptingResult result = context.getResult();
 
-		context.factory( this );
-		context.charset( charset );
-		context.baseSource( new String( context.readBytes(), charset ) );
-		binding.setVariable( "__FILE__", context.filename() == null ? "<no file>" : context.filename() );
+		context.setScriptingFactory( this );
+		context.setCharset( charset );
+		context.setBaseSource( new String( context.readBytes(), charset ) );
+		binding.setVariable( "__FILE__", context.getFileName() == null ? "<no file>" : context.getFileName() );
 
-		if ( result.hasNonIgnorableExceptions() )
+		if ( result.getExceptionReport().hasSevereExceptions() )
 			return result;
 
 		try
 		{
 			String name;
 			if ( context.isVirtual() )
-				name = "EvalScript" + UtilEncryption.rand( 8 ) + ".chi";
+				name = "EvalScript" + Encrypt.rand( 8 ) + ".chi";
 			else
 			{
-				String rel = UtilIO.relPath( context.file().getParentFile(), context.site().directory() ).replace( '\\', '.' ).replace( '/', '.' );
-				context.cacheDirectory( new File( context.cacheDirectory(), rel.contains( "." ) ? rel.substring( 0, rel.indexOf( "." ) ) : rel ) );
-				context.scriptPackage( rel.contains( "." ) ? rel.substring( rel.indexOf( "." ) + 1 ) : "" );
-				name = context.file().getName();
+				String rel = IO.relPath( context.getPath().getParent(), context.site().directory() ).replace( '\\', '.' ).replace( '/', '.' );
+				context.setCachePath( Paths.get( rel.contains( "." ) ? rel.substring( 0, rel.indexOf( "." ) ) : rel ).resolve( context.getCachePath() ) );
+				context.setScriptPackage( rel.contains( "." ) ? rel.substring( rel.indexOf( "." ) + 1 ) : "" );
+				name = context.getPath().getFileName().toString();
 			}
 
-			context.scriptName( name );
+			context.setScriptName( name );
 			stackFactory.stack( name, context );
 
 			PreEvalEvent preEvent = new PreEvalEvent( context );
 			try
 			{
-				EventDispatcher.i().callEventWithException( preEvent );
+				Events.callEventWithException( preEvent );
 			}
 			catch ( Exception e )
 			{
-				if ( result.handleException( e.getCause() == null ? e : e.getCause(), context ) )
-					return result;
+				result.handleException( context, e.getCause() == null ? e : e.getCause() );
 			}
 
 			if ( preEvent.isCancelled() )
-				if ( result.handleException( new ScriptingException( ReportingLevel.E_ERROR, "Evaluation was cancelled by an internal event" ), context ) )
-					return result;
+				result.handleException( context, new ScriptingException.Error( "Script evaluation was cancelled by internal event" ) );
 
 			if ( engines.size() == 0 )
 				compileEngines( context );
 
 			if ( engines.size() > 0 )
 				for ( Entry<ScriptingEngine, List<String>> entry : engines.entrySet() )
-					if ( entry.getValue() == null || entry.getValue().size() == 0 || entry.getValue().contains( context.shell().toLowerCase() ) )
+					if ( entry.getValue() == null || entry.getValue().size() == 0 || entry.getValue().contains( context.getShell().toLowerCase() ) )
 					{
 						int level = bufferPush( StackType.SCRIPT );
 						try
 						{
 							// Determine if data was written to the context during the eval(). Indicating data was either written directly or a sub-eval was called.
-							String hash = context.bufferHash();
+							String hash = context.getBufferHash();
 							entry.getKey().eval( context );
-							if ( context.bufferHash().equals( hash ) )
+							if ( context.getBufferHash().equals( hash ) )
 								context.resetAndWrite( output );
 							else
 								context.write( output );
@@ -228,9 +244,7 @@ public class ScriptingFactory
 						}
 						catch ( Throwable cause )
 						{
-							// On return true, it was a severe problem and the execution should be stopped.
-							if ( result.handleException( cause, context ) )
-								return result;
+							result.handleException( context, cause );
 						}
 						finally
 						{
@@ -241,20 +255,24 @@ public class ScriptingFactory
 			PostEvalEvent postEvent = new PostEvalEvent( context );
 			try
 			{
-				EventDispatcher.i().callEventWithException( postEvent );
+				Events.callEventWithException( postEvent );
 			}
-			catch ( EventException e )
+			catch ( EventException.Error e )
 			{
-				if ( result.handleException( e.getCause() == null ? e : e.getCause(), context ) )
-					return result;
+				result.handleException( context, e.getCause() == null ? e : e.getCause() );
 			}
+		}
+		catch ( EvalSevereError e )
+		{
+			// Evaluation has aborted and we return the ScriptingResult AS-IS.
+			return result.setFailure();
 		}
 		finally
 		{
 			stackFactory.unstack();
 		}
 
-		return result.success( true );
+		return result.setSuccess();
 	}
 
 	public Charset getCharset()
@@ -269,7 +287,7 @@ public class ScriptingFactory
 		if ( scriptTrace.size() < 1 )
 			return "<unknown>";
 
-		String fileName = scriptTrace.get( scriptTrace.size() - 1 ).context().filename();
+		String fileName = scriptTrace.get( scriptTrace.size() - 1 ).context().getFileName();
 
 		if ( fileName == null || fileName.isEmpty() )
 			return "<unknown>";
@@ -375,13 +393,15 @@ public class ScriptingFactory
 		OB // Indicates output buffer stack
 	}
 
-	public static class ConfigKeys
+	public static class Config
 	{
-		public static final String SCRIPTING_BASE = "scripting";
-		public static final String PROCESSORS_BASE = SCRIPTING_BASE + ".processors";
-		public static final String PROCESSORS_COFFEE = PROCESSORS_BASE + ".coffeeEnabled";
-		public static final String PROCESSORS_LESS = PROCESSORS_BASE + ".lessEnabled";
-		public static final String PROCESSORS_MINIFY_JS = PROCESSORS_BASE + ".minifyJSEnabled";
-		public static final String PROCESSORS_IMAGES = PROCESSORS_BASE + ".imagesEnabled";
+		public static final TypeBase SCRIPTING_BASE = new TypeBase( "scripting" );
+		public static final TypeBase PROCESSORS_BASE = new TypeBase( SCRIPTING_BASE, "processors" );
+		public static final TypeBase.TypeBoolean PROCESSORS_COFFEE = new TypeBase.TypeBoolean( PROCESSORS_BASE, "coffeeEnabled", true );
+		public static final TypeBase.TypeBoolean PROCESSORS_LESS = new TypeBase.TypeBoolean( PROCESSORS_BASE, "lessEnabled", true );
+		public static final TypeBase.TypeBoolean PROCESSORS_MINIFY_JS = new TypeBase.TypeBoolean( PROCESSORS_BASE, "minifyJSEnabled", true );
+		public static final TypeBase.TypeBoolean PROCESSORS_IMAGES = new TypeBase.TypeBoolean( PROCESSORS_BASE, "imagesEnabled", true );
+		public static final TypeBase.TypeBoolean PROCESSORS_IMAGES_CACHE = new TypeBase.TypeBoolean( PROCESSORS_BASE, "imagesCacheEnabled", true );
+		public static final TypeBase.TypeStringList PREFERRED_EXTENSIONS = new TypeBase.TypeStringList( SCRIPTING_BASE, "preferredExtensions", Arrays.asList( "html", "htm", "groovy", "gsp", "jsp" ) );
 	}
 }
