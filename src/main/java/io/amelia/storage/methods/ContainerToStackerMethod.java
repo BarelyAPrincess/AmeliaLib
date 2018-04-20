@@ -17,8 +17,8 @@ import io.amelia.storage.StorageMapper;
 import io.amelia.storage.StorageMethod;
 import io.amelia.storage.StorageObjectEntry;
 import io.amelia.support.Strs;
-import io.amelia.support.data.ParcelLoader;
-import io.amelia.support.data.StackerWithValue;
+import io.amelia.data.parcel.ParcelLoader;
+import io.amelia.data.StackerWithValue;
 
 public class ContainerToStackerMethod implements StorageMethod
 {
