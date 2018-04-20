@@ -22,7 +22,7 @@ import static java.lang.annotation.ElementType.PARAMETER;
 import static java.lang.annotation.ElementType.TYPE;
 
 /**
- * Used to annotate deprecated code that includes details
+ * Used to annotate deprecated code to include additional details
  */
 @Retention( RetentionPolicy.RUNTIME )
 @Target( value = {CONSTRUCTOR, FIELD, LOCAL_VARIABLE, METHOD, PACKAGE, PARAMETER, TYPE} )

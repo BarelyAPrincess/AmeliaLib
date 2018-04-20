@@ -105,7 +105,7 @@ public class UncaughtException extends RuntimeException implements ExceptionCont
 	}
 
 	@Override
-	public ReportingLevel handle( ExceptionReport report, ExceptionRegistrar registrar )
+	public ReportingLevel handle( ExceptionReport exceptionReport, ExceptionContext exceptionContext )
 	{
 		return ReportingLevel.E_UNHANDLED;
 	}

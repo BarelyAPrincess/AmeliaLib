@@ -10,9 +10,9 @@
 package io.amelia.foundation;
 
 import io.amelia.lang.ConfigException;
-import io.amelia.support.data.ParcelLoader;
-import io.amelia.support.data.StackerWithValue;
-import io.amelia.support.data.ValueTypesTrait;
+import io.amelia.data.parcel.ParcelLoader;
+import io.amelia.data.StackerWithValue;
+import io.amelia.data.ValueTypesTrait;
 
 public final class ConfigMap extends StackerWithValue<ConfigMap, Object> implements ValueTypesTrait
 {
@@ -38,11 +38,6 @@ public final class ConfigMap extends StackerWithValue<ConfigMap, Object> impleme
 		super( ConfigMap::new, parent, key, value );
 	}
 
-	void loadNewValue( String key, Object obj )
-	{
-		getChildOrCreate( key ).loadNewValue( obj );
-	}
-
 	void loadNewValue( Object obj )
 	{
 		disposeCheck();
@@ -52,6 +47,11 @@ public final class ConfigMap extends StackerWithValue<ConfigMap, Object> impleme
 			loadedValueHash = ParcelLoader.hashObject( obj );
 			updateValue( obj );
 		}
+	}
+
+	void loadNewValue( String key, Object obj )
+	{
+		getChildOrCreate( key ).loadNewValue( obj );
 	}
 
 	@Override
@@ -73,4 +73,5 @@ public final class ConfigMap extends StackerWithValue<ConfigMap, Object> impleme
 			throw new ConfigException.Ignorable( this, "You can't set configuration values on the top-level config node. Minimum depth is two!" );
 		super.updateValue( value );
 	}
+
 }

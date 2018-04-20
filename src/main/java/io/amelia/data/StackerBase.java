@@ -237,6 +237,11 @@ public abstract class StackerBase<BaseClass extends StackerBase<BaseClass>>
 		return children.stream().flatMap( child -> child.getChild( predicate ) );
 	}
 
+	public final BaseClass getChild( @Nonnull TypeBase type )
+	{
+		return getChild( type.getPath() );
+	}
+
 	public void getChildIfPresent( String key, Consumer<BaseClass> consumer )
 	{
 		BaseClass child = findChild( key, false );
@@ -253,6 +258,11 @@ public abstract class StackerBase<BaseClass extends StackerBase<BaseClass>>
 	public void getChildOrCreate( String key, Consumer<BaseClass> consumer )
 	{
 		consumer.accept( findChild( key, true ) );
+	}
+
+	public final BaseClass getChildOrCreate( @Nonnull TypeBase type )
+	{
+		return getChildOrCreate( type.getPath() );
 	}
 
 	public final BaseClass getChildOrCreate( @Nonnull String key )

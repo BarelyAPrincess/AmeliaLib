@@ -9,14 +9,22 @@
  */
 package io.amelia.looper;
 
-import io.amelia.looper.queue.AbstractEntry;
+import io.amelia.foundation.Kernel;
 import io.amelia.looper.queue.AbstractQueue;
 import io.amelia.looper.queue.DefaultQueue;
+import io.amelia.looper.queue.EntryAbstract;
 import io.amelia.looper.queue.EntryRunnable;
 
-public final class DefaultLooper extends AbstractLooper<DefaultQueue>
+public final class DefaultLooper extends AbstractLooper<DefaultQueue> implements LooperTaskTrait
 {
 	public static final LooperFactory<DefaultLooper> FACTORY = new LooperFactory<>( DefaultLooper::new );
+
+	public static DefaultLooper newParallelLooper()
+	{
+		DefaultLooper looper = new DefaultLooper();
+		Kernel.getExecutorParallel().execute( looper::joinLoop );
+		return looper;
+	}
 
 	public DefaultLooper()
 	{
@@ -41,10 +49,10 @@ public final class DefaultLooper extends AbstractLooper<DefaultQueue>
 	}
 
 	@Override
-	public boolean isPermitted( AbstractEntry entry )
+	public boolean isPermitted( EntryAbstract entry )
 	{
 		// TODO Check known built-in AbstractEntry sub-classes, so someone doesn't add one we don't know how to handle.
-		return true;
+		return entry instanceof EntryRunnable;
 	}
 
 	@Override
@@ -54,12 +62,18 @@ public final class DefaultLooper extends AbstractLooper<DefaultQueue>
 	}
 
 	@Override
+	protected void signalPostJoinLoop()
+	{
+		// Do Nothing
+	}
+
+	@Override
 	protected void tick( long loopStartMillis )
 	{
 		// Call the actual loop logic.
 		AbstractQueue.Result result = getQueue().next( loopStartMillis );
 
-		// A queue entry was successful returned and can now be ran then recycled.
+		// A queue entry was successful returned, process it and then recycle it.
 		if ( result == AbstractQueue.Result.SUCCESS )
 		{
 			// As of now, the only entry returned on the SUCCESS result is the RunnableEntry (or more so TaskEntry and ParcelEntry).
@@ -74,11 +88,5 @@ public final class DefaultLooper extends AbstractLooper<DefaultQueue>
 		{
 			quitSafely();
 		}
-	}
-
-	@Override
-	protected void signalPostJoinLoop()
-	{
-
 	}
 }

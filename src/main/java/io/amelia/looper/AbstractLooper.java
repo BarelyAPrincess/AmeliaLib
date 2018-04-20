@@ -23,7 +23,7 @@ import java.util.function.Consumer;
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.foundation.Kernel;
 import io.amelia.lang.ExceptionReport;
-import io.amelia.looper.queue.AbstractEntry;
+import io.amelia.looper.queue.EntryAbstract;
 import io.amelia.looper.queue.AbstractQueue;
 
 /**
@@ -186,7 +186,7 @@ public abstract class AbstractLooper<Q extends AbstractQueue>
 		return isOverloaded;
 	}
 
-	public abstract boolean isPermitted( AbstractEntry entry );
+	public abstract boolean isPermitted( EntryAbstract entry );
 
 	/**
 	 * Returns true if this Looper is currently working on quitting.
@@ -251,7 +251,7 @@ public abstract class AbstractLooper<Q extends AbstractQueue>
 				// Are we on average taking more than 100ms per iteration and has it been more than 5 seconds since last overload warning?
 				if ( averagePolledMillis > 100L )
 				{
-					if ( loopStartMillis - lastWarningMillis >= 15000L && ConfigRegistry.config.isTrue( ConfigRegistry.ConfigKeys.WARN_ON_OVERLOAD ) )
+					if ( loopStartMillis - lastWarningMillis >= 15000L && ConfigRegistry.config.isTrue( ConfigRegistry.Config.WARN_ON_OVERLOAD ) )
 					{
 						Kernel.L.warning( "[" + getName() + "] Can't keep up! Did the system time change, or is it overloaded?" );
 						lastWarningMillis = loopStartMillis;

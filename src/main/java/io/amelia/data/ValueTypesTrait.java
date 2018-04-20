@@ -204,21 +204,6 @@ public interface ValueTypesTrait
 		return getStringAsFile( type.getPath() ).orElse( type.getDefault() );
 	}
 
-	default Optional<List<String>> getStringAsList()
-	{
-		return getStringAsList( "", "|" );
-	}
-
-	default Optional<List<String>> getStringAsList( String key )
-	{
-		return getStringAsList( key, "|" );
-	}
-
-	default Optional<List<String>> getStringAsList( String key, String delimiter )
-	{
-		return getString( key ).map( s -> Strs.split( s, delimiter ).collect( Collectors.toList() ) );
-	}
-
 	default Optional<Path> getStringAsPath( Path rel )
 	{
 		return getStringAsPath( "", rel );
@@ -242,6 +227,32 @@ public interface ValueTypesTrait
 	default Path getStringAsPath( TypeBase.TypePath type )
 	{
 		return getStringAsPath( type.getPath() ).orElse( type.getDefault() );
+	}
+
+	default Optional<List<String>> getStringList()
+	{
+		return getStringList( "", "|" );
+	}
+
+	default Optional<List<String>> getStringList( String key )
+	{
+		return getStringList( key, "|" );
+	}
+
+	@SuppressWarnings( "unchecked" )
+	default Optional<List<String>> getStringList( String key, String delimiter )
+	{
+		Object value = getValue( key ).orElse( null );
+		if ( value == null )
+			return Optional.empty();
+		if ( value instanceof List )
+			return Optional.of( ( List<String> ) value );
+		return Optional.of( value ).map( Objs::castToString ).map( s -> Strs.split( s, delimiter ).collect( Collectors.toList() ) );
+	}
+
+	default List<String> getStringList( TypeBase.TypeStringList type )
+	{
+		return getStringList( type.getPath() ).orElse( type.getDefault() );
 	}
 
 	Optional<?> getValue( String key );
@@ -298,9 +309,19 @@ public interface ValueTypesTrait
 		return isTrue( "" );
 	}
 
+	default boolean isTrue( TypeBase.TypeBoolean type )
+	{
+		return isTrue( type.getPath(), type.getDefault() );
+	}
+
 	default boolean isTrue( String key )
 	{
-		return getValue( key ).map( Objs::isTrue ).orElse( false );
+		return isTrue( key, false );
+	}
+
+	default boolean isTrue( String key, boolean def )
+	{
+		return getValue( key ).map( Objs::isTrue ).orElse( def );
 	}
 
 	default boolean isType( @Nonnull String key, @Nonnull Class<?> type )

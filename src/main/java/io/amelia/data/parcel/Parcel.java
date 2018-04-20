@@ -7,7 +7,7 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.data;
+package io.amelia.data.parcel;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
@@ -15,6 +15,8 @@ import java.util.Map;
 
 import javax.annotation.Nonnull;
 
+import io.amelia.data.StackerWithValue;
+import io.amelia.data.ValueTypesTrait;
 import io.amelia.lang.ParcelableException;
 import io.amelia.support.Reflection;
 

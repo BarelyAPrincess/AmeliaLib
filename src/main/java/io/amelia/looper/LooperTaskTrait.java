@@ -12,7 +12,6 @@ package io.amelia.looper;
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 
-import io.amelia.foundation.BlockingTask;
 import io.amelia.lang.ApplicationException;
 import io.amelia.looper.queue.DefaultQueue;
 import io.amelia.looper.queue.EntryRunnable;
@@ -250,10 +249,17 @@ public interface LooperTaskTrait
 			return delay;
 		}
 
+		/**
+		 * Updates the delay on the next iteration of this repeating task.
+		 * Notice: won't affect the current pending task.
+		 *
+		 * @param delay The delay
+		 */
 		public void setDelay( @Nonnegative long delay )
 		{
+			// XXX This is a precaution and could be backed off in the near future.
 			if ( delay < 50 )
-				throw new IllegalArgumentException( "RepeatingTask delay can't be less than 50 milliseconds. Anything less can cause looper lag issues." );
+				throw new IllegalArgumentException( "RepeatingTask delay can't be less than 50 milliseconds. Anything less could cause looper lag issues." );
 			this.delay = delay;
 		}
 
@@ -270,6 +276,8 @@ public interface LooperTaskTrait
 
 	class TaskEntry extends EntryRunnable
 	{
+		// TODO Add method to update the current when
+
 		protected final LooperTask task;
 		protected final long when;
 
@@ -301,6 +309,11 @@ public interface LooperTaskTrait
 		public TaskEntry( @Nonnull DefaultQueue queue, @Nonnull LooperTask task )
 		{
 			this( queue, task, -1 );
+		}
+
+		public LooperTask getTask()
+		{
+			return task;
 		}
 
 		@Override

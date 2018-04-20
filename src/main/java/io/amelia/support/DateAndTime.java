@@ -25,6 +25,8 @@ public class DateAndTime
 	 * Epoch Add-able Seconds
 	 */
 	public static final int SECOND = 1;
+	public static final int SECOND_5 = 5;
+	public static final int SECOND_10 = 10;
 	public static final int SECOND_15 = 15;
 	public static final int SECOND_30 = 30;
 	public static final int SECOND_45 = 45;
@@ -50,6 +52,7 @@ public class DateAndTime
 	public static final int MINUTE_15 = MINUTE * 15;
 	public static final int MINUTE_10 = MINUTE * 10;
 	public static final int MINUTE_5 = MINUTE * 5;
+
 	private static final Pattern INTERVAL_PATTERN = Pattern.compile( "((?:\\d+)|(?:\\d+\\.\\d+))\\s*(second|minute|hour|day|week|month|year|s|m|h|d|w)", Pattern.CASE_INSENSITIVE );
 
 	/**

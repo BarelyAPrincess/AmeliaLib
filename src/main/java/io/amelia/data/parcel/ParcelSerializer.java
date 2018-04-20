@@ -7,7 +7,7 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.data;
+package io.amelia.data.parcel;
 
 import io.amelia.lang.ParcelableException;
 

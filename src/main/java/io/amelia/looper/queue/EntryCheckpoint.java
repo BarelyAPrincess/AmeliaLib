@@ -15,7 +15,7 @@ import javax.annotation.Nonnull;
 
 import io.amelia.looper.AbstractLooper;
 
-public class EntryCheckpoint extends AbstractEntry
+public class EntryCheckpoint extends EntryAbstract
 {
 	BiPredicate<AbstractLooper, Boolean> predicate;
 	long when;
@@ -34,14 +34,14 @@ public class EntryCheckpoint extends AbstractEntry
 	}
 
 	@Override
-	public void recycle()
-	{
-		// Still Does Nothing
-	}
-
-	@Override
 	public boolean isSafe()
 	{
 		return true;
+	}
+
+	@Override
+	public void recycle()
+	{
+		// Still Does Nothing
 	}
 }

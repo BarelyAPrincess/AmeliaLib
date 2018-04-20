@@ -9,6 +9,8 @@
  */
 package io.amelia.support;
 
+import com.sun.istack.internal.NotNull;
+
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -29,6 +31,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -221,6 +224,20 @@ public class Strs
 			return str;
 
 		return capitalizeWords( str.toLowerCase(), delimiter );
+	}
+
+	public static int codePointAt( char[] chars, int index )
+	{
+		if ( ( index < 0 ) || ( index >= chars.length ) )
+			throw new StringIndexOutOfBoundsException( index );
+		char c1 = chars[index];
+		if ( c1 >= Character.MIN_HIGH_SURROGATE && c1 < ( Character.MAX_HIGH_SURROGATE + 1 ) && ++index < chars.length )
+		{
+			char c2 = chars[index];
+			if ( c2 >= Character.MIN_LOW_SURROGATE && c2 < ( Character.MAX_LOW_SURROGATE + 1 ) )
+				return ( ( c1 << 10 ) + c2 ) + ( Character.MIN_SUPPLEMENTARY_CODE_POINT - ( Character.MIN_HIGH_SURROGATE << 10 ) - Character.MIN_LOW_SURROGATE );
+		}
+		return c1;
 	}
 
 	/**
@@ -635,25 +652,30 @@ public class Strs
 		return trimAll( str, glue.charAt( 0 ) );
 	}
 
-	public static Stream<String> split( String str, @Nonnull String delimiter, int limit )
+	public static Stream<String> split( @Nonnull String str, @Nonnull String delimiter, int limit )
 	{
 		if ( Objs.isEmpty( str ) )
 			return Stream.empty();
 		return Arrays.stream( str.split( delimiter, limit ) );
 	}
 
-	public static Stream<String> split( String str, @Nonnull String delimiter )
+	public static Stream<String> split( @Nonnull String str, @Nonnull String delimiter )
 	{
 		if ( Objs.isEmpty( str ) )
 			return Stream.empty();
 		return Arrays.stream( str.split( delimiter ) );
 	}
 
-	public static Stream<String> split( String str, @Nonnull Pattern delimiter )
+	public static Stream<String> split( @NotNull String str, @Nonnull Pattern delimiter )
 	{
 		if ( Objs.isEmpty( str ) )
 			return Stream.empty();
 		return Arrays.stream( delimiter.split( str ) );
+	}
+
+	public static Stream<String> splitLiteral( @Nonnull String str, @Nonnull String delimiter )
+	{
+		return split( str, Pattern.compile( delimiter, Pattern.LITERAL ) );
 	}
 
 	/**
@@ -750,6 +772,117 @@ public class Strs
 	public static String[] toLowerCase( String[] strings )
 	{
 		return Arrays.stream( strings ).filter( v -> !Objs.isNull( v ) ).map( String::toLowerCase ).toArray( String[]::new );
+	}
+
+	public static char[] toLowerCase( char[] chars )
+	{
+		return toLowerCase( chars, Locale.getDefault() );
+	}
+
+	public static char[] toLowerCase( char[] chars, Locale locale )
+	{
+		int firstUpper;
+		final int len = chars.length;
+
+		/* Now check if there are any characters that need to be changed. */
+		scan:
+		{
+			for ( firstUpper = 0; firstUpper < len; )
+			{
+				char c = chars[firstUpper];
+				if ( ( c >= Character.MIN_HIGH_SURROGATE ) && ( c <= Character.MAX_HIGH_SURROGATE ) )
+				{
+					int supplChar = codePointAt( chars, firstUpper );
+					if ( supplChar != Character.toLowerCase( supplChar ) )
+					{
+						break scan;
+					}
+					firstUpper += Character.charCount( supplChar );
+				}
+				else
+				{
+					if ( c != Character.toLowerCase( c ) )
+					{
+						break scan;
+					}
+					firstUpper++;
+				}
+			}
+			return Arrays.copyOf( chars, chars.length );
+		}
+
+		char[] result = new char[len];
+		int resultOffset = 0;  /* result may grow, so i+resultOffset
+		 * is the write location in result */
+
+		/* Just copy the first few lowerCase characters. */
+		System.arraycopy( chars, 0, result, 0, firstUpper );
+
+		String lang = locale.getLanguage();
+		boolean localeDependent = ( lang == "tr" || lang == "az" || lang == "lt" );
+		char[] lowerCharArray;
+		int lowerChar;
+		int srcChar;
+		int srcCount;
+		for ( int i = firstUpper; i < len; i += srcCount )
+		{
+			srcChar = ( int ) chars[i];
+			if ( ( char ) srcChar >= Character.MIN_HIGH_SURROGATE && ( char ) srcChar <= Character.MAX_HIGH_SURROGATE )
+			{
+				srcChar = codePointAt( chars, i );
+				srcCount = Character.charCount( srcChar );
+			}
+			else
+			{
+				srcCount = 1;
+			}
+			if ( localeDependent || srcChar == '\u03A3' || // GREEK CAPITAL LETTER SIGMA
+					srcChar == '\u0130' )
+			{ // LATIN CAPITAL LETTER I WITH DOT ABOVE
+				lowerChar = ConditionalSpecialCasing.toLowerCaseEx( new String( chars ), i, locale );
+			}
+			else
+			{
+				lowerChar = Character.toLowerCase( srcChar );
+			}
+			if ( ( lowerChar == 0xFFFFFFFF ) || ( lowerChar >= Character.MIN_SUPPLEMENTARY_CODE_POINT ) )
+			{
+				// Character.ERROR = 0xFFFFFFFF
+				if ( lowerChar == 0xFFFFFFFF )
+				{
+					lowerCharArray = ConditionalSpecialCasing.toLowerCaseCharArray( new String( chars ), i, locale );
+				}
+				else if ( srcCount == 2 )
+				{
+					resultOffset += Character.toChars( lowerChar, result, i + resultOffset ) - srcCount;
+					continue;
+				}
+				else
+				{
+					lowerCharArray = Character.toChars( lowerChar );
+				}
+
+				/* Grow result if needed */
+				int mapLen = lowerCharArray.length;
+				if ( mapLen > srcCount )
+				{
+					char[] result2 = new char[result.length + mapLen - srcCount];
+					System.arraycopy( result, 0, result2, 0, i + resultOffset );
+					result = result2;
+				}
+				for ( int x = 0; x < mapLen; ++x )
+				{
+					result[i + resultOffset + x] = lowerCharArray[x];
+				}
+				resultOffset += ( mapLen - srcCount );
+			}
+			else
+			{
+				result[i + resultOffset] = ( char ) lowerChar;
+			}
+		}
+		return Arrays.copyOf( result, len + resultOffset );
+		// return new String( result, 0, len + resultOffset );
 	}
 
 	/**
@@ -975,6 +1108,39 @@ public class Strs
 
 	}
 
+	/**
+	 * Mirrored from {@see java.lang.ConditionalSpecialCasing} for public access
+	 */
+	public static class ConditionalSpecialCasing
+	{
+		// TODO Implement failover in the event that the JDK does not implement the class or methods.
+
+		private static <R> R invokeMethod( String methodName, Object... args )
+		{
+			return Objs.invokeStaticMethod( "java.lang.ConditionalSpecialCasing", methodName, args );
+		}
+
+		public static char[] toLowerCaseCharArray( String src, int index, Locale locale )
+		{
+			return invokeMethod( "toLowerCaseCharArray", src, index, locale );
+		}
+
+		public static int toLowerCaseEx( String src, int index, Locale locale )
+		{
+			return invokeMethod( "toLowerCaseEx", src, index, locale );
+		}
+
+		public static char[] toUpperCaseCharArray( String src, int index, Locale locale )
+		{
+			return invokeMethod( "toUpperCaseCharArray", src, index, locale );
+		}
+
+		public static int toUpperCaseEx( String src, int index, Locale locale )
+		{
+			return invokeMethod( "toUpperCaseEx", src, index, locale );
+		}
+	}
+
 	public static class StringChain
 	{
 		private String str;
@@ -1185,6 +1351,47 @@ public class Strs
 		{
 			str = String.format( "%s%s%s", wrap, str, wrap );
 			return this;
+		}
+	}
+
+	/**
+	 * Mirrored from {@see java.lang.StringCoding} for public access
+	 */
+	public static class StringCoding
+	{
+		static char[] decode( byte[] ba, int off, int len )
+		{
+			return invokeMethod( "decode", ba, off, len );
+		}
+
+		static char[] decode( Charset cs, byte[] ba, int off, int len )
+		{
+			return invokeMethod( "decode", cs, ba, off, len );
+		}
+
+		static char[] decode( String charsetName, byte[] ba, int off, int len )
+		{
+			return invokeMethod( "decode", charsetName, ba, off, len );
+		}
+
+		static byte[] encode( char[] ca, int off, int len )
+		{
+			return invokeMethod( "decode", ca, off, len );
+		}
+
+		static byte[] encode( Charset cs, char[] ca, int off, int len )
+		{
+			return invokeMethod( "decode", cs, ca, off, len );
+		}
+
+		static byte[] encode( String charsetName, char[] ca, int off, int len )
+		{
+			return invokeMethod( "decode", charsetName, ca, off, len );
+		}
+
+		private static <R> R invokeMethod( String methodName, Object... args )
+		{
+			return Objs.invokeStaticMethod( "java.lang.StringCoding", methodName, args );
 		}
 	}
 }

@@ -13,7 +13,7 @@ import javax.annotation.Nonnull;
 
 import io.amelia.lang.ApplicationException;
 
-public abstract class EntryRunnable extends AbstractEntry implements Runnable
+public abstract class EntryRunnable extends EntryAbstract implements Runnable
 {
 	public EntryRunnable( @Nonnull DefaultQueue queue )
 	{

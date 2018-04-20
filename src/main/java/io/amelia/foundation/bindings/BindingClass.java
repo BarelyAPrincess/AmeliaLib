@@ -7,16 +7,19 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.data;
+package io.amelia.foundation.bindings;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@Target( ElementType.TYPE )
+/**
+ * Instructs the BindingResolver which class to instigate to fulfill a parameter requirement.
+ */
 @Retention( RetentionPolicy.RUNTIME )
-public @interface Parcelable
+@Target( ElementType.PARAMETER )
+public @interface BindingClass
 {
-	Class<? extends ParcelSerializer> value();
+	Class<?> value();
 }

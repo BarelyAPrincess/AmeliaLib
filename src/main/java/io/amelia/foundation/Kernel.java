@@ -24,14 +24,12 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 
 import io.amelia.lang.ApplicationException;
-import io.amelia.lang.ExceptionContext;
 import io.amelia.lang.ExceptionRegistrar;
 import io.amelia.lang.ExceptionReport;
 import io.amelia.lang.UncaughtException;
@@ -59,8 +57,7 @@ public class Kernel
 	 */
 	static final Executor EXECUTOR_PARALLEL;
 	/**
-	 * An {@link Executor} that executes tasks one at a time in serial
-	 * order.  This serialization is global to a particular process.
+	 * An {@link Executor} that executes tasks one at a time in serial order.
 	 */
 	static final Executor EXECUTOR_SERIAL;
 	static final int KEEP_ALIVE_SECONDS = 30;
@@ -74,21 +71,20 @@ public class Kernel
 	public static long startTime = System.currentTimeMillis();
 	private static Path appPath;
 	private static ImplDevMeta devMeta;
-	private static ExceptionRegistrar exceptionContext = null;
+	private static ExceptionRegistrar exceptionRegistrar = null;
 	static final ThreadFactory threadFactory = new ThreadFactory()
 	{
 		private final AtomicInteger mCount = new AtomicInteger( 1 );
 
 		@Override
-		public Thread newThread( Runnable r )
+		public Thread newThread( @Nonnull Runnable runnable )
 		{
-			Thread newThread = new Thread( r, "HPS Thread #" + String.format( "%d04", mCount.getAndIncrement() ) );
-			newThread.setUncaughtExceptionHandler( ( thread, exp ) -> handleExceptions( new UncaughtException( "Uncaught exception thrown on thread " + thread.getName(), exp ) ) );
+			Thread newThread = new Thread( runnable, "HPS Thread #" + String.format( "%d04", mCount.getAndIncrement() ) );
+			newThread.setUncaughtExceptionHandler( ( thread, exp ) -> ExceptionReport.handleSingleException( new UncaughtException( "Uncaught exception thrown on thread " + thread.getName(), exp ) ) );
 
 			return newThread;
 		}
 	};
-
 	private static ImplLogHandler log = new BuiltinLogHandler();
 
 	static
@@ -150,6 +146,16 @@ public class Kernel
 		if ( Kernel.devMeta != null && !( Kernel.devMeta instanceof NoDevMeta ) )
 			throw new IllegalStateException( "DevMeta has already been set, are you setting it too late?" );
 		Kernel.devMeta = devMeta;
+	}
+
+	public static ExceptionRegistrar getExceptionRegistrar()
+	{
+		return exceptionRegistrar;
+	}
+
+	public static void setExceptionRegistrar( ExceptionRegistrar exceptionRegistrar )
+	{
+		Kernel.exceptionRegistrar = exceptionRegistrar;
 	}
 
 	public static Executor getExecutorParallel()
@@ -265,65 +271,6 @@ public class Kernel
 		return new ArrayList<>( APP_PATHS.keySet() );
 	}
 
-	public static void handleExceptions( @Nonnull Throwable throwable )
-	{
-		handleExceptions( Lists.newArrayList( throwable ) );
-	}
-
-	public static void handleExceptions( @Nonnull List<? extends Throwable> throwables )
-	{
-		handleExceptions( throwables, true );
-	}
-
-	public static void handleExceptions( @Nonnull Throwable throwable, boolean crashOnError )
-	{
-		handleExceptions( Lists.newArrayList( throwable ), crashOnError );
-	}
-
-	public static void handleExceptions( @Nonnull List<? extends Throwable> throwables, boolean crashOnError )
-	{
-		ExceptionReport report = new ExceptionReport();
-
-		for ( Throwable t : throwables )
-			report.handleException( t, exceptionContext );
-
-		/* Non-Ignorable Exceptions */
-
-		Supplier<Stream<ExceptionContext>> errorStream = report::getNotIgnorableExceptions;
-
-		if ( errorStream.get().count() > 0 )
-		{
-			L.severe( "We Encountered " + errorStream.get().count() + " Non-Ignorable Exception(s):" );
-
-			errorStream.get().forEach( throwable -> {
-				if ( throwable instanceof Throwable )
-					L.severe( ( Throwable ) throwable );
-				else
-					L.severe( throwable.getClass() + ": " + throwable.getMessage() );
-			} );
-		}
-
-		/* Ignorable Exceptions */
-
-		Supplier<Stream<ExceptionContext>> debugStream = report::getIgnorableExceptions;
-
-		if ( debugStream.get().count() > 0 )
-		{
-			L.warning( "We Encountered " + debugStream.get().count() + " Ignorable Exception(s):" );
-
-			debugStream.get().forEach( throwable -> {
-				if ( throwable instanceof Throwable )
-					L.warning( ( Throwable ) throwable );
-				else
-					L.warning( throwable.getClass() + ": " + throwable.getMessage() );
-			} );
-		}
-
-		// Pass crash information for examination
-		if ( report.hasErrored() && exceptionContext != null )
-			exceptionContext.fatalError( report, crashOnError );
-	}
-
 	/**
 	 * Indicates if we are running a development build of the server
 	 *
@@ -331,28 +278,13 @@ public class Kernel
 	 */
 	public static boolean isDevelopment()
 	{
-		return devMeta != null && "0".equals( devMeta.getBuildNumber() ) || ConfigRegistry.config.getBoolean( ConfigRegistry.ConfigKeys.DEVELOPMENT_MODE ).orElse( false );
-	}
-
-	public static void panic( String reason )
-	{
-		handleExceptions( ApplicationException.error( "Panic! " + reason ) );
-	}
-
-	public static void panic( String reason, Object... objs )
-	{
-		panic( String.format( reason, objs ) );
+		return devMeta != null && "0".equals( devMeta.getBuildNumber() ) || ConfigRegistry.config.getBoolean( ConfigRegistry.Config.DEVELOPMENT_MODE );
 	}
 
 	protected static void setAppPath( @Nonnull Path appPath )
 	{
 		Objs.notNull( appPath );
 		Kernel.appPath = appPath;
-	}
-
-	public static void setExceptionContext( ExceptionRegistrar exceptionContext )
-	{
-		Kernel.exceptionContext = exceptionContext;
 	}
 
 	public static void setLogHandler( @Nonnull ImplLogHandler log )

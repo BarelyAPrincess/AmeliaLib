@@ -9,7 +9,7 @@
  */
 package io.amelia.lang;
 
-import io.amelia.support.data.StackerBase;
+import io.amelia.data.StackerBase;
 
 public class ParcelableException
 {

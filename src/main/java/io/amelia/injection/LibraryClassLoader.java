@@ -20,7 +20,7 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 
 /**
- * Acts as the classloader for downloaded Maven Libraries
+ * Acts as the classloader for libraries downloaded from Maven.
  */
 @SuppressWarnings( {"unchecked", "rawtypes"} )
 public class LibraryClassLoader
@@ -60,22 +60,22 @@ public class LibraryClassLoader
 
 	}
 
-	public static boolean pathLoaded( Path path ) throws MalformedURLException
+	public static boolean isPathLoaded( Path path ) throws MalformedURLException
 	{
-		return pathLoaded( path.toUri().toURL() );
+		return isPathLoaded( path.toUri().toURL() );
 	}
 
-	public static boolean pathLoaded( File file ) throws MalformedURLException
+	public static boolean isPathLoaded( File file ) throws MalformedURLException
 	{
-		return pathLoaded( file.toURI().toURL() );
+		return isPathLoaded( file.toURI().toURL() );
 	}
 
-	public static boolean pathLoaded( String path ) throws MalformedURLException
+	public static boolean isPathLoaded( String path ) throws MalformedURLException
 	{
-		return pathLoaded( Paths.get( path ) );
+		return isPathLoaded( Paths.get( path ) );
 	}
 
-	public static boolean pathLoaded( URL url )
+	public static boolean isPathLoaded( URL url )
 	{
 		URLClassLoader sysloader = ( URLClassLoader ) ClassLoader.getSystemClassLoader();
 		return Arrays.asList( sysloader.getURLs() ).contains( url );

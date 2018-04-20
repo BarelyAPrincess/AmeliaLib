@@ -7,11 +7,12 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.foundation;
+package io.amelia.looper;
 
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 
+import io.amelia.foundation.Kernel;
 import io.amelia.looper.LooperTask;
 import io.amelia.support.Objs;
 

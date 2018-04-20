@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 import io.amelia.support.Maps;
-import io.amelia.support.data.ParcelLoader;
+import io.amelia.data.parcel.ParcelLoader;
 
 public class VendorMeta extends MetaMap
 {

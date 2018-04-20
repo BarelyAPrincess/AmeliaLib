@@ -152,7 +152,7 @@ public final class ApplicationException
 		}
 
 		@Override
-		public ReportingLevel handle( ExceptionReport report, ExceptionRegistrar registrar )
+		public ReportingLevel handle( ExceptionReport exceptionReport, ExceptionContext exceptionContext )
 		{
 			return null;
 		}
@@ -276,7 +276,7 @@ public final class ApplicationException
 		}
 
 		@Override
-		public ReportingLevel handle( ExceptionReport report, ExceptionRegistrar registrar )
+		public ReportingLevel handle( ExceptionReport exceptionReport, ExceptionContext exceptionContext )
 		{
 			return null;
 		}

@@ -26,7 +26,7 @@ import io.amelia.lang.UncaughtException;
 import io.amelia.support.EnumColor;
 import io.amelia.support.IO;
 import io.amelia.support.Objs;
-import io.amelia.support.Web;
+import io.amelia.support.Http;
 
 /**
  * Used as a helper class for retrieving files from the central maven repository
@@ -163,8 +163,8 @@ public class Libraries implements LibrarySource
 				// Try download from JCenter Bintray Maven Repository
 				try
 				{
-					Web.downloadFile( urlPom, mavenLocalPom );
-					Web.downloadFile( urlJar, mavenLocalJar );
+					Http.downloadFile( urlPom, mavenLocalPom );
+					Http.downloadFile( urlJar, mavenLocalJar );
 				}
 				catch ( IOException e )
 				{
@@ -176,8 +176,8 @@ public class Libraries implements LibrarySource
 
 					try
 					{
-						Web.downloadFile( urlPomAlt, mavenLocalPom );
-						Web.downloadFile( urlJarAlt, mavenLocalJar );
+						Http.downloadFile( urlPomAlt, mavenLocalPom );
+						Http.downloadFile( urlJarAlt, mavenLocalJar );
 					}
 					catch ( IOException ee )
 					{

@@ -25,14 +25,14 @@ import io.amelia.looper.LooperTaskTrait;
 import io.amelia.support.DateAndTime;
 
 /**
- * Low-level class holding the list of {@link AbstractEntry entries} and sometimes {@link Runnable tasks}.
+ * Low-level class holding the list of {@link EntryAbstract entries} and sometimes {@link Runnable tasks}.
  * <p>
  * You can retrieve the looper for the current thread with {@link io.amelia.looper.LooperFactory#obtain()}
  * You can retrieve the queue for the looper from {@link AbstractLooper#getQueue()}
  */
 public class DefaultQueue extends AbstractQueue
 {
-	protected final NavigableSet<AbstractEntry> entries = new TreeSet<>();
+	protected final NavigableSet<EntryAbstract> entries = new TreeSet<>();
 	/**
 	 * We use {@link WeakReference} to prevent a circular reference that negates the benefit of the GC.
 	 * Sometimes this isn't an issue but some JVMs ain't smart enough to detect these types of bugs.
@@ -52,10 +52,10 @@ public class DefaultQueue extends AbstractQueue
 		lock.writeLock().lock();
 		try
 		{
-			Iterator<AbstractEntry> queueIterator = entries.iterator();
+			Iterator<EntryAbstract> queueIterator = entries.iterator();
 			while ( queueIterator.hasNext() )
 			{
-				AbstractEntry entry = queueIterator.next();
+				EntryAbstract entry = queueIterator.next();
 				if ( entry.getId() == id )
 				{
 					queueIterator.remove();
@@ -76,9 +76,9 @@ public class DefaultQueue extends AbstractQueue
 		lock.writeLock().lock();
 		try
 		{
-			AbstractEntry activeEntry = getActiveEntry();
+			EntryAbstract activeEntry = getActiveEntry();
 			/* If a barrier is actively blocking the queue, wake the Looper. */
-			if ( activeEntry != null && activeEntry instanceof EntryBarrier )
+			if ( activeEntry instanceof EntryBarrier )
 			{
 				clearState();
 				if ( !isQuitting() )
@@ -108,7 +108,7 @@ public class DefaultQueue extends AbstractQueue
 		lock.writeLock().lock();
 		try
 		{
-			AbstractEntry activeEntry = getActiveEntry();
+			EntryAbstract activeEntry = getActiveEntry();
 			/* The barrier is actively blocking the queue, so wake the Looper. */
 			if ( activeEntry != null && activeEntry instanceof EntryBarrier && activeEntry.getId() == id )
 			{
@@ -119,10 +119,10 @@ public class DefaultQueue extends AbstractQueue
 			}
 
 			/* Iterate over the pending entries. */
-			Iterator<AbstractEntry> queueIterator = entries.iterator();
+			Iterator<EntryAbstract> queueIterator = entries.iterator();
 			while ( queueIterator.hasNext() )
 			{
-				AbstractEntry entry = queueIterator.next();
+				EntryAbstract entry = queueIterator.next();
 				if ( entry instanceof EntryBarrier && entry.getId() == id )
 				{
 					queueIterator.remove();
@@ -205,7 +205,7 @@ public class DefaultQueue extends AbstractQueue
 	}
 
 	@Override
-	protected AbstractEntry pollNext()
+	protected EntryAbstract pollNext()
 	{
 		lock.readLock().lock();
 		try
@@ -250,7 +250,7 @@ public class DefaultQueue extends AbstractQueue
 	 * <p>
 	 * This method is used to immediately postpone execution of all subsequently posted
 	 * synchronous messages until a condition is met that releases the barrier.
-	 * Asynchronous messages (see {@link AbstractEntry#isAsync} are exempt from the barrier
+	 * Asynchronous messages (see {@link EntryAbstract#isAsync} are exempt from the barrier
 	 * and continue to be processed as usual.
 	 * <p>
 	 * This call must be always matched by a call to {@link #cancelBarrier} with
@@ -289,7 +289,7 @@ public class DefaultQueue extends AbstractQueue
 	}
 
 	@Override
-	protected void postEntry0( @Nonnull AbstractEntry entry )
+	protected void postEntry0( @Nonnull EntryAbstract entry )
 	{
 		if ( !getLooper().isPermitted( entry ) )
 			throw new ApplicationException.Runtime( "Entry " + entry.getClass().getSimpleName() + " is not permitted." );
@@ -298,7 +298,7 @@ public class DefaultQueue extends AbstractQueue
 	}
 
 	@Override
-	protected Result processEntry( AbstractEntry activeEntry, long now )
+	protected Result processEntry( EntryAbstract activeEntry, long now )
 	{
 		lock.writeLock().lock();
 		try

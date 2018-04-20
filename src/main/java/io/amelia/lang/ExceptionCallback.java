@@ -18,9 +18,11 @@ public interface ExceptionCallback
 	/**
 	 * Called for each registered Exception Callback for handling.
 	 *
-	 * @param cause   The thrown exception
-	 * @param context The thrown context
+	 * @param cause            The thrown exception
+	 * @param exceptionReport  The exception report
+	 * @param exceptionContext The thrown context
+	 *
 	 * @return The resulting ErrorReporting level. Returning NULL will, if possible, try the next best matching EvalCallback
 	 */
-	ReportingLevel callback( Throwable cause, ExceptionReport report, ExceptionRegistrar context );
+	ReportingLevel callback( Throwable cause, ExceptionReport exceptionReport, ExceptionContext exceptionContext );
 }

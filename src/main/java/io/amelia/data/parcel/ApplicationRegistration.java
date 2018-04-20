@@ -7,11 +7,15 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.foundation.binding;
+package io.amelia.data.parcel;
 
-import io.amelia.lang.ApplicationException;
+import java.util.HashMap;
+import java.util.Map;
 
-public interface FacadeBinding
+/**
+ * Provides a complete registration of receivers and senders available at each {@link ParcelInterface}.
+ */
+class ApplicationRegistration
 {
-	void destroy() throws ApplicationException.Error;
+	private final Map<String, Object> registered = new HashMap<>();
 }

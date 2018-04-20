@@ -18,16 +18,10 @@ import java.util.List;
  */
 public class MultipleException extends Exception
 {
-	private static final long serialVersionUID = -659541886519281396L;
-
 	private final List<ExceptionContext> exceptions = new ArrayList<>();
 
 	public MultipleException( List<ExceptionContext> exceptions )
 	{
-		for ( ExceptionContext e : exceptions )
-			if ( ! ( e instanceof Throwable ) )
-				throw new IllegalArgumentException( "IException must be implemented on Throwables only, this is a serious programming bug!" );
-
 		this.exceptions.addAll( exceptions );
 	}
 

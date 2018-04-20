@@ -11,10 +11,12 @@ package io.amelia.lang;
 
 import javax.annotation.Nonnull;
 
+import io.amelia.support.Strs;
+
 /**
- * Used by the internal HoneyPotLibrary carry context information about an exception to the {@link io.amelia.foundation.Kernel}.
+ * Used by AmeliaCommonLib to carry exception contextual information about an exception into the {@link io.amelia.foundation.Kernel}.
  * You can either wrap the target exception with a subclass implementing this interface or implement this interface directly on
- * any subclass of {@link Throwable} (recommended).
+ * any subclass of {@link Throwable}, the ladder being recommended.
  */
 public interface ExceptionContext
 {
@@ -49,12 +51,12 @@ public interface ExceptionContext
 	 * <p/>
 	 * Typically you would just add your exception to the report with {@code report.addException( this );} and provide some possible unique debug information, if any exists.
 	 *
-	 * @param report    The ExceptionReport to fill
-	 * @param registrar The Exception Context
+	 * @param exceptionReport  The ExceptionReport to fill
+	 * @param exceptionContext The Exception Context
 	 *
 	 * @return The reporting level produced by this handler, returning {@link null} will cause the application to conclude it's own handling procedure, which is essentially the same as returning {@link ReportingLevel#E_UNHANDLED}.
 	 */
-	default ReportingLevel handle( ExceptionReport report, ExceptionRegistrar registrar )
+	default ReportingLevel handle( ExceptionReport exceptionReport, ExceptionContext exceptionContext )
 	{
 		return null;
 	}
@@ -64,8 +66,18 @@ public interface ExceptionContext
 		return getReportingLevel().isIgnorable();
 	}
 
+	default boolean notIgnorable()
+	{
+		return !getReportingLevel().isIgnorable();
+	}
+
 	default void printStackTrace()
 	{
 		getThrowable().printStackTrace();
+	}
+
+	default String printStackTraceToString()
+	{
+		return Strs.getStackTrace( getThrowable() );
 	}
 }

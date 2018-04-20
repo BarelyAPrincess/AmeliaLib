@@ -70,6 +70,7 @@ import io.amelia.injection.Libraries;
 import io.amelia.lang.ReportingLevel;
 import io.amelia.lang.UncaughtException;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
 public class IO
 {
@@ -206,16 +207,16 @@ public class IO
 		return md5 != null && md5.equals( expectedMd5 );
 	}
 
-	public static void closeQuietly( Closeable closeable )
+	public static void closeQuietly( @Nullable Closeable closeable )
 	{
 		try
 		{
 			if ( closeable != null )
 				closeable.close();
 		}
-		catch ( IOException ioe )
+		catch ( IOException e )
 		{
-			// ignore
+			// Do Nothing
 		}
 	}
 
@@ -798,17 +799,25 @@ public class IO
 		Objs.notFalse( file.exists(), String.format( "%s does not exist!", file.getAbsolutePath() ) );
 	}
 
-	public static String fileExtension( File file )
+	@Nullable
+	public static String fileExtension( @Nonnull File file )
 	{
 		return fileExtension( file.getName() );
 	}
 
+	@Nullable
 	public static String fileExtension( @Nonnull String fileName )
 	{
-		return Strs.regexCapture( fileName, ".*\\.(.*)$" );
+		return Objs.ifPresentGet( Strs.regexCapture( fileName, ".*\\.(.*)$" ), String::toLowerCase );
 	}
 
-	public static void forceCreateDirectory( Path path ) throws IOException
+	@Nullable
+	public static String fileExtension( @Nonnull Path path )
+	{
+		return fileExtension( path.getFileName().toString() );
+	}
+
+	public static void forceCreateDirectory( @Nonnull Path path ) throws IOException
 	{
 		if ( Files.isDirectory( path ) )
 			return;
@@ -822,6 +831,14 @@ public class IO
 		return Files.readAttributes( path, BasicFileAttributes.class ).creationTime().toMillis();
 	}
 
+	public static String getFileName( @Nonnull String path )
+	{
+		for ( String separator : new String[] {File.pathSeparator, "\\", "/"} )
+			if ( path.contains( separator ) )
+				return path.substring( path.lastIndexOf( separator ) + 1 );
+		return path;
+	}
+
 	public static long getLastAccess( @Nonnull Path path ) throws IOException
 	{
 		return Files.readAttributes( path, BasicFileAttributes.class ).lastAccessTime().toMillis();
@@ -832,20 +849,19 @@ public class IO
 		return Files.readAttributes( path, BasicFileAttributes.class ).lastModifiedTime().toMillis();
 	}
 
-	public static String getLocalName( @Nonnull String path )
+	public static String getLocalName( @Nonnull Path path )
 	{
-		for ( String separator : new String[] {File.pathSeparator, "\\", "/"} )
-			if ( path.contains( separator ) )
-				return path.substring( path.lastIndexOf( separator ) + 1 );
-		return path;
+		return Strs.regexCapture( path.getFileName().toString(), "^(.*)\\.[a-zA-Z0-9]+$" );
 	}
 
-	public static String getLocalNameWithoutExtension( String path )
+	public static String getLocalName( @Nonnull File path )
 	{
-		path = getLocalName( path );
-		if ( path.contains( "." ) )
-			path = path.substring( 0, path.lastIndexOf( "." ) );
-		return path;
+		return getLocalName( path.toPath() );
+	}
+
+	public static String getLocalName( @Nonnull String path )
+	{
+		return getLocalName( Paths.get( path ) );
 	}
 
 	public static String getParentPath( @Nonnull String path )
@@ -1196,6 +1212,22 @@ public class IO
 		return bytebuffer;
 	}
 
+	public static String readLine( @Nonnull ByteBuf buf )
+	{
+		if ( !buf.isReadable() || buf.readableBytes() < 1 )
+			return null;
+
+		StringBuilder op = new StringBuilder();
+		while ( buf.isReadable() && buf.readableBytes() > 0 )
+		{
+			byte bb = buf.readByte();
+			if ( bb == '\n' )
+				break;
+			op.append( ( char ) bb );
+		}
+		return op.toString();
+	}
+
 	public static ByteArrayOutputStream readStreamToByteArray( InputStream inputStream ) throws IOException
 	{
 		try
@@ -1209,6 +1241,26 @@ public class IO
 				buffer.write( data, 0, nRead );
 
 			buffer.flush();
+			return buffer;
+		}
+		finally
+		{
+			closeQuietly( inputStream );
+		}
+	}
+
+	public static ByteBuf readStreamToByteBuf( InputStream inputStream ) throws IOException
+	{
+		try
+		{
+			ByteBuf buffer = Unpooled.buffer( inputStream.available() );
+
+			int nRead;
+			byte[] data = new byte[16384];
+
+			while ( ( nRead = inputStream.read( data, 0, data.length ) ) != -1 )
+				buffer.writeBytes( data, 0, nRead );
+
 			return buffer;
 		}
 		finally

@@ -14,11 +14,12 @@ import javax.annotation.Nonnull;
 import io.amelia.looper.AbstractLooper;
 import io.amelia.support.Maths;
 
-public abstract class AbstractEntry implements Comparable<AbstractEntry>
+public abstract class EntryAbstract implements Comparable<EntryAbstract>
 {
 	protected final boolean async;
 	protected final long id = AbstractLooper.getGloballyUniqueId();
 	protected final DefaultQueue queue;
+
 	/**
 	 * Indicates when the entry has been processed by the queue
 	 * <p>
@@ -30,13 +31,12 @@ public abstract class AbstractEntry implements Comparable<AbstractEntry>
 	 */
 	private boolean finalized;
 
-	public AbstractEntry( @Nonnull DefaultQueue queue )
+	public EntryAbstract( @Nonnull DefaultQueue queue )
 	{
-		this.queue = queue;
-		this.async = false;
+		this( queue, false );
 	}
 
-	public AbstractEntry( @Nonnull DefaultQueue queue, boolean async )
+	public EntryAbstract( @Nonnull DefaultQueue queue, boolean async )
 	{
 		this.queue = queue;
 		this.async = async;
@@ -57,9 +57,9 @@ public abstract class AbstractEntry implements Comparable<AbstractEntry>
 	}
 
 	@Override
-	public int compareTo( AbstractEntry abstractEntry )
+	public int compareTo( @Nonnull EntryAbstract entryAbstract )
 	{
-		return Maths.nonZero( Long.compare( getWhen(), abstractEntry.getWhen() ), Long.compare( getId(), abstractEntry.getId() ) ).orElse( 0 );
+		return Maths.nonZero( Long.compare( getWhen(), entryAbstract.getWhen() ), Long.compare( getId(), entryAbstract.getId() ) ).orElse( 0 );
 	}
 
 	public long getId()
@@ -72,7 +72,7 @@ public abstract class AbstractEntry implements Comparable<AbstractEntry>
 		synchronized ( queue.entries )
 		{
 			int pos = 0;
-			for ( AbstractEntry queueTask : queue.entries )
+			for ( EntryAbstract queueTask : queue.entries )
 				if ( queueTask == this )
 					return pos;
 				else
@@ -111,7 +111,7 @@ public abstract class AbstractEntry implements Comparable<AbstractEntry>
 	}
 
 	/**
-	 * Determines that the entry can be removed from the queue with any bugs to the Application.
+	 * Determines that the entry can be removed from the queue without causing any bugs to the Application.
 	 *
 	 * @return True if removal is permitted and this task doesn't have to run.
 	 */

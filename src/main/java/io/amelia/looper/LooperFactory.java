@@ -18,21 +18,14 @@ import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import io.amelia.support.Objs;
-
 public final class LooperFactory<L extends AbstractLooper>
 {
-	private final Supplier<AbstractLooper> supplier;
-	private volatile NavigableSet<AbstractLooper> loopers = new TreeSet<>();
+	private final Supplier<L> supplier;
+	private volatile NavigableSet<L> loopers = new TreeSet<>();
 
-	public LooperFactory( @Nonnull Supplier<AbstractLooper> supplier )
+	public LooperFactory( @Nonnull Supplier<L> supplier )
 	{
 		this.supplier = supplier;
-	}
-
-	public boolean hasLooper( L looper )
-	{
-		return loopers.contains( looper );
 	}
 
 	/**
@@ -52,6 +45,11 @@ public final class LooperFactory<L extends AbstractLooper>
 			return false;
 	}
 
+	public boolean hasLooper( L looper )
+	{
+		return loopers.contains( looper );
+	}
+
 	/**
 	 * Returns the Looper associated with the Thread calling this method and that has passed the predicate provided.
 	 *
@@ -60,11 +58,10 @@ public final class LooperFactory<L extends AbstractLooper>
 	 *
 	 * @return The associated Looper that also passed the provided Predicate, otherwise a new instance returned by the Supplier if none was found or it failed the predicate.
 	 */
-	AbstractLooper obtain( @Nonnull Supplier<AbstractLooper> supplier, @Nullable Predicate<AbstractLooper> predicate )
+	@SuppressWarnings( "unchecked" )
+	L obtain( @Nonnull Supplier<L> supplier, @Nullable Predicate<L> predicate )
 	{
-		Objs.notNull( supplier );
-
-		AbstractLooper looper = peek();
+		L looper = ( L ) peek();
 		if ( looper == null )
 		{
 			looper = supplier.get();
@@ -87,7 +84,7 @@ public final class LooperFactory<L extends AbstractLooper>
 	 *
 	 * @return The associated Looper that also passed the provided Predicate, otherwise new if none was found or it failed the predicate.
 	 */
-	AbstractLooper obtain( @Nullable Predicate<AbstractLooper> predicate )
+	L obtain( @Nullable Predicate<L> predicate )
 	{
 		return obtain( supplier, predicate );
 	}
@@ -97,7 +94,7 @@ public final class LooperFactory<L extends AbstractLooper>
 	 *
 	 * @return The associated Looper, otherwise a new Looper if none was found.
 	 */
-	public AbstractLooper obtain()
+	public L obtain()
 	{
 		return obtain( null );
 	}
@@ -109,7 +106,7 @@ public final class LooperFactory<L extends AbstractLooper>
 	 *
 	 * @return Returns a stream of loopers that matched the predicate provided.
 	 */
-	Stream<AbstractLooper> peek( @Nonnull Predicate<AbstractLooper> predicate )
+	Stream<L> peek( @Nonnull Predicate<AbstractLooper> predicate )
 	{
 		return loopers.stream().filter( predicate );
 	}
@@ -119,7 +116,7 @@ public final class LooperFactory<L extends AbstractLooper>
 	 *
 	 * @return The associated Looper, otherwise {@code null} if none was found.
 	 */
-	AbstractLooper peek()
+	L peek()
 	{
 		return peek( AbstractLooper::isHeldByCurrentThread ).findFirst().orElse( null );
 	}

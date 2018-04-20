@@ -320,6 +320,11 @@ public abstract class StackerWithValue<BaseClass extends StackerWithValue<BaseCl
 			setValue( value );
 	}
 
+	public void setValueIfAbsent( TypeBase.TypeWithDefault type )
+	{
+		getChildOrCreate( type.getPath() ).setValueIfAbsent( ( ValueType ) type.getDefault() );
+	}
+
 	public void setValueIfAbsent( String key, ValueType value )
 	{
 		getChildOrCreate( key ).setValueIfAbsent( value );

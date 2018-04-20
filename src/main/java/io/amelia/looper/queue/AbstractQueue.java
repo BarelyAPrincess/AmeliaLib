@@ -23,7 +23,7 @@ public abstract class AbstractQueue
 	 */
 	private final EnumSet<Flag> flags;
 	protected ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
-	private AbstractEntry activeEntry = null;
+	private EntryAbstract activeEntry = null;
 	private Result activeResult = Result.NONE;
 	private Condition blockingCondition = lock.writeLock().newCondition();
 	private boolean isBlocking = false;
@@ -56,7 +56,7 @@ public abstract class AbstractQueue
 		}
 	}
 
-	public AbstractEntry getActiveEntry()
+	public EntryAbstract getActiveEntry()
 	{
 		return activeEntry;
 	}
@@ -202,9 +202,9 @@ public abstract class AbstractQueue
 		}
 	}
 
-	protected abstract AbstractEntry pollNext();
+	protected abstract EntryAbstract pollNext();
 
-	public final <T extends AbstractEntry> T postEntry( T entry )
+	public final <T extends EntryAbstract> T postEntry( T entry )
 	{
 		if ( isQuitting() )
 			throw new IllegalStateException( "The looper queue is quitting!" );
@@ -232,7 +232,7 @@ public abstract class AbstractQueue
 	 *
 	 * @param entry The Entry to be posted
 	 */
-	protected abstract void postEntry0( AbstractEntry entry );
+	protected abstract void postEntry0( EntryAbstract entry );
 
 	/**
 	 * Process the active entry.
@@ -242,7 +242,7 @@ public abstract class AbstractQueue
 	 *
 	 * @return The Result associated with the provided entry, returning null indicates an entry type that's internally handled.
 	 */
-	protected abstract Result processEntry( AbstractEntry activeEntry, long now );
+	protected abstract Result processEntry( EntryAbstract activeEntry, long now );
 
 	public abstract void quit( boolean removePendingMessages );
 
@@ -280,7 +280,7 @@ public abstract class AbstractQueue
 		ASYNC,
 		/**
 		 * Indicates the {@link #next(long)} can and will block while the queue is empty.
-		 * This flag is default on any non-system queue as to save CPU time.
+		 * This flag is default on any non-system queues to save CPU time.
 		 */
 		BLOCKING
 	}

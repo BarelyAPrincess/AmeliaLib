@@ -17,6 +17,7 @@ import java.util.Map;
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 
+import io.amelia.data.TypeBase;
 import io.amelia.lang.ConfigException;
 import io.amelia.support.IO;
 import io.amelia.support.Objs;
@@ -33,8 +34,10 @@ public class ConfigRegistry
 	 */
 	static
 	{
-		config.setValueIfAbsent( ConfigKeys.WARN_ON_OVERLOAD, false );
-		config.setValueIfAbsent( ConfigKeys.DEVELOPMENT_MODE, false );
+		config.setValueIfAbsent( Config.WARN_ON_OVERLOAD );
+		config.setValueIfAbsent( Config.DEVELOPMENT_MODE );
+		config.setValueIfAbsent( Config.DEFAULT_BINARY_CHARSET );
+		config.setValueIfAbsent( Config.DEFAULT_TEXT_CHARSET );
 	}
 
 	public static void clearCache( @Nonnull Path path, @Nonnegative long keepHistory )
@@ -120,14 +123,18 @@ public class ConfigRegistry
 		// Static Access
 	}
 
-	public static class ConfigKeys
+	public static class Config
 	{
-		public static final String APPLICATION_BASE = "app";
-		public static final String WARN_ON_OVERLOAD = APPLICATION_BASE + ".warnOnOverload";
-		public static final String DEVELOPMENT_MODE = APPLICATION_BASE + ".developmentMode";
-		public static final String CONFIGURATION_BASE = "conf";
+		public static final TypeBase APPLICATION_BASE = new TypeBase( "app" );
+		public static final TypeBase.TypeBoolean WARN_ON_OVERLOAD = new TypeBase.TypeBoolean( APPLICATION_BASE, "warnOnOverload", false );
+		public static final TypeBase.TypeBoolean DEVELOPMENT_MODE = new TypeBase.TypeBoolean( APPLICATION_BASE, "developmentMode", false );
+		public static final TypeBase CONFIGURATION_BASE = new TypeBase( "conf" );
+		public static final TypeBase CONTENT_TYPES = new TypeBase( CONFIGURATION_BASE, "contentTypes" );
+		public static final TypeBase EXT_TYPES = new TypeBase( CONFIGURATION_BASE, "extTypes" );
+		public static final TypeBase.TypeString DEFAULT_BINARY_CHARSET = new TypeBase.TypeString( CONFIGURATION_BASE, "defaultBinaryCharset", "ISO-8859-1" );
+		public static final TypeBase.TypeString DEFAULT_TEXT_CHARSET = new TypeBase.TypeString( CONFIGURATION_BASE, "defaultBinaryCharset", "UTF-8" );
 
-		private ConfigKeys()
+		private Config()
 		{
 			// Static Access
 		}

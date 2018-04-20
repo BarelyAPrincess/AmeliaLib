@@ -7,31 +7,31 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.looper.queue;
-
-import java.util.function.Predicate;
+package io.amelia.data.parcel;
 
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 
-import io.amelia.looper.AbstractLooper;
+import io.amelia.looper.queue.DefaultQueue;
+import io.amelia.looper.queue.EntryRunnable;
+import io.amelia.support.Objs;
 
-public class EntryBarrier extends EntryRunnable
+public class EntryParcel extends EntryRunnable
 {
-	private long id = AbstractLooper.getGloballyUniqueId();
-	private Predicate<AbstractLooper> predicate;
-	private long when;
+	ParcelCarrier parcelCarrier;
+	long when;
 
-	EntryBarrier( @Nonnull DefaultQueue queue, @Nonnull Predicate<AbstractLooper> predicate, @Nonnegative long when )
+	public EntryParcel( @Nonnull DefaultQueue queue, @Nonnull ParcelCarrier parcelCarrier, @Nonnegative long when )
 	{
 		super( queue );
-		this.predicate = predicate;
-		this.when = when;
-	}
 
-	public long getId()
-	{
-		return id;
+		Objs.notNull( parcelCarrier );
+		Objs.notNegative( when );
+
+		parcelCarrier.markFinalized();
+
+		this.parcelCarrier = parcelCarrier;
+		this.when = when;
 	}
 
 	@Override
@@ -49,13 +49,12 @@ public class EntryBarrier extends EntryRunnable
 	@Override
 	public void recycle()
 	{
-		// Do Nothing
+		parcelCarrier.recycle();
 	}
 
 	@Override
 	protected void run0()
 	{
-		if ( !predicate.test( queue.getLooper() ) )
-			cancel();
+		// TODO
 	}
 }

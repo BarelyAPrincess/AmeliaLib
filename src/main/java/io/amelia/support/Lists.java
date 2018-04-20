@@ -28,6 +28,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 public class Lists
 {
@@ -67,12 +68,11 @@ public class Lists
 		return new ArrayList<>();
 	}
 
-	public static <V> V find( List<V> list, Function<? super V, Boolean> function )
+	@Nullable
+	public static <V> V find( @Nonnull List<V> list, @Nonnull Predicate<V> predicate )
 	{
-		Objs.notNull( function );
-
 		for ( V value : list )
-			if ( function.apply( value ) )
+			if ( predicate.test( value ) )
 				return value;
 
 		return null;
@@ -109,9 +109,9 @@ public class Lists
 		return null;
 	}
 
-	public static <V> V findOrNew( List<V> list, Function<? super V, Boolean> function, Supplier<V> valueSupplier )
+	public static <V> V findOrNew( @Nonnull List<V> list, @Nonnull Predicate<V> predicate, @Nonnull Supplier<V> valueSupplier )
 	{
-		V find = find( list, function );
+		V find = find( list, predicate );
 		if ( find == null )
 		{
 			find = valueSupplier.get();

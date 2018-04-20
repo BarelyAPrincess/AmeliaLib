@@ -7,13 +7,11 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.foundation.binding;
+package io.amelia.foundation.bindings;
 
-public enum FacadePriority
+import io.amelia.lang.ApplicationException;
+
+public interface FacadeBinding
 {
-	LOWEST,
-	LOW,
-	NORMAL,
-	HIGH,
-	HIGHEST
+	void destroy() throws ApplicationException.Error;
 }

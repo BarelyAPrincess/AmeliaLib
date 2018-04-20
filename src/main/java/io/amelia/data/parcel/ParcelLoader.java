@@ -7,7 +7,7 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.data;
+package io.amelia.data.parcel;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 
+import io.amelia.data.StackerWithValue;
 import io.amelia.data.yaml.YamlConstructor;
 import io.amelia.data.yaml.YamlRepresenter;
 import io.amelia.lang.ParcelableException;
@@ -322,8 +323,7 @@ public class ParcelLoader
 	{
 		Map<String, Object> map = new HashMap<>();
 
-		for ( StackerWithValue<? extends StackerWithValue, ValueType> child : encoded.children )
-		{
+		encoded.getChildren().forEach( child -> {
 			Optional<ValueType> value = child.getValue();
 
 			if ( child.hasChildren() )
@@ -333,7 +333,7 @@ public class ParcelLoader
 			}
 			else
 				value.ifPresent( o -> map.put( child.getName(), o ) );
-		}
+		} );
 
 		return map;
 	}

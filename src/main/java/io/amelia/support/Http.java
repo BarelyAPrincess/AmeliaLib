@@ -40,7 +40,7 @@ import io.amelia.foundation.Kernel;
 /**
  * Provides Network Utilities
  */
-public class Web
+public class Http
 {
 	private static final Pattern DNS_WILDCARD_PATTERN = Pattern.compile( "^\\*\\..*" );
 
@@ -317,7 +317,7 @@ public class Web
 		return out.toByteArray();
 	}
 
-	private Web()
+	private Http()
 	{
 
 	}

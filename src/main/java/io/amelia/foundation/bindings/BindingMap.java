@@ -7,7 +7,7 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.foundation.binding;
+package io.amelia.foundation.bindings;
 
 import java.lang.ref.WeakReference;
 import java.util.Optional;
@@ -16,8 +16,8 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 
+import io.amelia.data.StackerWithValue;
 import io.amelia.lang.ParcelableException;
-import io.amelia.support.data.StackerWithValue;
 
 @SuppressWarnings( "unchecked" )
 public final class BindingMap extends StackerWithValue<BindingMap, BindingMap.BaseBinding>

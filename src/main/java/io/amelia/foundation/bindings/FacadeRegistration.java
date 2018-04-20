@@ -7,15 +7,15 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.foundation.binding;
+package io.amelia.foundation.bindings;
 
 import java.util.TreeSet;
 import java.util.function.Supplier;
 
 import javax.annotation.Nonnull;
 
-import io.amelia.foundation.Kernel;
 import io.amelia.lang.ApplicationException;
+import io.amelia.lang.ExceptionReport;
 import io.amelia.support.Lists;
 import io.amelia.support.Objs;
 
@@ -112,7 +112,7 @@ public class FacadeRegistration<T extends FacadeBinding>
 			}
 			catch ( ApplicationException.Error e )
 			{
-				Kernel.handleExceptions( e );
+				ExceptionReport.handleSingleException( e );
 			}
 			finally
 			{

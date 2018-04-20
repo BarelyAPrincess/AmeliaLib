@@ -9,6 +9,13 @@
  */
 package io.amelia.support;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -245,6 +252,44 @@ public class Maps
 		return ( T ) map.values().toArray()[inx];
 	}
 
+	@Nonnull
+	public static Map<String, String> objectToStringMap( @Nonnull Object obj )
+	{
+		Map<String, String> result = new TreeMap<>();
+		Class<?> cls = obj.getClass();
+
+		try
+		{
+			for ( Field field : cls.getDeclaredFields() )
+			{
+				Key annotation = field.getAnnotation( Key.class );
+				if ( annotation != null )
+				{
+					field.setAccessible( true );
+					result.put( annotation.value(), Objs.castToString( field.get( obj ) ) );
+				}
+			}
+
+			for ( Method method : cls.getDeclaredMethods() )
+			{
+				Key annotation = method.getAnnotation( Key.class );
+				if ( annotation != null )
+				{
+					if ( method.getParameterCount() > 0 )
+						throw new RuntimeException( "We can't use method " + method.getName() + " in a map if it has any parameters, it must have zero." );
+					method.setAccessible( true );
+					result.put( annotation.value(), Objs.castToString( method.invoke( obj ) ) );
+				}
+			}
+		}
+		catch ( IllegalAccessException | InvocationTargetException e )
+		{
+			// Do Nothing
+		}
+
+		return result;
+	}
+
 	public static <T> Map<Integer, List<T>> paginate( List<T> list, int perPage )
 	{
 		return IntStream.iterate( 0, i -> i + perPage ).limit( ( list.size() + perPage - 1 ) / perPage ).boxed().collect( Collectors.toMap( i -> i / perPage, i -> list.subList( i, Math.min( i + perPage, list.size() ) ) ) );
@@ -313,6 +358,13 @@ public class Maps
 	private Maps()
 	{
 
+	}
+
+	@Retention( RetentionPolicy.RUNTIME )
+	@Target( {ElementType.FIELD, ElementType.METHOD} )
+	public @interface Key
+	{
+		String value();
 	}
 
 	@SuppressWarnings( "unchecked" )

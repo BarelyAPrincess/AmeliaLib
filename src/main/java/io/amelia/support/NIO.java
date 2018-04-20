@@ -23,6 +23,7 @@ import java.net.SocketException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channel;
 import java.util.Enumeration;
 
 import javax.annotation.Nonnull;
@@ -30,7 +31,6 @@ import javax.annotation.Nonnull;
 import io.amelia.foundation.Kernel;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.netty.channel.Channel;
 
 public class NIO
 {

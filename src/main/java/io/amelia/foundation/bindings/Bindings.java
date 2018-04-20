@@ -7,7 +7,7 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.foundation.binding;
+package io.amelia.foundation.bindings;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;

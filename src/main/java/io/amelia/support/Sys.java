@@ -15,7 +15,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.management.ManagementFactory;
-import java.net.URLDecoder;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+import io.amelia.foundation.Kernel;
 
 /**
  * Provides easy access to the server metadata plus operating system and jvm information
@@ -45,14 +49,16 @@ public class Sys
 	{
 		try
 		{
-			// TODO Will using this class cause the method to return the jar containing HPLib?
-			File file = new File( URLDecoder.decode( Sys.class.getProtectionDomain().getCodeSource().getLocation().getPath(), "UTF-8" ) );
-			if ( file.isDirectory() || !file.getAbsolutePath().endsWith( ".jar" ) )
+			// TODO Will using this class cause the method to return the jar containing AmeliaCommonLib?
+			Path path = Paths.get( Sys.class.getProtectionDomain().getCodeSource().getLocation().toURI() );
+			if ( Files.isDirectory( path ) || !path.endsWith( ".jar" ) )
 				return def;
-			return IO.getLocalNameWithoutExtension( file.getAbsolutePath() );
+			return IO.getLocalName( path );
 		}
 		catch ( Exception e )
 		{
+			if ( Kernel.isDevelopment() )
+				e.printStackTrace();
 			return def;
 		}
 	}
@@ -135,6 +141,7 @@ public class Sys
 	 * Indicates if the provided PID is still running, this method is setup to work with both Windows and Linux, might need tuning for other OS's
 	 *
 	 * @param pid
+	 *
 	 * @return is the provided PID running
 	 */
 	public static boolean isPIDRunning( int pid ) throws IOException

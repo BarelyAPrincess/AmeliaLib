@@ -13,6 +13,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Enumeration;
@@ -32,6 +33,7 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import io.amelia.lang.ApplicationException;
 import io.amelia.lang.ReportingLevel;
@@ -367,6 +369,45 @@ public class Objs
 			return ( ( Map<?, ?> ) value ).entrySet().stream().map( e -> castToString( e.getKey() ) + "=\"" + castToString( e.getValue() ) + "\"" ).collect( Collectors.joining( "," ) );
 		if ( value instanceof List )
 			return ( ( List<?> ) value ).stream().map( Objs::castToString ).collect( Collectors.joining( "," ) );
+		if ( value instanceof Charset )
+			return ( ( Charset ) value ).name();
+
+		try
+		{
+			return invokeMethod( value, "name" );
+		}
+		catch ( RuntimeException e )
+		{
+			// Do Nothing
+		}
+
+		try
+		{
+			return invokeMethod( value, "asString" );
+		}
+		catch ( RuntimeException e )
+		{
+			// Do Nothing
+		}
+
+		try
+		{
+			return invokeMethod( value, "getString" );
+		}
+		catch ( RuntimeException e )
+		{
+			// Do Nothing
+		}
+
+		try
+		{
+			return invokeMethod( value, "toString" );
+		}
+		catch ( RuntimeException e )
+		{
+			// Do Nothing
+		}
+
 		throw new ClassCastException( "Uncaught Conversion to String of Type: " + value.getClass().getName() );
 	}
 
@@ -522,17 +563,17 @@ public class Objs
 			consumer.accept( value.get() );
 	}
 
-	public static <T, E extends Exception> void ifPresent( @Nonnull T value, @Nonnull ConsumerWithException<T, E> consumer ) throws E
+	public static <T, E extends Exception> void ifPresent( @Nullable T value, @Nonnull ConsumerWithException<T, E> consumer ) throws E
 	{
 		ifPresent( Optional.ofNullable( value ), consumer );
 	}
 
-	public static <T, R, E extends Exception> R ifPresent( Optional<T> optional, FunctionWithException<T, R, E> ifPresentFunction, SupplierWithException<R, E> notPresentSupplier ) throws E
+	public static <T, R, E extends Exception> R ifPresent( @Nonnull Optional<T> optional, @Nonnull FunctionWithException<T, R, E> ifPresentFunction, SupplierWithException<R, E> notPresentSupplier ) throws E
 	{
 		return optional.isPresent() ? ifPresentFunction.apply( optional.get() ) : notPresentSupplier.get();
 	}
 
-	public static <T, R, E extends Exception> R ifPresentGet( T obj, FunctionWithException<T, R, E> ifPresentFunction ) throws E
+	public static <T, R, E extends Exception> R ifPresentGet( @Nullable T obj, @Nonnull FunctionWithException<T, R, E> ifPresentFunction ) throws E
 	{
 		return obj == null ? null : ifPresentFunction.apply( obj );
 	}
@@ -592,16 +633,96 @@ public class Objs
 		}
 	}
 
-	@SuppressWarnings( "unchecked" )
-	private static <T> T invokeMethodSafe( Method method, Object obj, T rtn, Object... args )
+	public static <R> R invokeMethod( Object obj, String methodName )
+	{
+		return invokeMethod( obj, methodName, new Object[0] );
+	}
+
+	public static <R> R invokeMethod( Object obj, String methodName, R def, Object[] args )
 	{
 		try
 		{
-			return ( T ) method.invoke( obj, args );
+			return invokeMethod( obj, methodName, args );
+		}
+		catch ( RuntimeException e )
+		{
+			return def;
+		}
+	}
+
+	@SuppressWarnings( "unchecked" )
+	public static <R> R invokeMethod( Object obj, String methodName, Object[] args )
+	{
+		try
+		{
+			Class<?>[] classes = new Class<?>[args.length];
+			for ( int i = 0; i < args.length; i++ )
+				classes[i] = args[i].getClass();
+			Class cls = obj.getClass();
+			Method method = cls.getMethod( methodName, classes );
+			method.setAccessible( true );
+			return ( R ) method.invoke( null, args );
+		}
+		catch ( NoSuchMethodException | IllegalAccessException | InvocationTargetException e )
+		{
+			throw new RuntimeException( "There was a problem with Objs#invokeMethod.", e );
+		}
+	}
+
+	public static <R> R invokeMethodSafe( Object obj, Method methodName, R def )
+	{
+		return invokeMethodSafe( obj, methodName, def, new Object[0] );
+	}
+
+	@SuppressWarnings( "unchecked" )
+	public static <R> R invokeMethodSafe( Object obj, Method methodName, R def, Object[] args )
+	{
+		try
+		{
+			return ( R ) methodName.invoke( obj, args );
 		}
 		catch ( IllegalAccessException | InvocationTargetException e )
 		{
-			return rtn;
+			return def;
+		}
+	}
+
+	public static <R> R invokeStaticMethod( Class<?> classType, String methodName )
+	{
+		return invokeStaticMethod( classType, methodName, new Object[0] );
+	}
+
+	public static <R> R invokeStaticMethod( String className, String methodName )
+	{
+		return invokeStaticMethod( className, methodName, new Object[0] );
+	}
+
+	public static <R> R invokeStaticMethod( Class<?> classType, String methodName, Object[] args )
+	{
+		try
+		{
+			Class<?>[] classes = new Class<?>[args.length];
+			for ( int i = 0; i < args.length; i++ )
+				classes[i] = args[i].getClass();
+			Method method = classType.getMethod( methodName, classes );
+			method.setAccessible( true );
+			return ( R ) method.invoke( null, args );
+		}
+		catch ( NoSuchMethodException | IllegalAccessException | InvocationTargetException e )
+		{
+			throw new RuntimeException( "There was a problem with Objs#invokeStaticMethod. There might be a compatibility issue with your JDK, please report this error to the developer.", e );
+		}
+	}
+
+	public static <R> R invokeStaticMethod( String className, String methodName, Object[] args )
+	{
+		try
+		{
+			return invokeStaticMethod( Class.forName( className ), methodName, args );
+		}
+		catch ( ClassNotFoundException e )
+		{
+			throw new RuntimeException( "There was a problem with Objs#invokeStaticMethod. There might be a compatibility issue with your JDK, please report this error to the developer.", e );
 		}
 	}
 
@@ -699,14 +820,14 @@ public class Objs
 		Method methodLength = getMethodSafe( obj, "length" );
 		Method methodSize = getMethodSafe( obj, "size" );
 
-		if ( methodIsEmpty != null && invokeMethodSafe( methodIsEmpty, obj, false ) )
+		if ( methodIsEmpty != null && invokeMethodSafe( obj, methodIsEmpty, false ) )
 			return 0;
 
 		if ( methodLength != null )
-			return invokeMethodSafe( methodLength, obj, -1 );
+			return invokeMethodSafe( obj, methodLength, -1 );
 
 		if ( methodSize != null )
-			return invokeMethodSafe( methodSize, obj, -1 );
+			return invokeMethodSafe( obj, methodSize, -1 );
 
 		return -1;
 	}
@@ -746,18 +867,18 @@ public class Objs
 		Method methodLength = getMethodSafe( obj, "length" );
 		Method methodSize = getMethodSafe( obj, "size" );
 
-		if ( methodIsEmpty != null && invokeMethodSafe( methodIsEmpty, obj, false ) )
+		if ( methodIsEmpty != null && invokeMethodSafe( obj, methodIsEmpty, false ) )
 			throw new IllegalArgumentException( String.format( message, values ) );
 
 		if ( methodLength != null )
 		{
-			if ( methodLength.getReturnType() == Long.class && invokeMethodSafe( methodLength, obj, -1L ) == 0L )
+			if ( methodLength.getReturnType() == Long.class && invokeMethodSafe( obj, methodLength, -1L ) == 0L )
 				throw new IllegalArgumentException( String.format( message, values ) );
-			else if ( methodLength.getReturnType() == Integer.class && invokeMethodSafe( methodLength, obj, -1 ) == 0 )
+			else if ( methodLength.getReturnType() == Integer.class && invokeMethodSafe( obj, methodLength, -1 ) == 0 )
 				throw new IllegalArgumentException( String.format( message, values ) );
 		}
 
-		if ( methodSize != null && invokeMethodSafe( methodSize, obj, -1 ) == 0 )
+		if ( methodSize != null && invokeMethodSafe( obj, methodSize, -1 ) == 0 )
 			throw new IllegalArgumentException( String.format( message, values ) );
 
 		return obj;
