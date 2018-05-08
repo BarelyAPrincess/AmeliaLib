@@ -17,8 +17,13 @@ dependencies {
 	testCompile( group: 'junit', name: 'junit', version: '4.12' ) {
 		exclude group: 'org.hamcrest'
 	}
+	testCompile 'org.hamcrest:hamcrest-library:1.3'
 
 	compile project( ":AmeliaCommonLib" )
 
-	testCompile 'org.hamcrest:hamcrest-library:1.3'
+	// Database Drivers
+	compile group: 'com.rethinkdb', name: 'rethinkdb-driver', version: '2.3.3'
+	compile group: 'mysql', name: 'mysql-connector-java', version: '5.1.35'
+	compile group: 'org.xerial', name: 'sqlite-jdbc', version: '3.8.11.2'
+	compile group: 'com.h2database', name: 'h2', version: '1.4.187'
 }

@@ -1,0 +1,30 @@
+package io.amelia.support;
+
+import io.amelia.foundation.ConfigMap;
+import io.amelia.foundation.ConfigRegistryLoader;
+import io.amelia.foundation.Kernel;
+import io.amelia.lang.ConfigException;
+import io.amelia.lang.StorageException;
+import io.amelia.support.StorageConversions;
+
+public class ConfigStorageLoader implements ConfigRegistryLoader
+{
+	@Override
+	public void loadConfig( ConfigMap config ) throws ConfigException.Error
+	{
+		try
+		{
+			StorageConversions.loadToStacker( Kernel.getPath( Kernel.PATH_CONFIG, true ), config, ConfigMap::new );
+		}
+		catch ( StorageException.Error e )
+		{
+			throw ConfigException.error( config, e );
+		}
+	}
+
+	@Override
+	public void loadConfigAdditional( ConfigMap config ) throws ConfigException.Error
+	{
+		// Currently unused. :(
+	}
+}
