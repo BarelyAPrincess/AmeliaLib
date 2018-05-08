@@ -31,7 +31,6 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
@@ -778,7 +777,7 @@ public class IO
 					copyToPath( zip.getInputStream( entry ), savePath );
 
 					// Temporary workaround for file execution based on file extension.
-					String ext = fileExtension( entry.getName() );
+					String ext = getFileExtension( entry.getName() );
 					if ( ext != null && Sys.isUnixLikeOS() && excutableExts.contains( ext.toLowerCase() ) )
 						Files.setPosixFilePermissions( savePath, Lists.newHashSet( PosixFilePermission.OWNER_EXECUTE ) );
 
@@ -799,24 +798,6 @@ public class IO
 		Objs.notFalse( file.exists(), String.format( "%s does not exist!", file.getAbsolutePath() ) );
 	}
 
-	@Nullable
-	public static String fileExtension( @Nonnull File file )
-	{
-		return fileExtension( file.getName() );
-	}
-
-	@Nullable
-	public static String fileExtension( @Nonnull String fileName )
-	{
-		return Objs.ifPresentGet( Strs.regexCapture( fileName, ".*\\.(.*)$" ), String::toLowerCase );
-	}
-
-	@Nullable
-	public static String fileExtension( @Nonnull Path path )
-	{
-		return fileExtension( path.getFileName().toString() );
-	}
-
 	public static void forceCreateDirectory( @Nonnull Path path ) throws IOException
 	{
 		if ( Files.isDirectory( path ) )
@@ -829,6 +810,24 @@ public class IO
 	public static long getCreation( @Nonnull Path path ) throws IOException
 	{
 		return Files.readAttributes( path, BasicFileAttributes.class ).creationTime().toMillis();
+	}
+
+	@Nullable
+	public static String getFileExtension( @Nonnull File file )
+	{
+		return getFileExtension( file.getName() );
+	}
+
+	@Nullable
+	public static String getFileExtension( @Nonnull String fileName )
+	{
+		return Objs.ifPresentGet( Strs.regexCapture( fileName, ".*\\.(.*)$" ), String::toLowerCase );
+	}
+
+	@Nullable
+	public static String getFileExtension( @Nonnull Path path )
+	{
+		return getFileExtension( path.getFileName().toString() );
 	}
 
 	public static String getFileName( @Nonnull String path )
@@ -1102,18 +1101,35 @@ public class IO
 		return Arrays.stream( paths ).filter( n -> !Objs.isEmpty( n ) ).map( n -> Strs.trimAll( n, '/' ) ).collect( Collectors.joining( PATH_SEPERATOR ) );
 	}
 
-	@Deprecated
-	public static Stream<File> listFiles( File dir )
+	@SuppressWarnings( "unchecked" )
+	public static <P extends Path> Stream<P> listFiles( P p ) throws IOException
 	{
-		File[] files = dir.listFiles();
-		return files == null ? Stream.empty() : Arrays.stream( files );
+		return Files.list( p ).map( path -> ( P ) path );
+	}
+
+	@SuppressWarnings( "unchecked" )
+	public static <P extends Path> Stream<P> listRecursive( P p ) throws IOException
+	{
+		return listFiles( p ).flatMap( path -> {
+			Stream<P> of = Stream.of( path );
+			try
+			{
+				if ( Files.isRegularFile( path ) )
+					return of;
+				return Stream.concat( of, listFiles( path ) );
+			}
+			catch ( IOException e )
+			{
+				return of;
+			}
+		} );
 	}
 
 	public static Map<String, List<File>> mapExtensions( File[] files )
 	{
 		Map<String, List<File>> result = new TreeMap<>();
 		for ( File f : files )
-			result.compute( fileExtension( f ).toLowerCase(), ( k, l ) -> l == null ? new ArrayList<>() : l ).add( f );
+			result.compute( getFileExtension( f ).toLowerCase(), ( k, l ) -> l == null ? new ArrayList<>() : l ).add( f );
 		return result;
 	}
 
@@ -1123,6 +1139,18 @@ public class IO
 		for ( File f : files )
 			result.compute( f.lastModified(), ( k, l ) -> l == null ? new ArrayList<>() : l ).add( f );
 		return result;
+	}
+
+	public static <P extends Path> boolean matches( P path, String regexPattern )
+	{
+		try
+		{
+			return path.toRealPath( LinkOption.NOFOLLOW_LINKS ).toString().matches( regexPattern );
+		}
+		catch ( IOException e )
+		{
+			return path.toString().matches( regexPattern );
+		}
 	}
 
 	public static void putResource( Class<?> clz, String resource, Path path ) throws IOException
@@ -1179,16 +1207,21 @@ public class IO
 		try
 		{
 			in = new FileInputStream( file );
+			return readStreamToString( in );
+		}
+		finally
+		{
+			closeQuietly( in );
+		}
+	}
 
-			ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-
-			int nRead;
-			byte[] data = new byte[16384];
-
-			while ( ( nRead = in.read( data, 0, data.length ) ) != -1 )
-				buffer.write( data, 0, nRead );
-
-			return new String( buffer.toByteArray(), Charset.defaultCharset() );
+	public static String readFileToString( @Nonnull Path path ) throws IOException
+	{
+		InputStream in = null;
+		try
+		{
+			in = Files.newInputStream( path );
+			return readStreamToString( in );
 		}
 		finally
 		{

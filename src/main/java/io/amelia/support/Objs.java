@@ -57,10 +57,8 @@ public class Objs
 		return newList;
 	}
 
-	public static <K, V> Map<K, V> castMap( @Nonnull Map<K, V> map, @Nonnull Class<K> keyClz, @Nonnull Class<V> valClz )
+	public static <K, V> Map<K, V> castMap( @Nonnull Map<?, ?> map, @Nonnull Class<K> keyClz, @Nonnull Class<V> valClz )
 	{
-		Objs.notNull( map );
-
 		Map<K, V> newMap = Maps.copyEmpty( map );
 
 		for ( Map.Entry<?, ?> e : map.entrySet() )

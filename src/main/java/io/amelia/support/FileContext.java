@@ -112,19 +112,19 @@ public class FileContext
 	}
 
 	@Maps.Key( "file" )
-	public String getFilePathRel()
+	public String getFilePathRel( Path relTo )
 	{
-		return IO.relPath( filePath );
+		return IO.relPath( filePath, relTo );
+	}
+
+	public String getTitle()
+	{
+		return title;
 	}
 
 	public String getValue( @Nonnull String key )
 	{
 		return values.get( key.toLowerCase() );
-	}
-
-	public String gettitle()
-	{
-		return title;
 	}
 
 	public boolean hasFilePath()

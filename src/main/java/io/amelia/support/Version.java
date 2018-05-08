@@ -22,36 +22,30 @@ import javax.annotation.Nonnull;
  */
 public class Version implements Comparable<Version>
 {
-	private int build;
+	private int build = 0;
 	private int major;
 	private int minor;
 	private int patch;
 	private String releaseHash;
 	private int releaseNumber;
-	private ReleaseStage releaseStage;
+	private ReleaseStage releaseStage = null;
 
 	public Version( int major, int minor, int patch )
 	{
 		this.major = major;
 		this.minor = minor;
 		this.patch = patch;
-		this.releaseStage = null;
-		this.build = 0;
 	}
 
 	public Version( int major, int minor, int patch, String releaseStage, int build )
 	{
-		this.major = major;
-		this.minor = minor;
-		this.patch = patch;
+		this( major, minor, patch );
 		setReleaseStage( releaseStage );
 		this.build = build;
 	}
 
-	public Version( String version )
+	public Version( @Nonnull String version )
 	{
-		Objs.notNull( version );
-
 		if ( version.contains( "+" ) )
 		{
 			String buildStr = version.substring( version.indexOf( "+" ) + 1 );
@@ -96,9 +90,29 @@ public class Version implements Comparable<Version>
 		return toString().matches( regex );
 	}
 
+	public boolean compareTo( @Nonnull Operator operator, @Nonnull String that )
+	{
+		Version thatVer = new Version( that );
+
+		if ( operator == Operator.LATER )
+			return compareTo( thatVer ) > 0;
+		if ( operator == Operator.LATER_OR_SAME )
+			return compareTo( thatVer ) >= 0;
+		if ( operator == Operator.EARLIER )
+			return compareTo( thatVer ) < 0;
+		if ( operator == Operator.EARLIER_OR_SAME )
+			return compareTo( thatVer ) <= 0;
+		if ( operator == Operator.SAME && that.startsWith( "/" ) && that.endsWith( "/" ) )
+			operator = Operator.REGEX;
+		if ( operator == Operator.SAME )
+			return compareTo( thatVer ) == 0;
+		return operator == Operator.REGEX && toString().matches( that );
+	}
+
 	public boolean compareTo( @Nonnull Operator operator, @Nonnull Version that )
 	{
-		Objs.notNull( that );
+		if ( operator == Operator.REGEX )
+			throw new IllegalArgumentException( "Can't compare versions using regex, must provide version as a string." );
 		if ( operator == Operator.LATER )
 			return compareTo( that ) > 0;
 		if ( operator == Operator.LATER_OR_SAME )
@@ -113,8 +127,6 @@ public class Version implements Comparable<Version>
 	@Override
 	public int compareTo( @Nonnull Version that )
 	{
-		Objs.notNull( that );
-
 		/* Compare major, minor, and patch version numbers. Other than equal is returned. */
 		int majorResult = Integer.compare( major, that.major );
 		if ( majorResult != 0 )
@@ -150,15 +162,15 @@ public class Version implements Comparable<Version>
 		return this.compareTo( ( Version ) that ) == 0;
 	}
 
-	@Override
-	public String toString()
-	{
-		return major + "." + minor + "." + patch + ( releaseStage == null ? "" : "-" + releaseStage ) + ( build > 0 ? "+B" + build : "" );
-	}
-
 	public int getBuild()
 	{
 		return build;
+	}
+
+	public Version setBuild( int build )
+	{
+		this.build = build;
+		return this;
 	}
 
 	public int getMajor()
@@ -166,9 +178,22 @@ public class Version implements Comparable<Version>
 		return major;
 	}
 
+	public Version setMajor( int major )
+	{
+		this.major = major;
+		return this;
+	}
+
 	public int getMinor()
 	{
 		return minor;
+	}
+
+	public Version setMinor( int minor )
+	{
+		this.minor = minor;
+		return this;
+
 	}
 
 	public int getPatch()
@@ -176,9 +201,26 @@ public class Version implements Comparable<Version>
 		return patch;
 	}
 
+	public Version setPatch( int patch )
+	{
+		this.patch = patch;
+		return this;
+	}
+
 	public String getPreRelease()
 	{
 		return releaseStage.name() + ( releaseNumber > 0 ? "." + releaseNumber : "" );
+	}
+
+	public String getReleaseHash()
+	{
+		return releaseHash;
+	}
+
+	public Version setReleaseHash( String releaseHash )
+	{
+		this.releaseHash = releaseHash;
+		return this;
 	}
 
 	public ReleaseStage getReleaseStage()
@@ -212,13 +254,54 @@ public class Version implements Comparable<Version>
 		return releaseStage == ReleaseStage.STABLE;
 	}
 
+	public Version setReleaseNumber( int releaseNumber )
+	{
+		this.releaseNumber = releaseNumber;
+		return this;
+	}
+
+	public Version setReleaseStage( ReleaseStage releaseStage )
+	{
+		this.releaseStage = releaseStage;
+		return this;
+	}
+
+	@Override
+	public String toString()
+	{
+		return major + "." + minor + "." + patch + ( releaseStage == null ? "" : "-" + releaseStage ) + ( build > 0 ? "+B" + build : "" );
+	}
+
 	public enum Operator
 	{
 		SAME,
 		EARLIER,
 		EARLIER_OR_SAME,
 		LATER,
-		LATER_OR_SAME
+		LATER_OR_SAME,
+		REGEX;
+
+		public static Operator parse( String operator )
+		{
+			switch ( operator.toLowerCase().trim() )
+			{
+				case ">":
+					return LATER;
+				case ">=":
+					return LATER_OR_SAME;
+				case "<":
+					return EARLIER;
+				case "<=":
+					return EARLIER_OR_SAME;
+				case "=":
+				case "==":
+					return SAME;
+				case "~":
+					return REGEX;
+				default:
+					return SAME;
+			}
+		}
 	}
 
 	public enum ReleaseStage

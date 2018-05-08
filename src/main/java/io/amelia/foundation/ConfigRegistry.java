@@ -89,6 +89,8 @@ public class ConfigRegistry
 		for ( Map.Entry<String, Object> entry : env.map().entrySet() )
 			envNode.setValue( entry.getKey().replace( '-', '_' ), entry.getValue() );
 		envNode.addFlag( ConfigMap.Flag.READ_ONLY, ConfigMap.Flag.NO_SAVE );
+
+		// TODO Call loader.loadConfigAdditional( config ) once some additional internal systems are initialized.
 	}
 
 	public static boolean isConfigLoaded()

@@ -85,7 +85,7 @@ public class Http
 
 	public static String getUserAgent()
 	{
-		return Kernel.getDevMeta().getProductName() + "/" + Kernel.getDevMeta().getVersion() + "/" + Sys.getJavaVersion();
+		return Kernel.getDevMeta().getProductName() + "/" + Kernel.getDevMeta().getVersionString() + "/" + Sys.getJavaVersion();
 	}
 
 	public static boolean hostnameNeedsNormalization( String str )

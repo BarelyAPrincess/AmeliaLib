@@ -28,7 +28,7 @@ import io.amelia.lang.ApplicationException;
  *
  * @param <T> Subclass of this class
  */
-public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneable
+public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneable, Comparable<T>
 {
 	// TODO Implement a flag setup that does things such as forces nodes to lowercase or normalizes with it being done manually.
 
@@ -88,6 +88,22 @@ public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneabl
 	public T clone()
 	{
 		return creator.apply( nodes );
+	}
+
+	public int compareTo( @Nonnull String other, String glue )
+	{
+		return Maths.normalizeCompare( matchPercentage( other, glue ), 100 );
+	}
+
+	public int compareTo( @Nonnull String other )
+	{
+		return Maths.normalizeCompare( matchPercentage( other ), 100 );
+	}
+
+	@Override
+	public int compareTo( @Nonnull T other )
+	{
+		return Maths.normalizeCompare( matchPercentage( other ), 100 );
 	}
 
 	/**
@@ -255,23 +271,24 @@ public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneabl
 
 	public int matchPercentage( @Nonnull String namespace )
 	{
-		return matchPercentage( namespace, "." );
+		return matchPercentage( namespace, this.glue );
 	}
 
-	public int matchPercentage( @Nonnull String namespace, @Nonnull String separator )
+	public int matchPercentage( @Nonnull String namespace, @Nonnull String glue )
 	{
-		String[] nodes = splitString( namespace, separator );
-		return matchPercentage( creator.apply( nodes ) );
+		return matchPercentage( splitString( namespace, glue ) );
 	}
 
 	/**
 	 * Calculates the matching percentage of this namespace and the provided one.
+	 *
+	 * 0 = Not At All
+	 * 1-99 = Partial Match
+	 * 100 = Equals
+	 * 100+ = Partial Match (Other starts with this namespace)
 	 */
-	public int matchPercentage( @Nonnull T namespace )
+	int matchPercentage( @Nonnull String[] other )
 	{
-		Objs.notEmpty( namespace );
-		String[] other = namespace.nodes;
-
 		int total = 0;
 		int perNode = 100 / nodes.length; // Points per matching node.
 
@@ -285,6 +302,11 @@ public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneabl
 			total += 10 * ( other.length - nodes.length );
 
 		return total;
+	}
+
+	public int matchPercentage( @Nonnull T namespace )
+	{
+		return matchPercentage( namespace.nodes );
 	}
 
 	public T merge( Namespace ns )
