@@ -1523,12 +1523,12 @@ public class IO
 		Files.setPosixFilePermissions( path, Lists.newHashSet( PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE ) );
 	}
 
-	public static void writeStringToFile( File file, String data ) throws IOException
+	public static void writeStringToFile( String data, File file ) throws IOException
 	{
-		writeStringToFile( file, data, false );
+		writeStringToFile( data, file, false );
 	}
 
-	public static void writeStringToFile( File file, String data, boolean append ) throws IOException
+	public static void writeStringToFile( String data, File file, boolean append ) throws IOException
 	{
 		BufferedWriter out = null;
 		try
@@ -1538,14 +1538,43 @@ public class IO
 		}
 		finally
 		{
-			if ( out != null )
-				out.close();
+			closeQuietly( out );
 		}
 	}
 
 	public static void writeStringToOutputStream( @Nonnull String content, @Nonnull OutputStream output ) throws IOException
 	{
 		output.write( Strs.decodeDefault( content ) );
+	}
+
+	public static void writeStringToPath( String data, Path path ) throws IOException
+	{
+		OutputStream out = null;
+		try
+		{
+			out = Files.newOutputStream( path );
+			writeStringToOutputStream( data, out );
+		}
+		finally
+		{
+			closeQuietly( out );
+		}
+	}
+
+	public static void zipDir( Path src, Path dest ) throws IOException
+	{
+		if ( Files.isDirectory( dest ) )
+			dest = dest.resolve( "temp.zip" );
+
+		ZipOutputStream out = new ZipOutputStream( Files.newOutputStream( dest ) );
+		try
+		{
+			zipDirRecursive( src, src, out );
+		}
+		finally
+		{
+			out.close();
+		}
 	}
 
 	public static void zipDir( File src, File dest ) throws IOException
@@ -1561,6 +1590,24 @@ public class IO
 		finally
 		{
 			out.close();
+		}
+	}
+
+	private static void zipDirRecursive( Path origPath, Path dirObj, ZipOutputStream out ) throws IOException
+	{
+		byte[] tmpBuf = new byte[1024];
+		for ( Path path : Files.list( dirObj ).collect( Collectors.toList() ) )
+		{
+			if ( Files.isDirectory( path ) )
+			{
+				zipDirRecursive( origPath, path, out );
+				continue;
+			}
+			InputStream is = Files.newInputStream( path );
+			out.putNextEntry( new ZipEntry( relPath( path, origPath ) ) );
+			copy( is, out );
+			out.closeEntry();
+			is.close();
 		}
 	}
 
@@ -1918,25 +1965,49 @@ public class IO
 
 	public static class PathComparatorByCreated implements Comparator<Path>
 	{
+		boolean descending;
+
+		public PathComparatorByCreated()
+		{
+			this( true );
+		}
+
+		public PathComparatorByCreated( boolean descending )
+		{
+			this.descending = descending;
+		}
+
 		@Override
 		public int compare( Path leftPath, Path rightPath )
 		{
 			long left = Objs.getOrDefault( () -> getCreation( leftPath ), 0L );
 			long right = Objs.getOrDefault( () -> getCreation( rightPath ), 0L );
 
-			return Long.compare( left, right );
+			return descending ? Long.compare( left, right ) : Long.compare( right, left );
 		}
 	}
 
 	public static class PathComparatorByLastModified implements Comparator<Path>
 	{
+		boolean descending;
+
+		public PathComparatorByLastModified()
+		{
+			this( true );
+		}
+
+		public PathComparatorByLastModified( boolean descending )
+		{
+			this.descending = descending;
+		}
+
 		@Override
 		public int compare( Path leftPath, Path rightPath )
 		{
 			long left = Objs.getOrDefault( () -> getLastModified( leftPath ), 0L );
 			long right = Objs.getOrDefault( () -> getLastModified( rightPath ), 0L );
 
-			return Long.compare( left, right );
+			return descending ? Long.compare( left, right ) : Long.compare( right, left );
 		}
 	}
 
