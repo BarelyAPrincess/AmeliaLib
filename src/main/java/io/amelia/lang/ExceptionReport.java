@@ -345,7 +345,7 @@ public final class ExceptionReport
 		else if ( exceptionContexts.size() > 1 )
 			throw ( E ) new MultipleException( exceptionContexts );
 		else if ( exceptionSupplier != null )
-			throw exceptionSupplier.get();
+			throw ( E ) exceptionSupplier.get();
 	}
 
 	public <E extends Exception> void throwSevereExceptions() throws E
