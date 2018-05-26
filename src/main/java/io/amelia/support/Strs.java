@@ -1108,6 +1108,11 @@ public class Strs
 
 	}
 
+	public static boolean isNotEmpty( String str )
+	{
+		return str.length() > 0;
+	}
+
 	/**
 	 * Mirrored from {@see java.lang.ConditionalSpecialCasing} for public access
 	 */
