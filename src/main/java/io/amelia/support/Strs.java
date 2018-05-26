@@ -1079,12 +1079,12 @@ public class Strs
 	public static Set<String> wrap( final Set<String> set, char wrap )
 	{
 		Set<String> newSet;
-		if ( set instanceof HashSet )
+		if ( set instanceof LinkedHashSet )
+			newSet = new LinkedHashSet<>();
+		else if ( set instanceof HashSet )
 			newSet = new HashSet<>();
 		else if ( set instanceof TreeSet )
 			newSet = new TreeSet<>();
-		else if ( set instanceof LinkedHashSet )
-			newSet = new LinkedHashSet<>();
 		else if ( set instanceof CopyOnWriteArraySet )
 			newSet = new CopyOnWriteArraySet<>();
 		else if ( set.getClass() == new HashMap<>().keySet().getClass() ) // Really nasty way of comparing it to a private class
@@ -1106,6 +1106,11 @@ public class Strs
 	private Strs()
 	{
 
+	}
+
+	public static boolean isNotEmpty( String str )
+	{
+		return str.length() > 0;
 	}
 
 	/**

@@ -9,11 +9,12 @@
  */
 package io.amelia.foundation;
 
-import java.io.File;
-import java.io.FileInputStream;
+import com.sun.istack.internal.NotNull;
+
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -21,6 +22,8 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
+
+import javax.annotation.Nonnull;
 
 import io.amelia.lang.UncaughtException;
 import io.amelia.support.IO;
@@ -31,18 +34,17 @@ import io.amelia.support.Pair;
 public class Env
 {
 	private final Map<String, Object> env = new HashMap<>();
-	private final File envFile;
+	private final Path envFile;
 
-	public Env( File envFile ) throws IOException
+	public Env( @Nonnull Path envFile ) throws IOException
 	{
-		Objs.notNull( envFile );
 		this.envFile = envFile;
 
 		synchronized ( env )
 		{
 			Properties prop = new Properties();
-			if ( envFile.exists() )
-				prop.load( new FileInputStream( envFile ) );
+			if ( Files.isRegularFile( envFile ) )
+				prop.load( Files.newInputStream( envFile ) );
 
 			for ( String key : prop.stringPropertyNames() )
 				env.put( key, prop.getProperty( key ) );
@@ -114,10 +116,8 @@ public class Env
 		return Collections.unmodifiableMap( env );
 	}
 
-	public Env set( String key, Object value, boolean updateEnvFile )
+	public Env set( @Nonnull String key, @Nonnull Object value, boolean updateEnvFile )
 	{
-		Objs.notNull( key );
-		Objs.notNull( value );
 		env.put( key, value );
 
 		if ( updateEnvFile )
@@ -126,20 +126,20 @@ public class Env
 		return this;
 	}
 
-	private void updateEnvFile( String key, Object value )
+	private void updateEnvFile( @Nonnull String key, @NotNull Object value )
 	{
 		try
 		{
 			Properties prop = new Properties();
-			if ( envFile.exists() )
-				prop.load( new FileInputStream( envFile ) );
+			if ( Files.isRegularFile( envFile ) )
+				prop.load( Files.newInputStream( envFile ) );
 			prop.setProperty( key, Objs.castToString( value ) );
-			prop.store( new FileOutputStream( envFile ), "" );
+			prop.store( Files.newOutputStream( envFile ), "" );
 		}
 		catch ( IOException e )
 		{
 			if ( e instanceof FileNotFoundException && e.getMessage().contains( "Permission denied" ) )
-				throw new UncaughtException( "We attempted to save the .env file and ran into a permissions issue for directory \"" + IO.relPath( envFile.getParentFile(), new File( "" ) ) + "\"", e );
+				throw new UncaughtException( "We attempted to save the .env file and ran into a permissions issue for directory \"" + IO.relPath( envFile ) + "\"", e );
 			else
 				throw new UncaughtException( e );
 		}

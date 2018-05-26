@@ -9,6 +9,8 @@
  */
 package io.amelia.foundation;
 
+import io.amelia.support.Version;
+
 public interface ImplDevMeta
 {
 	String KEY_PRODUCT_NAME = "productName";
@@ -87,7 +89,7 @@ public interface ImplDevMeta
 	 */
 	default String getHTMLFooter()
 	{
-		return "<small>Running <a href=\"" + getGitRepoUrl() + "\">" + getProductName() + "</a> Version " + getVersionDescribe() + " (Build #" + getBuildNumber() + ")<br />" + getProductCopyright() + "</small>";
+		return "<small>Running <a href=\"" + getGitRepoUrl() + "\">" + getProductName() + "</a> Version " + getVersionDescribe() + " <br />" + getProductCopyright() + "</small>";
 	}
 
 	/**
@@ -135,16 +137,21 @@ public interface ImplDevMeta
 		return getProperty( KEY_PRODUCT_NAME );
 	}
 
+	default String getProductSignature()
+	{
+		return getProductName() + " Version " + getVersionDescribe() + " " + getProductCopyright();
+	}
+
 	String getProperty( String key );
 
-	/**
-	 * Get the server version number, e.g., 9.2.1
-	 *
-	 * @return The server version number
-	 */
-	default String getVersion()
+	default int getPropertyInt( String key )
 	{
-		return getProperty( KEY_VERSION_MAJOR ) + "." + getProperty( KEY_VERSION_MINOR ) + "." + getProperty( KEY_VERSION_REVISION );
+		return Integer.parseInt( getProperty( key ) );
+	}
+
+	default Version getVersion()
+	{
+		return new Version( getPropertyInt( KEY_VERSION_MAJOR ), getPropertyInt( KEY_VERSION_MINOR ), getPropertyInt( KEY_VERSION_REVISION ) ).setBuild( getPropertyInt( KEY_BUILD_NUMBER ) );
 	}
 
 	/**
@@ -155,7 +162,17 @@ public interface ImplDevMeta
 	default String getVersionDescribe()
 	{
 		String build = getBuildNumber();
-		build = Integer.parseInt( build ) > 0 ? " Build #" + build : "";
-		return getVersion() + build + " (" + getCodeName() + ")";
+		build = Integer.parseInt( build ) > 0 ? "Build #" + build + " " : "";
+		return getVersionString() + " (" + build + getCodeName() + ")";
+	}
+
+	/**
+	 * Get the server version number, e.g., 9.2.1
+	 *
+	 * @return The server version number
+	 */
+	default String getVersionString()
+	{
+		return getVersion().toString();
 	}
 }

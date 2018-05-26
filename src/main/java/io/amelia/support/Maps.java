@@ -109,28 +109,29 @@ public class Maps
 		return true;
 	}
 
-	public static <K, V, M extends Map<K, V>> M copyEmpty( M map )
+	public static <K, V> Map<K, V> copyEmpty( Map<?, ?> map )
 	{
 		try
 		{
 			if ( map instanceof LinkedHashMap )
-				return ( M ) new LinkedHashMap<K, V>();
+				return new LinkedHashMap<>();
 			if ( map instanceof TreeMap )
-				return ( M ) new TreeMap<K, V>();
+				return new TreeMap<>();
 			if ( map instanceof Hashtable )
-				return ( M ) new Hashtable<K, V>();
+				return new Hashtable<>();
 			if ( map instanceof WeakHashMap )
-				return ( M ) new WeakHashMap<K, V>();
+				return new WeakHashMap<>();
 			if ( map instanceof ConcurrentHashMap )
-				return ( M ) new ConcurrentHashMap<K, V>();
+				return new ConcurrentHashMap<>();
 			if ( map instanceof IdentityHashMap )
-				return ( M ) new IdentityHashMap<K, V>();
+				return new IdentityHashMap<>();
 		}
 		catch ( ClassCastException e )
 		{
-
+			// Ignored
 		}
-		return ( M ) new HashMap<K, V>();
+
+		return new HashMap<>();
 	}
 
 	public static <T> boolean equalsSet( Set<T> set, Object object )

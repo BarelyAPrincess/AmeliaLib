@@ -41,12 +41,35 @@ public class Triplet<L, M, R> implements Comparable<Triplet<L, M, R>>, Serializa
 	 * The types must be {@code Comparable}.</p>
 	 *
 	 * @param other the other triplet, not null
+	 *
 	 * @return negative if this is less, zero if equal, positive if greater
 	 */
 	@Override
 	public int compareTo( final Triplet<L, M, R> other )
 	{
 		return new CompareChain( left, other.left ).chain( middle, other.middle ).chain( right, other.right ).result();
+	}
+
+	/**
+	 * <p>Compares this triplet to another based on the three elements.</p>
+	 *
+	 * @param obj the object to compare to, null returns false
+	 *
+	 * @return true if the elements of the triplet are equal
+	 */
+	@Override
+	public boolean equals( final Object obj )
+	{
+		if ( obj == this )
+		{
+			return true;
+		}
+		if ( obj instanceof Triplet )
+		{
+			final Triplet<?, ?, ?> other = ( Triplet ) obj;
+			return Objects.equals( left, other.left ) && Objects.equals( middle, other.middle ) && Objects.equals( right, other.right );
+		}
+		return false;
 	}
 
 	public R getEnd()
@@ -86,27 +109,6 @@ public class Triplet<L, M, R> implements Comparable<Triplet<L, M, R>>, Serializa
 	}
 
 	/**
-	 * <p>Compares this triplet to another based on the three elements.</p>
-	 *
-	 * @param obj the object to compare to, null returns false
-	 * @return true if the elements of the triplet are equal
-	 */
-	@Override
-	public boolean equals( final Object obj )
-	{
-		if ( obj == this )
-		{
-			return true;
-		}
-		if ( obj instanceof Triplet )
-		{
-			final Triplet<?, ?, ?> other = ( Triplet ) obj;
-			return Objects.equals( left, other.left ) && Objects.equals( middle, other.middle ) && Objects.equals( right, other.right );
-		}
-		return false;
-	}
-
-	/**
 	 * <p>Returns a String representation of this triplet using the format {@code ($left,$middle,$right)}.</p>
 	 *
 	 * @return a string describing this object, not null
@@ -126,6 +128,7 @@ public class Triplet<L, M, R> implements Comparable<Triplet<L, M, R>>, Serializa
 	 * The default format used by {@code toString()} is {@code (%1$s,%2$s,%3$s)}.</p>
 	 *
 	 * @param format the format string, optionally containing {@code %1$s}, {@code %2$s} and {@code %3$s}, not null
+	 *
 	 * @return the formatted string, not null
 	 */
 	public String toString( final String format )

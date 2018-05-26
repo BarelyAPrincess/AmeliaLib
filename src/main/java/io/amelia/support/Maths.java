@@ -92,4 +92,9 @@ public class Maths
 				return Optional.of( i );
 		return Optional.empty();
 	}
+
+	public static int normalizeCompare( int result, int equilibrium )
+	{
+		return Integer.compare( result, equilibrium );
+	}
 }

@@ -330,7 +330,7 @@ public final class ExceptionReport
 	 * @throws E                 otherwise.
 	 */
 	@SuppressWarnings( "unchecked" )
-	public <E extends Exception> void throwExceptions( @Nonnull Predicate<ExceptionContext> exceptionPredicate, @Nullable Supplier<? extends Exception> exceptionSupplier ) throws E
+	public <E extends Exception> void throwExceptions( @Nonnull Predicate<ExceptionContext> exceptionPredicate, @Nullable Supplier<E> exceptionSupplier ) throws E
 	{
 		List<ExceptionContext> exceptionContexts = getExceptions( exceptionPredicate ).collect( Collectors.toList() );
 

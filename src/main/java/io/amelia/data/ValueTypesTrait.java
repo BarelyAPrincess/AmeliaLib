@@ -118,6 +118,16 @@ public interface ValueTypesTrait
 		return getList( "" );
 	}
 
+	default <T> void getList( @Nonnull List<T> list )
+	{
+		getList( "", list );
+	}
+
+	default <T> void getList( @Nonnull String key, @Nonnull List<T> list )
+	{
+		getValue( key ).filter( v -> v instanceof List ).ifPresent( v -> list.addAll( ( List<T> ) v ) );
+	}
+
 	default <T> Optional<List<T>> getList( @Nonnull String key )
 	{
 		return getValue( key ).filter( v -> v instanceof List ).map( v -> ( List<T> ) v );
