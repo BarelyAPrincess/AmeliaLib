@@ -165,7 +165,7 @@ public interface ValueTypesTrait
 
 	default Optional<String> getString( @Nonnull String key )
 	{
-		return Optional.ofNullable( getValue( key ).map( Objs::castToString ).orElse( null ) );
+		return getValue( key ).map( Objs::castToString );
 	}
 
 	default String getString( TypeBase.TypeString type )

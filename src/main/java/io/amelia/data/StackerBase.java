@@ -56,8 +56,9 @@ public abstract class StackerBase<BaseClass extends StackerBase<BaseClass>>
 		Objs.notNull( creator );
 		Objs.notNull( localName );
 
-		if ( !localName.matches( "[a-z0-9_]*" ) )
-			throwExceptionIgnorable( String.format( "The local name '%s' can only contain characters a-z, 0-9, and _.", localName ) );
+		// TODO Upper and lower case is permitted, however, we should implement a filter that prevents duplicate keys with varying case.
+		if ( !localName.matches( "[a-zA-Z0-9*_]*" ) )
+			throwExceptionIgnorable( String.format( "The local name '%s' can only contain characters a-z, A-Z, 0-9, *, and _.", localName ) );
 
 		this.creator = creator;
 		this.parent = parent;
@@ -337,7 +338,7 @@ public abstract class StackerBase<BaseClass extends StackerBase<BaseClass>>
 		disposeCheck();
 		if ( Objs.isEmpty( localName ) )
 			return new Namespace();
-		return hasParent() ? getParent().getNamespace().append( getName() ) : Namespace.parseString( getName(), getStackerOptions().getSeparator() );
+		return hasParent() ? getParent().getNamespace().append( localName ) : Namespace.parseString( localName, getStackerOptions().getSeparator() );
 	}
 
 	public final BaseClass getParent()

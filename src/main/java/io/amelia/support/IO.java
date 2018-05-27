@@ -1010,13 +1010,16 @@ public class IO
 
 		dump.append( NEWLINE + "         +-------------------------------------------------+" + NEWLINE + "         |  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f |" + NEWLINE + "+--------+-------------------------------------------------+----------------+" );
 
-		if ( highlightIndex > 0 )
+		if ( highlightIndex > -1 )
 		{
 			highlightRow = highlightIndex >>> 4;
 			highlightIndex = highlightIndex - ( 16 * highlightRow ) - 1;
 
-			dump.append( NEWLINE + "|        |" + Strings.repeat( "   ", highlightIndex ) + " $$" + Strings.repeat( "   ", 15 - highlightIndex ) );
-			dump.append( " |" + Strings.repeat( " ", highlightIndex ) + "$" + Strings.repeat( " ", 15 - highlightIndex ) + "|" );
+			if ( highlightIndex < 0 )
+				highlightIndex = 16 + highlightIndex;
+
+			dump.append( NEWLINE ).append( "|        |" ).append( Strs.repeat( "   ", highlightIndex ) ).append( " $$" ).append( Strs.repeat( "   ", 15 - highlightIndex ) );
+			dump.append( " |" ).append( Strs.repeat( " ", highlightIndex ) ).append( "$" ).append( Strs.repeat( " ", 15 - highlightIndex ) ).append( "|" );
 		}
 
 		// Dump the rows which have 16 bytes.
@@ -1038,7 +1041,7 @@ public class IO
 				dump.append( BYTE2CHAR[buf.getUnsignedByte( j )] );
 			dump.append( '|' );
 
-			if ( highlightIndex > 0 && highlightRow == row + 1 )
+			if ( highlightIndex > -1 && highlightRow == row + 1 )
 				dump.append( " <--" );
 		}
 
@@ -2028,5 +2031,18 @@ public class IO
 			long u = o.t;
 			return t < u ? -1 : t == u ? 0 : 1;
 		}
+	}
+
+	public static char byteToChar( short inx )
+	{
+		return BYTE2CHAR[inx];
+	}
+
+	public static String bytesToAscii( byte[] bytes )
+	{
+		StringBuilder dump = new StringBuilder();
+		for ( byte aByte : bytes )
+			dump.append( BYTE2CHAR[aByte & 0xFF] );
+		return dump.toString();
 	}
 }

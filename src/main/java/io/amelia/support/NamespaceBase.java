@@ -9,6 +9,8 @@
  */
 package io.amelia.support;
 
+import com.sun.istack.internal.NotNull;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -21,6 +23,7 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 
+import io.amelia.foundation.Kernel;
 import io.amelia.lang.ApplicationException;
 
 /**
@@ -47,14 +50,14 @@ public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneabl
 	{
 		this.creator = creator;
 		this.glue = glue;
-		this.nodes = Strs.toLowerCase( nodes );
+		this.nodes = nodes; // Strs.toLowerCase()?
 	}
 
 	protected NamespaceBase( NonnullFunction<String[], T> creator, String glue, List<String> nodes )
 	{
 		this.creator = creator;
 		this.glue = glue;
-		this.nodes = Strs.toLowerCase( nodes.toArray( new String[0] ) );
+		this.nodes = nodes.toArray( new String[0] );// Strs.toLowerCase()?
 	}
 
 	protected NamespaceBase( NonnullFunction<String[], T> creator, String glue )
@@ -65,23 +68,23 @@ public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneabl
 	}
 
 	@SuppressWarnings( "unchecked" )
-	public T append( String... nodes )
+	public T append( @Nonnull String node )
 	{
-		if ( nodes.length == 0 )
-			throw new IllegalArgumentException( "Nodes are empty" );
-		if ( nodes.length == 1 )
-			nodes = splitString( nodes[0] );
-		this.nodes = Arrs.concat( this.nodes, nodes );
+		if ( Strs.isEmpty( node ) )
+			return ( T ) this;
+		if ( node.contains( glue ) )
+			throw new IllegalArgumentException( "Appended string MUST NOT contain the glue character." );
+		this.nodes = Arrs.concat( this.nodes, new String[] {node} );
 		return ( T ) this;
 	}
 
-	public T appendNew( String... nodes )
+	public T appendAndCreate( @Nonnull String node )
 	{
-		if ( nodes.length == 0 )
-			throw new IllegalArgumentException( "Nodes are empty" );
-		if ( nodes.length == 1 )
-			nodes = splitString( nodes[0] );
-		return creator.apply( Arrs.concat( this.nodes, nodes ) );
+		if ( Strs.isEmpty( node ) )
+			return clone();
+		if ( node.contains( glue ) )
+			throw new IllegalArgumentException( "Appended string MUST NOT contain the glue character." );
+		return creator.apply( Arrs.concat( this.nodes, new String[] {node} ) );
 	}
 
 	@Override
@@ -260,8 +263,8 @@ public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneabl
 	public String getString( boolean escape )
 	{
 		if ( escape )
-			return Arrays.stream( nodes ).map( n -> n.replace( glue, "\\" + glue ) ).collect( Collectors.joining() );
-		return Strs.join( nodes, glue );
+			return Arrays.stream( nodes ).filter( Strs::isNotEmpty ).map( n -> n.replace( glue, "\\" + glue ) ).collect( Collectors.joining( glue ) );
+		return Arrays.stream( nodes ).filter( Strs::isNotEmpty ).collect( Collectors.joining( glue ) );
 	}
 
 	public boolean isEmpty()
@@ -448,9 +451,8 @@ public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneabl
 
 	private String[] splitString( @Nonnull String str, String separator )
 	{
-		Objs.notNull( str );
-		separator = Objs.notEmptyOrDef( separator, "." );
-		return Strs.split( str, separator ).filter( v -> !Objs.isEmpty( v ) ).toArray( String[]::new );
+		separator = Objs.notEmptyOrDef( separator, glue );
+		return Strs.split( str, separator ).filter( Strs::isNotEmpty ).toArray( String[]::new );
 	}
 
 	public boolean startsWith( @Nonnull T namespace )

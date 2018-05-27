@@ -35,6 +35,7 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import io.amelia.foundation.Kernel;
 import io.amelia.lang.ApplicationException;
 import io.amelia.lang.ReportingLevel;
 import io.amelia.lang.UncaughtException;
@@ -851,12 +852,12 @@ public class Objs
 		return chars;
 	}
 
-	public static <T> T notEmpty( final T obj )
+	public static <T> T notEmpty( @Nullable T obj )
 	{
 		return notEmpty( obj, "Object is empty" );
 	}
 
-	public static <T> T notEmpty( final T obj, final String message, final Object... values )
+	public static <T> T notEmpty( @Nullable T obj, @Nonnull String message, Object... values )
 	{
 		if ( obj == null )
 			throw new NullPointerException( String.format( message, values ) );

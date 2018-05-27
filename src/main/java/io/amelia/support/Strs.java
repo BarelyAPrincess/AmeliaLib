@@ -371,6 +371,11 @@ public class Strs
 		return str.equals( capitalizeWords( str ) );
 	}
 
+	public static boolean isEmpty( String str )
+	{
+		return str.length() == 0;
+	}
+
 	/**
 	 * Determines if a string is all lowercase using the toLowerCase() method.
 	 *
@@ -593,10 +598,8 @@ public class Strs
 		return input.replaceAll( "\\s", "" );
 	}
 
-	public static String repeat( String string, int count )
+	public static String repeat( @Nonnull String string, int count )
 	{
-		Objs.notNull( string );
-
 		if ( count <= 1 )
 			return count == 0 ? "" : string;
 
@@ -615,7 +618,7 @@ public class Strs
 		return new String( array );
 	}
 
-	public static List<String> repeatToList( String chr, int length )
+	public static List<String> repeatToList( @Nonnull String chr, int length )
 	{
 		List<String> list = new ArrayList<>();
 		for ( int i = 0; i < length; i++ )

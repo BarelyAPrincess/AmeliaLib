@@ -25,7 +25,8 @@ public class Namespace extends NamespaceBase<Namespace>
 	{
 		try
 		{
-			tldMaps.addAll( ConfigRegistry.getChild( "conf.tlds" ).getList( String.class ).orElse( new ArrayList<>() ) );
+			// TODO Implement conf.tlds as static config reference
+			tldMaps.addAll( ConfigRegistry.getChildOrCreate( "conf.tlds" ).getList( String.class ).orElse( new ArrayList<>() ) );
 		}
 		catch ( Exception e )
 		{
