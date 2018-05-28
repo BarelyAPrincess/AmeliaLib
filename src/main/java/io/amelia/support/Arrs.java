@@ -168,6 +168,28 @@ public class Arrs
 		return leftSum.compareTo( rightSum );
 	}
 
+	public static byte[] concat( @Nonnull byte[]... arrays )
+	{
+		Objs.notNegativeOrZero( arrays.length );
+
+		int length = 0;
+		for ( byte[] array : arrays )
+		{
+			length += array.length;
+		}
+
+		final byte[] result = new byte[length];
+
+		int offset = 0;
+		for ( byte[] array : arrays )
+		{
+			System.arraycopy( array, 0, result, offset, array.length );
+			offset += array.length;
+		}
+
+		return result;
+	}
+
 	public static <T> T[] concat( @Nonnull T[]... arr )
 	{
 		Objs.notNegativeOrZero( arr.length );

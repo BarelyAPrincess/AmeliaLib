@@ -370,6 +370,8 @@ public class Objs
 			return ( ( List<?> ) value ).stream().map( Objs::castToString ).collect( Collectors.joining( "," ) );
 		if ( value instanceof Charset )
 			return ( ( Charset ) value ).name();
+		if ( value instanceof byte[] )
+			return new String( ( byte[] ) value );
 
 		try
 		{

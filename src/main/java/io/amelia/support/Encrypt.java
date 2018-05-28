@@ -161,6 +161,34 @@ public class Encrypt
 		return md5Hex( uuid( seed ) );
 	}
 
+	public static byte[] sha1( byte[] bytes )
+	{
+		MessageDigest digest = getDigest( SHA_1 );
+		digest.reset();
+		return digest.digest( bytes );
+	}
+
+	public static byte[] sha256( byte[] bytes )
+	{
+		MessageDigest digest = getDigest( SHA_256 );
+		digest.reset();
+		return digest.digest( bytes );
+	}
+
+	public static byte[] sha384( byte[] bytes )
+	{
+		MessageDigest digest = getDigest( SHA_384 );
+		digest.reset();
+		return digest.digest( bytes );
+	}
+
+	public static byte[] sha512( byte[] bytes )
+	{
+		MessageDigest digest = getDigest( SHA_512 );
+		digest.reset();
+		return digest.digest( bytes );
+	}
+
 	public static byte[] md5( byte[] bytes )
 	{
 		return getDigest( MD5 ).digest( bytes );
