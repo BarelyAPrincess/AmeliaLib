@@ -9,6 +9,8 @@
  */
 package io.amelia.support;
 
+import com.google.common.base.Charsets;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -204,12 +206,54 @@ public class Objs
 			return Double.parseDouble( ( String ) value );
 		if ( value instanceof Integer )
 			return ( ( Integer ) value ).doubleValue();
+		if ( value instanceof Float )
+			return ( ( Float ) value ).doubleValue();
 		if ( value instanceof Double )
 			return ( Double ) value;
 		if ( value instanceof Boolean )
 			return ( boolean ) value ? 1D : 0D;
 		if ( value instanceof BigDecimal )
 			return ( ( BigDecimal ) value ).setScale( 0, BigDecimal.ROUND_HALF_UP ).doubleValue();
+
+		throw new ClassCastException( "Uncaught Conversion to Integer of Type: " + value.getClass().getName() );
+	}
+
+	public static Float castToFloat( Object value )
+	{
+		return castToFloat( value, 0F );
+	}
+
+	public static Float castToFloat( Object value, Float def )
+	{
+		try
+		{
+			return castToFloatWithException( value );
+		}
+		catch ( Exception e )
+		{
+			return def;
+		}
+	}
+
+	public static Float castToFloatWithException( Object value )
+	{
+		if ( value == null )
+			throw new ClassCastException( "Can't cast `null` to Float" );
+
+		if ( value instanceof Long )
+			return ( ( Long ) value ).floatValue();
+		if ( value instanceof String )
+			return Float.parseFloat( ( String ) value );
+		if ( value instanceof Integer )
+			return ( ( Integer ) value ).floatValue();
+		if ( value instanceof Float )
+			return ( Float ) value;
+		if ( value instanceof Double )
+			return ( ( Double ) value ).floatValue();
+		if ( value instanceof Boolean )
+			return ( boolean ) value ? 1F : 0F;
+		if ( value instanceof BigDecimal )
+			return ( ( BigDecimal ) value ).setScale( 0, BigDecimal.ROUND_HALF_UP ).floatValue();
 
 		throw new ClassCastException( "Uncaught Conversion to Integer of Type: " + value.getClass().getName() );
 	}
@@ -371,7 +415,7 @@ public class Objs
 		if ( value instanceof Charset )
 			return ( ( Charset ) value ).name();
 		if ( value instanceof byte[] )
-			return new String( ( byte[] ) value );
+			return new String( ( byte[] ) value, Charsets.UTF_8 );
 
 		try
 		{
