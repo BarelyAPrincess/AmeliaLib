@@ -401,7 +401,7 @@ public class Objs
 		if ( value instanceof Integer )
 			return Integer.toString( ( int ) value );
 		if ( value instanceof Double )
-			return Double.toString( ( double ) value );
+			return String.format( "%f", ( double ) value );
 		if ( value instanceof Float )
 			return Float.toString( ( float ) value );
 		if ( value instanceof Boolean )

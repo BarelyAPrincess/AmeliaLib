@@ -11,6 +11,8 @@ package io.amelia.support;
 
 import com.google.common.base.Strings;
 
+import org.bouncycastle.util.encoders.Hex;
+
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -63,6 +65,7 @@ import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.imageio.ImageIO;
+import javax.xml.bind.DatatypeConverter;
 
 import io.amelia.foundation.Kernel;
 import io.amelia.injection.Libraries;
@@ -383,6 +386,13 @@ public class IO
 			out[j++] = chars[0x0F & data[i]];
 		}
 		return out;
+	}
+
+	public static byte[] decodeHex( @Nonnull String data )
+	{
+		if ( data.contains( " " ) )
+			data = data.replaceAll( " ", "" );
+		return DatatypeConverter.parseHexBinary( data );
 	}
 
 	public static String encodeHexPretty( final byte... data )

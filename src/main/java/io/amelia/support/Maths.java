@@ -11,6 +11,8 @@ package io.amelia.support;
 
 import java.util.Optional;
 
+import io.netty.buffer.Unpooled;
+
 public class Maths
 {
 	/**
@@ -31,6 +33,16 @@ public class Maths
 			return a + b;
 
 		throw new IllegalArgumentException( "Addition overflow: " + a + " + " + b );
+	}
+
+	public static byte[] doubleToBytes( Double value )
+	{
+		return Unpooled.buffer( 8 ).writeLongLE( Double.doubleToLongBits( value ) ).array();
+	}
+
+	public static String doubleToString( Double value )
+	{
+		return String.format( "%f", value );
 	}
 
 	public static boolean isNumber( String value )
