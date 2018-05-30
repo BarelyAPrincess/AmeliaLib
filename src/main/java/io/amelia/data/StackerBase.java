@@ -2,7 +2,7 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia DeWitt <theameliadewitt@ameliadewitt.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
@@ -46,12 +46,12 @@ public abstract class StackerBase<BaseClass extends StackerBase<BaseClass>>
 	protected StackerOptions stackerOptions = null;
 	private String localName;
 
-	protected StackerBase( BiFunction<BaseClass, String, BaseClass> creator, String localName )
+	protected StackerBase( @Nonnull BiFunction<BaseClass, String, BaseClass> creator, @Nonnull String localName )
 	{
 		this( creator, null, localName );
 	}
 
-	protected StackerBase( BiFunction<BaseClass, String, BaseClass> creator, BaseClass parent, String localName )
+	protected StackerBase( @Nonnull BiFunction<BaseClass, String, BaseClass> creator, BaseClass parent, @Nonnull String localName )
 	{
 		Objs.notNull( creator );
 		Objs.notNull( localName );

@@ -2,7 +2,7 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia DeWitt <theameliadewitt@ameliadewitt.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
@@ -37,17 +37,17 @@ public abstract class StackerWithValue<BaseClass extends StackerWithValue<BaseCl
 	public static final int LISTENER_VALUE_REMOVE = 0x04;
 	protected volatile ValueType value;
 
-	protected StackerWithValue( BiFunction<BaseClass, String, BaseClass> creator, String key )
+	protected StackerWithValue( @Nonnull BiFunction<BaseClass, String, BaseClass> creator, @Nonnull String key )
 	{
 		this( creator, null, key, null );
 	}
 
-	protected StackerWithValue( BiFunction<BaseClass, String, BaseClass> creator, BaseClass parent, String key )
+	protected StackerWithValue( @Nonnull BiFunction<BaseClass, String, BaseClass> creator, BaseClass parent, @Nonnull String key )
 	{
 		this( creator, parent, key, null );
 	}
 
-	protected StackerWithValue( BiFunction<BaseClass, String, BaseClass> creator, BaseClass parent, String key, ValueType value )
+	protected StackerWithValue( @Nonnull BiFunction<BaseClass, String, BaseClass> creator, BaseClass parent, @Nonnull String key, ValueType value )
 	{
 		super( creator, parent, key );
 		this.value = value;

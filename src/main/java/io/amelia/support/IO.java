@@ -2,7 +2,7 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia DeWitt <theameliadewitt@ameliadewitt.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
@@ -1212,6 +1212,34 @@ public class IO
 		Objs.notNull( file );
 
 		return new BufferedReader( new InputStreamReader( new FileInputStream( file ) ) ).lines();
+	}
+
+	public static byte[] readFileToBytes( @Nonnull File file ) throws IOException
+	{
+		InputStream in = null;
+		try
+		{
+			in = new FileInputStream( file );
+			return readStreamToBytes( in );
+		}
+		finally
+		{
+			closeQuietly( in );
+		}
+	}
+
+	public static byte[] readFileToBytes( @Nonnull Path path ) throws IOException
+	{
+		InputStream in = null;
+		try
+		{
+			in = Files.newInputStream( path );
+			return readStreamToBytes( in );
+		}
+		finally
+		{
+			closeQuietly( in );
+		}
 	}
 
 	public static String readFileToString( @Nonnull File file ) throws IOException
