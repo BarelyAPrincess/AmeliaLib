@@ -1,3 +1,12 @@
+/**
+ * This software may be modified and distributed under the terms
+ * of the MIT license.  See the LICENSE file for details.
+ * <p>
+ * Copyright (c) 2018 Amelia DeWitt <theameliadewitt@ameliadewitt.com>
+ * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * <p>
+ * All Rights Reserved.
+ */
 package io.amelia.support;
 
 import java.nio.file.Files;
@@ -14,10 +23,9 @@ import io.amelia.lang.StorageException;
 
 public class StorageConversions
 {
-	public static <Stacker extends StackerWithValue> void loadToStacker( @Nonnull StoragePath path, @Nonnull Stacker stacker, @Nonnull Supplier<Stacker> supplier, @Nonnull String nestingPrefix ) throws StorageException.Error
+	public static <Stacker extends StackerWithValue> void loadToStacker( @Nonnull Path path, @Nonnull Stacker stacker, @Nonnull Supplier<Stacker> supplier, @Nonnull String nestingPrefix ) throws StorageException.Error
 	{
-		for ( Path nextPath : Files.list( path ).collect( Collectors.toList() ) )
-		{
+		Streams.forEachWithException( StorageException.Error.tryCatch( () -> Files.list( path ), "Failed to load configuration " + IO.relPath( path ) ), nextPath -> {
 			String newNestingPrefix = Strs.join( new String[] {nestingPrefix, IO.getLocalName( nextPath )}, "." );
 
 			try
@@ -48,10 +56,10 @@ public class StorageConversions
 			{
 				throw StorageException.error( "Failed to load configuration node " + IO.relPath( nextPath ), e );
 			}
-		}
+		} );
 	}
 
-	public static <Stacker extends StackerWithValue> void loadToStacker( @Nonnull StoragePath path, @Nonnull Stacker stacker, @Nonnull Supplier<Stacker> supplier ) throws StorageException.Error
+	public static <Stacker extends StackerWithValue> void loadToStacker( @Nonnull Path path, @Nonnull Stacker stacker, @Nonnull Supplier<Stacker> supplier ) throws StorageException.Error
 	{
 		loadToStacker( path, stacker, supplier, "" );
 	}

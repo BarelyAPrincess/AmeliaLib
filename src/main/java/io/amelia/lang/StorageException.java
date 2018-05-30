@@ -2,12 +2,16 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia DeWitt <theameliadewitt@ameliadewitt.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
 package io.amelia.lang;
+
+import javax.annotation.Nullable;
+
+import io.amelia.support.SupplierWithException;
 
 public class StorageException
 {
@@ -48,6 +52,26 @@ public class StorageException
 
 	public static class Error extends ApplicationException.Error
 	{
+		public static <Rtn> Rtn tryCatch( SupplierWithException<Rtn, Exception> fn ) throws Error
+		{
+			return tryCatch( fn, null );
+		}
+
+		public static <Rtn> Rtn tryCatch( SupplierWithException<Rtn, Exception> fn, @Nullable String detailMessage ) throws Error
+		{
+			try
+			{
+				return fn.get();
+			}
+			catch ( Exception e )
+			{
+				if ( detailMessage == null )
+					throw new Error( e );
+				else
+					throw new Error( detailMessage, e );
+			}
+		}
+
 		public Error()
 		{
 			super();
