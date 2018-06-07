@@ -16,7 +16,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -27,7 +26,6 @@ import javax.annotation.Nonnull;
 import io.amelia.foundation.Kernel;
 import io.amelia.support.Objs;
 import io.amelia.support.Pair;
-import sun.security.krb5.internal.NetClient;
 
 @SuppressWarnings( "unchecked" )
 public abstract class StackerWithValue<BaseClass extends StackerWithValue<BaseClass, ValueType>, ValueType> extends StackerBase<BaseClass>
@@ -89,12 +87,12 @@ public abstract class StackerWithValue<BaseClass extends StackerWithValue<BaseCl
 		} );
 	}
 
-	public <O> O asObject( Class<O> cls )
+	public <O> Optional<O> asObject( Class<O> cls )
 	{
 		try
 		{
 			Constructor<?> constructor = cls.getConstructor( StackerBase.class );
-			return ( O ) constructor.newInstance( this );
+			return Optional.of( ( O ) constructor.newInstance( this ) );
 		}
 		catch ( Exception ignore )
 		{
@@ -107,7 +105,7 @@ public abstract class StackerWithValue<BaseClass extends StackerWithValue<BaseCl
 
 			for ( Field field : cls.getFields() )
 			{
-				BaseClass child = findChild( field.getName(), false );
+				BaseClass child = findChild( field.getName(), false ).orElse( null );
 
 				if ( child == null )
 				{
@@ -155,13 +153,13 @@ public abstract class StackerWithValue<BaseClass extends StackerWithValue<BaseCl
 			//	if ( field.get( instance ) == null && !field.isSynthetic() )
 			//		Kernel.L.warning( "The field " + field.getProductName() + " is unassigned for object " + cls );
 
-			return ( O ) instance;
+			return ( Optional<O> ) instance;
 		}
 		catch ( Exception ignore )
 		{
 		}
 
-		return null;
+		return Optional.empty();
 	}
 
 	@Override
@@ -180,26 +178,17 @@ public abstract class StackerWithValue<BaseClass extends StackerWithValue<BaseCl
 
 	public <LT extends ValueType> List<LT> getChildAsList( String key, Class<LT> type )
 	{
-		BaseClass child = getChild( key );
-		if ( child == null )
-			return null;
-		return child.children.stream().map( c -> Objs.castTo( c.value, type ) ).filter( Objects::nonNull ).collect( Collectors.toList() );
+		return findChild( key, false ).map( child -> child.getChildren().map( c -> Objs.castTo( c.value, type ) ).filter( Objects::nonNull ).collect( Collectors.toList() ) ).orElse( null );
 	}
 
-	public <LT extends ValueType> List<LT> getChildAsList( String key )
+	public <ExpectedValueType extends ValueType> List<ExpectedValueType> getChildAsList( String key )
 	{
-		BaseClass child = getChild( key );
-		if ( child == null )
-			return null;
-		return child.children.stream().map( c -> ( LT ) c.value ).filter( Objects::nonNull ).collect( Collectors.toList() );
+		return findChild( key, false ).map( child -> child.getChildren().map( c -> ( ExpectedValueType ) c.value ).filter( Objects::nonNull ).collect( Collectors.toList() ) ).orElse( null );
 	}
 
-	public <T> T getChildAsObject( @Nonnull String key, Class<T> cls )
+	public <T> Optional<T> getChildAsObject( @Nonnull String key, Class<T> cls )
 	{
-		BaseClass child = findChild( key, false );
-		if ( child == null )
-			return null;
-		return child.asObject( cls );
+		return findChild( key, false ).flatMap( child -> child.asObject( cls ) );
 	}
 
 	public <ExpectedValueType extends ValueType> Map<String, ExpectedValueType> getChildrenAsMap()
@@ -209,10 +198,7 @@ public abstract class StackerWithValue<BaseClass extends StackerWithValue<BaseCl
 
 	public <ExpectedValueType extends ValueType> Map<String, ExpectedValueType> getChildrenAsMap( String key )
 	{
-		BaseClass child = getChild( key );
-		if ( child == null )
-			return null;
-		return child.getChildrenAsMap();
+		return findChild( key, false ).map( child -> ( Map<String, ExpectedValueType> ) child.getChildrenAsMap() ).orElse( null );
 	}
 
 	public <ExpectedValueType extends ValueType> Stream<Pair<String, ExpectedValueType>> getChildrenWithKeys()
@@ -220,35 +206,35 @@ public abstract class StackerWithValue<BaseClass extends StackerWithValue<BaseCl
 		return children.stream().map( c -> new Pair( c.getName(), c.value ) );
 	}
 
-	public ValueType getValue( String key, Function<ValueType, ValueType> computeFunction )
+	public Optional<ValueType> getValue( String key, Function<ValueType, ValueType> computeFunction )
 	{
-		return findChild( key, true ).getValue( computeFunction );
+		return findChild( key, true ).flatMap( child -> child.getValue( computeFunction ) );
 	}
 
-	public ValueType getValue( Function<ValueType, ValueType> computeFunction )
+	public Optional<ValueType> getValue( Function<ValueType, ValueType> computeFunction )
 	{
-		ValueType val = computeFunction.apply( value );
-		if ( val != value )
-			setValue( val );
-		return val;
+		ValueType value = getValue().orElse( null );
+		ValueType newValue = computeFunction.apply( value );
+		if ( value != newValue )
+			setValue( newValue );
+		return Optional.ofNullable( newValue );
 	}
 
-	public ValueType getValue( String key, Supplier<ValueType> supplier )
+	public Optional<ValueType> getValue( String key, Supplier<ValueType> supplier )
 	{
-		return findChild( key, true ).getValue( supplier );
+		return findChild( key, true ).flatMap( child -> child.getValue( supplier ) );
 	}
 
-	public ValueType getValue( Supplier<ValueType> supplier )
+	public Optional<ValueType> getValue( Supplier<ValueType> supplier )
 	{
-		if ( value == null )
+		if ( !hasValue() )
 			setValue( supplier.get() );
-		return value;
+		return getValue();
 	}
 
 	public Optional<ValueType> getValue( String key )
 	{
-		BaseClass child = findChild( key, false );
-		return Optional.ofNullable( child == null ? null : child.value );
+		return findChild( key, false ).flatMap( StackerWithValue::getValue );
 	}
 
 	public Optional<ValueType> getValue()
@@ -263,20 +249,14 @@ public abstract class StackerWithValue<BaseClass extends StackerWithValue<BaseCl
 		notFlag( Flag.READ_ONLY );
 		if ( hasFlag( Flag.NO_OVERRIDE ) && hasValue() )
 			throwExceptionIgnorable( getCurrentPath() + " has NO_OVERRIDE flag" );
+		if ( value instanceof StackerBase )
+			throwExceptionIgnorable( "The value can't be of class StackerBase, please use the appropriate methods instead, e.g. SetChild(), MoveChild(), CopyChild(), etc." );
 		updateValue( value );
-	}
-
-	public void getValueIfPresent( String key, Consumer<ValueType> consumer )
-	{
-		BaseClass child = findChild( key, false );
-		if ( child != null && child.value != null )
-			consumer.accept( child.value );
 	}
 
 	public final boolean hasValue( String key )
 	{
-		BaseClass child = findChild( key, false );
-		return child != null && child.hasValue();
+		return findChild( key, false ).map( StackerWithValue::hasValue ).orElse( false );
 	}
 
 	public boolean hasValue()
@@ -285,29 +265,26 @@ public abstract class StackerWithValue<BaseClass extends StackerWithValue<BaseCl
 	}
 
 	@Override
-	protected boolean isTrimmable()
+	protected boolean isTrimmable0()
 	{
-		return super.isTrimmable() && !hasValue();
+		return !hasValue();
 	}
 
 	@Override
-	public void mergeChild( @Nonnull BaseClass child )
+	public void copyChild( @Nonnull BaseClass child )
 	{
-		super.mergeChild( child );
+		super.copyChild( child );
 		updateValue( child.value );
+	}
+
+	public Optional<ValueType> pollValue()
+	{
+		return Optional.ofNullable( updateValue( null ) );
 	}
 
 	public Optional<ValueType> pollValue( String key )
 	{
-		BaseClass child = findChild( key, false );
-		if ( child == null )
-			return Optional.empty();
-		else
-		{
-			ValueType value = child.value;
-			updateValue( null );
-			return Optional.ofNullable( value );
-		}
+		return findChild( key, false ).flatMap( StackerWithValue::pollValue );
 	}
 
 	public void setValue( String key, ValueType value )
@@ -334,14 +311,16 @@ public abstract class StackerWithValue<BaseClass extends StackerWithValue<BaseCl
 	/**
 	 * Used privately to update the value and call the proper value listener.
 	 */
-	protected void updateValue( ValueType value )
+	protected ValueType updateValue( ValueType value )
 	{
 		if ( this.value == null && value != null )
 			fireListener( LISTENER_VALUE_STORE, value );
 		if ( this.value != null && value == null )
 			fireListener( LISTENER_VALUE_REMOVE, this.value );
 		fireListener( LISTENER_VALUE_CHANGE, this.value, value );
+		ValueType oldValue = this.value;
 		this.value = value;
+		return oldValue;
 	}
 
 	public Map<String, ValueType> values()

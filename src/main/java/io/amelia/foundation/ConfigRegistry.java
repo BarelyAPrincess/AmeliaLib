@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
@@ -66,7 +67,7 @@ public class ConfigRegistry
 		clearCache( Kernel.getPath( Kernel.PATH_CACHE ), keepHistory );
 	}
 
-	public static ConfigMap getChild( String key )
+	public static Optional<ConfigMap> getChild( String key )
 	{
 		return config.getChild( key );
 	}
@@ -84,6 +85,8 @@ public class ConfigRegistry
 
 		loader.loadConfig( config );
 		isConfigLoaded = true;
+
+		config.setEnviromentVariables( env.map() );
 
 		ConfigMap envNode = config.getChildOrCreate( "env" );
 		for ( Map.Entry<String, Object> entry : env.map().entrySet() )
@@ -106,9 +109,9 @@ public class ConfigRegistry
 	public static void setObject( String key, Object value )
 	{
 		if ( value instanceof ConfigMap )
-			config.setChild( key, ( ConfigMap ) value, false );
+			config.getChildOrCreate( key ).setChild( ( ConfigMap ) value, false );
 		else
-			config.setValue( key, value );
+			config.getChildOrCreate( key ).setValue( value );
 	}
 
 	private static void vendorConfig() throws IOException

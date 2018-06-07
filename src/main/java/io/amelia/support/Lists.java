@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +42,14 @@ public class Lists
 		return obj;
 	}
 
+	public static List<String> collect( Iterator<String> iterator )
+	{
+		List<String> result = new ArrayList<>();
+		while ( iterator.hasNext() )
+			result.add( iterator.next() );
+		return result;
+	}
+
 	public static <E> E compute( Collection<E> collection, Predicate<E> selectorPredicate )
 	{
 		for ( E element : collection )
@@ -49,6 +58,7 @@ public class Lists
 		return null;
 	}
 
+	@SuppressWarnings( "unchecked" )
 	public static <T> List<T> copy( List<?> list )
 	{
 		List<T> newList = copyEmpty( list );
@@ -120,6 +130,7 @@ public class Lists
 		return find;
 	}
 
+	@SuppressWarnings( "unchecked" )
 	public static <Type> Optional<Type> first( Collection<Type> list )
 	{
 		return Optional.ofNullable( list.size() == 0 ? null : ( Type ) list.toArray()[0] );
@@ -168,6 +179,7 @@ public class Lists
 		return map.entrySet().stream().map( e -> e.getKey() + "=" + e.getValue() ).collect( Collectors.joining( "&" ) );
 	}
 
+	@SuppressWarnings( "unchecked" )
 	public static <Type> Optional<Type> last( Collection<Type> list )
 	{
 		return Optional.ofNullable( list.size() == 0 ? null : ( Type ) list.toArray()[list.size() - 1] );

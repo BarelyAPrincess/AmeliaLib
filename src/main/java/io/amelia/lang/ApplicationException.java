@@ -12,6 +12,7 @@ package io.amelia.lang;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import io.amelia.support.Callback;
 import io.amelia.support.SupplierWithException;
 
 public final class ApplicationException
@@ -83,26 +84,6 @@ public final class ApplicationException
 
 	public static class Error extends Exception implements ExceptionContext
 	{
-		public static <Rtn> Rtn tryCatch( SupplierWithException<Rtn, Exception> fn ) throws Error
-		{
-			return tryCatch( fn, null );
-		}
-
-		public static <Rtn> Rtn tryCatch( SupplierWithException<Rtn, Exception> fn, @Nullable String detailMessage ) throws Error
-		{
-			try
-			{
-				return fn.get();
-			}
-			catch ( Exception e )
-			{
-				if ( detailMessage == null )
-					throw new Error( e );
-				else
-					throw new Error( detailMessage, e );
-			}
-		}
-
 		protected final ReportingLevel level;
 
 		public Error()
@@ -194,26 +175,6 @@ public final class ApplicationException
 
 	public static class Ignorable extends Runtime
 	{
-		public static <Rtn> Rtn tryCatch( SupplierWithException<Rtn, Exception> fn ) throws Ignorable
-		{
-			return tryCatch( fn, null );
-		}
-
-		public static <Rtn> Rtn tryCatch( SupplierWithException<Rtn, Exception> fn, @Nullable String detailMessage ) throws Ignorable
-		{
-			try
-			{
-				return fn.get();
-			}
-			catch ( Exception e )
-			{
-				if ( detailMessage == null )
-					throw new Ignorable( e );
-				else
-					throw new Ignorable( detailMessage, e );
-			}
-		}
-
 		public Ignorable()
 		{
 			super( ReportingLevel.E_IGNORABLE );
@@ -237,26 +198,6 @@ public final class ApplicationException
 
 	public static class Notice extends Error
 	{
-		public static <Rtn> Rtn tryCatch( SupplierWithException<Rtn, Exception> fn ) throws Notice
-		{
-			return tryCatch( fn, null );
-		}
-
-		public static <Rtn> Rtn tryCatch( SupplierWithException<Rtn, Exception> fn, @Nullable String detailMessage ) throws Notice
-		{
-			try
-			{
-				return fn.get();
-			}
-			catch ( Exception e )
-			{
-				if ( detailMessage == null )
-					throw new Notice( e );
-				else
-					throw new Notice( detailMessage, e );
-			}
-		}
-
 		public Notice()
 		{
 			super( ReportingLevel.E_NOTICE );
@@ -280,26 +221,6 @@ public final class ApplicationException
 
 	public static class Runtime extends RuntimeException implements ExceptionContext
 	{
-		public static <Rtn> Rtn tryCatch( SupplierWithException<Rtn, Exception> fn ) throws Runtime
-		{
-			return tryCatch( fn, null );
-		}
-
-		public static <Rtn> Rtn tryCatch( SupplierWithException<Rtn, Exception> fn, @Nullable String detailMessage ) throws Runtime
-		{
-			try
-			{
-				return fn.get();
-			}
-			catch ( Exception e )
-			{
-				if ( detailMessage == null )
-					throw new Runtime( e );
-				else
-					throw new Runtime( detailMessage, e );
-			}
-		}
-
 		protected final ReportingLevel level;
 
 		public Runtime()

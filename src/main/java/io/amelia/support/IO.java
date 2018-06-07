@@ -9,10 +9,6 @@
  */
 package io.amelia.support;
 
-import com.google.common.base.Strings;
-
-import org.bouncycastle.util.encoders.Hex;
-
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -88,7 +84,7 @@ public class IO
 	private static final String[] HEXPADDING = new String[16];
 	private static final Kernel.Logger L = Kernel.getLogger( IO.class );
 	private static final String NEWLINE = "\n";
-	public static List<String> excutableExts = Lists.newArrayList( "sh", "py" );
+	public static final List<String> excutableExts = Lists.newArrayList( "sh", "py" );
 
 	static
 	{
@@ -1189,6 +1185,16 @@ public class IO
 		putResource( IO.class, resource, path );
 	}
 
+	public static List<String> readFileToLines( @Nonnull Path file, @Nonnull String ignorePrefix ) throws IOException
+	{
+		return readFileToStream( file, ignorePrefix ).collect( Collectors.toList() );
+	}
+
+	public static List<String> readFileToLines( @Nonnull Path file ) throws IOException
+	{
+		return readFileToStream( file ).collect( Collectors.toList() );
+	}
+
 	public static List<String> readFileToLines( @Nonnull File file, @Nonnull String ignorePrefix ) throws FileNotFoundException
 	{
 		return readFileToStream( file, ignorePrefix ).collect( Collectors.toList() );
@@ -1201,17 +1207,22 @@ public class IO
 
 	public static Stream<String> readFileToStream( @Nonnull File file, @Nonnull String ignorePrefix ) throws FileNotFoundException
 	{
-		Objs.notNull( file );
-		Objs.notNull( ignorePrefix );
-
 		return new BufferedReader( new InputStreamReader( new FileInputStream( file ) ) ).lines().filter( s -> !s.toLowerCase().startsWith( ignorePrefix.toLowerCase() ) );
 	}
 
 	public static Stream<String> readFileToStream( @Nonnull File file ) throws FileNotFoundException
 	{
-		Objs.notNull( file );
-
 		return new BufferedReader( new InputStreamReader( new FileInputStream( file ) ) ).lines();
+	}
+
+	public static Stream<String> readFileToStream( @Nonnull Path file, @Nonnull String ignorePrefix ) throws IOException
+	{
+		return new BufferedReader( new InputStreamReader( Files.newInputStream( file ) ) ).lines().filter( s -> !s.toLowerCase().startsWith( ignorePrefix.toLowerCase() ) );
+	}
+
+	public static Stream<String> readFileToStream( @Nonnull Path file ) throws IOException
+	{
+		return new BufferedReader( new InputStreamReader( Files.newInputStream( file ) ) ).lines();
 	}
 
 	public static byte[] readFileToBytes( @Nonnull File file ) throws IOException

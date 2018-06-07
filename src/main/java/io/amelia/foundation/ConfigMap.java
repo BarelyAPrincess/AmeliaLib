@@ -9,10 +9,13 @@
  */
 package io.amelia.foundation;
 
-import io.amelia.lang.ConfigException;
-import io.amelia.data.parcel.ParcelLoader;
+import java.util.Map;
+import java.util.Optional;
+
 import io.amelia.data.StackerWithValue;
 import io.amelia.data.ValueTypesTrait;
+import io.amelia.data.parcel.ParcelLoader;
+import io.amelia.lang.ConfigException;
 
 public final class ConfigMap extends StackerWithValue<ConfigMap, Object> implements ValueTypesTrait
 {
@@ -55,6 +58,17 @@ public final class ConfigMap extends StackerWithValue<ConfigMap, Object> impleme
 	}
 
 	@Override
+	public Optional<Object> getValue( String key )
+	{
+		return super.getValue( key );
+	}
+
+	public void setEnviromentVariables( Map<String, Object> map )
+	{
+
+	}
+
+	@Override
 	public void throwExceptionError( String message ) throws ConfigException.Error
 	{
 		throw new ConfigException.Error( this, message );
@@ -67,11 +81,11 @@ public final class ConfigMap extends StackerWithValue<ConfigMap, Object> impleme
 	}
 
 	@Override
-	protected void updateValue( Object value )
+	protected Object updateValue( Object value )
 	{
 		if ( getNamespace().getNodeCount() < 2 )
 			throw new ConfigException.Ignorable( this, "You can't set configuration values on the top-level config node. Minimum depth is two!" );
-		super.updateValue( value );
+		return super.updateValue( value );
 	}
 
 }

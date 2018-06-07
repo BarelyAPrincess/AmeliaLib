@@ -36,7 +36,7 @@ public final class BindingMap extends StackerWithValue<BindingMap, BindingMap.Ba
 
 	public Stream<BaseBinding> findValues( Class<?> valueClass )
 	{
-		return getChildrenRecursive().filter( child -> child.hasValue() && valueClass.isAssignableFrom( child.getValue().get().getObjClass() ) ).map( map -> map.value );
+		return getAllChildren().filter( child -> child.hasValue() && valueClass.isAssignableFrom( child.getValue().get().getObjClass() ) ).map( map -> map.value );
 	}
 
 	public <T> Optional<T> getValue( String key, Class<T> cls )
@@ -102,7 +102,7 @@ public final class BindingMap extends StackerWithValue<BindingMap, BindingMap.Ba
 
 	class BaseBinding<S>
 	{
-		Class<S> objClass;
+		final Class<S> objClass;
 		S objInstance = null;
 		Supplier<S> objSupplier = null;
 

@@ -44,7 +44,7 @@ import io.amelia.support.Strs;
 
 public class ParcelLoader
 {
-	// TODO Implement the ability to decode directories containing files to parcels. Maybe?
+	// TODO Implement the ability to decode directories containing files to parcels. Maybe? Technically this is implemented by the StorageConversions class.
 
 	private static final Gson gson = new GsonBuilder().serializeNulls().setLenient().create();
 	private static final DumperOptions yamlOptions = new DumperOptions();
@@ -70,6 +70,14 @@ public class ParcelLoader
 		// TODO Add support for scripting factory scripts, e.g., Groovy
 
 		throw new ParcelableException.Ignorable( null, "AUTO_DETECT couldn't determine the file type based on the file extension." );
+	}
+
+	public static Parcel decode( @Nonnull Path path, @Nonnull Type type ) throws IOException
+	{
+		if ( type == Type.AUTO_DETECT )
+			type = autoDetect( path.getFileName().toString() );
+
+		return decode( IO.readFileToString( path ), type );
 	}
 
 	public static Parcel decode( @Nonnull File file, Type type ) throws IOException
@@ -106,6 +114,11 @@ public class ParcelLoader
 		return decodeMap( decodeJsonToMap( jsonEncoded ) );
 	}
 
+	public static Parcel decodeJson( Path path ) throws IOException
+	{
+		return decodeJson( IO.readFileToString( path ) );
+	}
+
 	public static Parcel decodeJson( File file ) throws IOException
 	{
 		return decodeJson( IO.readFileToString( file ) );
@@ -121,6 +134,11 @@ public class ParcelLoader
 		return Maps.builder().putAll( ( Map<?, ?> ) gson.fromJson( jsonEncoded, Map.class ) ).castTo( String.class, Object.class ).hashMap();
 	}
 
+	public static Map<String, Object> decodeJsonToMap( Path path ) throws IOException
+	{
+		return Maps.builder().putAll( ( Map<?, ?> ) gson.fromJson( IO.readFileToString( path ), Map.class ) ).castTo( String.class, Object.class ).hashMap();
+	}
+
 	public static Map<String, Object> decodeJsonToMap( File file ) throws IOException
 	{
 		return Maps.builder().putAll( ( Map<?, ?> ) gson.fromJson( IO.readFileToString( file ), Map.class ) ).castTo( String.class, Object.class ).hashMap();
@@ -134,6 +152,11 @@ public class ParcelLoader
 	public static Parcel decodeList( String listEncoded )
 	{
 		return decodeMap( decodeListToMap( listEncoded ) );
+	}
+
+	public static Parcel decodeList( Path path ) throws IOException
+	{
+		return decodeMap( decodeListToMap( path ) );
 	}
 
 	public static Parcel decodeList( File file ) throws FileNotFoundException
@@ -164,6 +187,11 @@ public class ParcelLoader
 	public static Map<String, Object> decodeListToMap( List<String> encodedList )
 	{
 		return Maps.builder().increment( encodedList ).castTo( String.class, Object.class ).hashMap();
+	}
+
+	public static Map<String, Object> decodeListToMap( Path path ) throws IOException
+	{
+		return decodeListToMap( IO.readFileToLines( path, "#" ) );
 	}
 
 	public static Map<String, Object> decodeListToMap( File file ) throws FileNotFoundException
@@ -202,6 +230,11 @@ public class ParcelLoader
 		return decodeMap( decodePropToMap( propEncoded ) );
 	}
 
+	public static Parcel decodeProp( Path path ) throws IOException
+	{
+		return decodeMap( decodePropToMap( path ) );
+	}
+
 	public static Parcel decodeProp( File file ) throws IOException
 	{
 		return decodeMap( decodePropToMap( file ) );
@@ -233,6 +266,13 @@ public class ParcelLoader
 		return Maps.builder( prop ).castTo( String.class, Object.class ).hashMap();
 	}
 
+	public static Map<String, Object> decodePropToMap( Path path ) throws IOException
+	{
+		Properties prop = new Properties();
+		prop.load( Files.newInputStream( path ) );
+		return Maps.builder( prop ).castTo( String.class, Object.class ).hashMap();
+	}
+
 	public static Map<String, Object> decodePropToMap( File file ) throws IOException
 	{
 		Properties prop = new Properties();
@@ -244,6 +284,14 @@ public class ParcelLoader
 	{
 		TODO Implement
 	} */
+
+	public static Map<String, Object> decodeToMap( @Nonnull Path path, Type type ) throws IOException
+	{
+		if ( type == Type.AUTO_DETECT )
+			type = autoDetect( path.getFileName().toString() );
+
+		return decodeToMap( IO.readFileToString( path ), type );
+	}
 
 	public static Map<String, Object> decodeToMap( @Nonnull File file, Type type ) throws IOException
 	{
@@ -297,6 +345,11 @@ public class ParcelLoader
 	public static Map<String, Object> decodeYamlToMap( String yamlEncoded )
 	{
 		return Maps.builder().putAll( ( Map<?, ?> ) yaml.load( yamlEncoded ) ).castTo( String.class, Object.class ).hashMap();
+	}
+
+	public static Map<String, Object> decodeYamlToMap( Path path ) throws IOException
+	{
+		return Maps.builder().putAll( ( Map<?, ?> ) yaml.load( IO.readFileToString( path ) ) ).castTo( String.class, Object.class ).hashMap();
 	}
 
 	public static Map<String, Object> decodeYamlToMap( File file ) throws IOException

@@ -15,17 +15,15 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import io.amelia.foundation.Kernel;
 import io.amelia.lang.ApplicationException;
@@ -53,10 +51,7 @@ public abstract class StackerBase<BaseClass extends StackerBase<BaseClass>>
 
 	protected StackerBase( @Nonnull BiFunction<BaseClass, String, BaseClass> creator, BaseClass parent, @Nonnull String localName )
 	{
-		Objs.notNull( creator );
-		Objs.notNull( localName );
-
-		// TODO Upper and lower case is permitted, however, we should implement a filter that prevents duplicate keys with varying case.
+		// TODO Upper and lower case is permitted, however, we should implement a filter that prevents duplicate keys with varying case, e.g., WORD vs. Word - would be the same key.
 		if ( !localName.matches( "[a-zA-Z0-9*_]*" ) )
 			throwExceptionIgnorable( String.format( "The local name '%s' can only contain characters a-z, A-Z, 0-9, *, and _.", localName ) );
 
@@ -133,13 +128,13 @@ public abstract class StackerBase<BaseClass extends StackerBase<BaseClass>>
 
 	public void destroyChild( String key )
 	{
-		getChild( key, StackerBase::destroy );
+		getChild( key ).ifPresent( StackerBase::destroy );
 	}
 
-	public BaseClass destroyChildThenCreate( String key )
+	public BaseClass destroyChildAndCreate( String key )
 	{
 		destroyChild( key );
-		return getChildOrCreate( key );
+		return createChild( key );
 	}
 
 	protected final void disposeCheck() throws ApplicationException.Ignorable
@@ -158,15 +153,14 @@ public abstract class StackerBase<BaseClass extends StackerBase<BaseClass>>
 		return empty( "" );
 	}
 
-	@Nullable
-	protected BaseClass findChild( @Nonnull String key, boolean create )
+	protected Optional<BaseClass> findChild( @Nonnull String key, boolean create )
 	{
 		disposeCheck();
 		Objs.notNull( key );
 
 		Namespace ns = Namespace.parseString( key, getStackerOptions().getSeparator() );
 		if ( ns.getNodeCount() == 0 )
-			return ( BaseClass ) this;
+			return Optional.of( ( BaseClass ) this );
 
 		String first = ns.getFirst();
 		BaseClass found = null;
@@ -174,19 +168,19 @@ public abstract class StackerBase<BaseClass extends StackerBase<BaseClass>>
 		for ( BaseClass child : children )
 			if ( child.getName() == null )
 				children.remove( child );
-			else if ( first.equals( child.getName() ) )
+			else if ( first.equalsIgnoreCase( child.getName() ) )
 			{
 				found = child;
 				break;
 			}
 
 		if ( found == null && !create )
-			return null;
+			return Optional.empty();
 		if ( found == null )
 			found = createChild( first );
 
 		if ( ns.getNodeCount() <= 1 )
-			return found;
+			return Optional.of( found );
 		else
 			return found.findChild( ns.subString( 1 ), create );
 	}
@@ -216,59 +210,24 @@ public abstract class StackerBase<BaseClass extends StackerBase<BaseClass>>
 			}
 	}
 
-	/**
-	 * Calculates a specific child a key is referencing.
-	 *
-	 * @param key      The dot separator namespace
-	 * @param consumer Action to perform
-	 */
-	public void getChild( String key, Consumer<BaseClass> consumer )
-	{
-		consumer.accept( findChild( key, false ) );
-	}
-
-	@Nullable
-	public final BaseClass getChild( @Nonnull String key )
+	public final Optional<BaseClass> getChild( @Nonnull String key )
 	{
 		return findChild( key, false );
 	}
 
-	public final Stream<BaseClass> getChild( @Nonnull Predicate<BaseClass> predicate )
-	{
-		return children.stream().flatMap( child -> child.getChild( predicate ) );
-	}
-
-	public final BaseClass getChild( @Nonnull TypeBase type )
+	public final Optional<BaseClass> getChild( @Nonnull TypeBase type )
 	{
 		return getChild( type.getPath() );
 	}
 
-	public void getChildIfPresent( String key, Consumer<BaseClass> consumer )
+	public final BaseClass getChildOrCreate( @Nonnull String key )
 	{
-		BaseClass child = findChild( key, false );
-		if ( child != null )
-			consumer.accept( child );
-	}
-
-	@Nonnull
-	public <R> R getChildOrCreate( String key, Function<BaseClass, R> function )
-	{
-		return function.apply( findChild( key, true ) );
-	}
-
-	public void getChildOrCreate( String key, Consumer<BaseClass> consumer )
-	{
-		consumer.accept( findChild( key, true ) );
+		return findChild( key, true ).get();
 	}
 
 	public final BaseClass getChildOrCreate( @Nonnull TypeBase type )
 	{
 		return getChildOrCreate( type.getPath() );
-	}
-
-	public final BaseClass getChildOrCreate( @Nonnull String key )
-	{
-		return findChild( key, true );
 	}
 
 	public final Stream<BaseClass> getChildren()
@@ -277,16 +236,16 @@ public abstract class StackerBase<BaseClass extends StackerBase<BaseClass>>
 		return children.stream();
 	}
 
-	public final Stream<BaseClass> getChildrenRecursive()
+	public final Stream<BaseClass> getAllChildren()
 	{
 		disposeCheck();
-		return children.stream().flatMap( StackerBase::getChildrenRecursive0 );
+		return children.stream().flatMap( StackerBase::getAllChildren0 );
 	}
 
-	protected final Stream<BaseClass> getChildrenRecursive0()
+	protected final Stream<BaseClass> getAllChildren0()
 	{
 		disposeCheck();
-		return Stream.concat( Stream.of( ( BaseClass ) this ), children.stream().flatMap( StackerBase::getChildrenRecursive0 ) );
+		return Stream.concat( Stream.of( ( BaseClass ) this ), children.stream().flatMap( StackerBase::getAllChildren0 ) );
 	}
 
 	public final String getCurrentPath()
@@ -399,54 +358,50 @@ public abstract class StackerBase<BaseClass extends StackerBase<BaseClass>>
 	}
 
 	/**
-	 * Expects subclasses to override this method and add new checks.
+	 * Indicates that it is safe to remove this child from its parent as it contains no critical data.
+	 * Exact implementation depends on the implementing subclass.
 	 *
+	 * @see StackerWithValue#isTrimmable0()
 	 * @see #trimChildren();
 	 */
-	protected boolean isTrimmable()
+	public final boolean isTrimmable()
 	{
+		if ( !isTrimmable0() )
+			return false;
 		for ( BaseClass child : children )
 			if ( !child.isTrimmable() )
 				return false;
 		return true;
 	}
 
-	public void mergeChild( @Nonnull BaseClass child )
+	protected abstract boolean isTrimmable0();
+
+	public void copyChild( @Nonnull BaseClass child )
 	{
 		disposeCheck();
-
-		Objs.notNull( child );
 		notFlag( Flag.READ_ONLY );
 
 		for ( BaseClass oldChild : child.children )
 		{
-			BaseClass newChild = getChild( oldChild.getName() );
+			BaseClass newChild = getChild( oldChild.getName() ).orElse( null );
 			if ( newChild == null )
 				setChild( oldChild );
 			else
 			{
 				notFlag( Flag.NO_OVERRIDE );
 				newChild.notFlag( Flag.READ_ONLY );
-				newChild.mergeChild( oldChild );
+				newChild.copyChild( oldChild );
 			}
 		}
 
 		flags.addAll( child.flags );
 	}
 
-	public final BaseClass move( @Nonnull String movePath )
+	public final BaseClass move( @Nonnull String targetPath )
 	{
-		return move( movePath, "/" );
-	}
+		Objs.notEmpty( targetPath );
 
-	public final BaseClass move( @Nonnull String movePath, @Nonnull String separator )
-	{
-		Objs.notEmpty( movePath );
-
-		if ( separator.equals( "." ) )
-			throwExceptionIgnorable( "Move path separator can't be a period." );
-
-		Namespace ns = Namespace.parseString( movePath, separator );
+		Namespace ns = Namespace.parseString( targetPath );
 
 		BaseClass newParent = parent;
 
@@ -491,18 +446,15 @@ public abstract class StackerBase<BaseClass extends StackerBase<BaseClass>>
 	}
 
 	/**
-	 * Polls a child from this stacker. If it exists, it's removed from it's parent.
+	 * Polls a child from this stacker. If it exists, it's removed from it's parent, i.e., isolated on its own.
 	 *
 	 * @param key The child key
 	 *
 	 * @return found instance or null if does not exist.
 	 */
-	public BaseClass pollChild( String key )
+	public Optional<BaseClass> pollChild( String key )
 	{
-		BaseClass child = getChild( key );
-		if ( child != null )
-			child.removeFromParent();
-		return child;
+		return getChild( key ).map( StackerBase::removeFromParent );
 	}
 
 	public final void removeAllListeners()
@@ -547,57 +499,73 @@ public abstract class StackerBase<BaseClass extends StackerBase<BaseClass>>
 		setChild( child, false );
 	}
 
-	public final void setChild( @Nonnull BaseClass child, boolean mergeWithExisting )
+	public final void setChild( @Nonnull BaseClass child, boolean mergeIfExists )
 	{
 		disposeCheck();
-		Objs.notNull( child );
-
 		notFlag( Flag.READ_ONLY );
 
-		BaseClass oldChild = getChild( child.getName() );
-		if ( oldChild != null )
+		if ( children.contains( child ) )
+			return;
+
+		BaseClass current = findChild( child.getName(), false ).orElse( null );
+		if ( current != null )
 		{
 			notFlag( Flag.NO_OVERRIDE );
-
-			if ( mergeWithExisting )
+			if ( mergeIfExists )
 			{
-				oldChild.mergeChild( child );
+				current.copyChild( child );
 				return;
 			}
 			else
-				oldChild.destroy();
+				current.destroy();
 		}
 
 		child.removeFromParent();
 
-		children.add( child );
 		child.parent = ( BaseClass ) this;
 		child.stackerOptions = null;
+		children.add( child );
 	}
 
-	public final void setChild( @Nonnull String key, @Nonnull BaseClass child )
+	public final void moveChild( @Nonnull BaseClass child, @Nonnull String targetKey )
 	{
-		setChild( key, child, false );
+		moveChild( child, targetKey, false );
 	}
 
-	public final void setChild( @Nonnull String key, @Nonnull BaseClass child, boolean mergeWithExisting )
+	public final void moveChild( @Nonnull BaseClass child, @Nonnull String targetKey, boolean mergeIfExists )
 	{
 		disposeCheck();
-		Objs.notEmpty( key );
-		Objs.notNull( child );
+		notFlag( Flag.READ_ONLY );
 
-		getChildOrCreate( key ).setChild( child, mergeWithExisting );
+		BaseClass current = findChild( targetKey, false ).orElse( null );
+		if ( current != null )
+		{
+			// Child already exists at the targeted location.
+			if ( current == child )
+				return;
+
+			notFlag( Flag.NO_OVERRIDE );
+			if ( mergeIfExists )
+			{
+				current.copyChild( child );
+				return;
+			}
+			else
+				current.destroy();
+		}
+
+		createChild( targetKey ).copyChild( child );
+		child.destroy();
 	}
 
-	public int size()
+	public int childCount()
 	{
 		return children.size();
 	}
 
-	public int sizeOf( String key )
+	public int childCountOf( String key )
 	{
-		BaseClass keyChild = getChild( key );
-		return keyChild == null ? -1 : keyChild.size();
+		return getChild( key ).map( StackerBase::childCount ).orElse( -1 );
 	}
 
 	protected abstract void throwExceptionError( String message ) throws ApplicationException.Error;

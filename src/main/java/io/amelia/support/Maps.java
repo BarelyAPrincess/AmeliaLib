@@ -35,6 +35,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -383,11 +384,26 @@ public class Maps
 			this.map = new TreeMap<>( map );
 		}
 
-		private MapBuilder( Map<?, ?> oldMap, Class<CK> keyClass, Class<CV> valueClass )
+		private <TK, TV> MapBuilder( Map<TK, TV> oldMap, Function<TK, CK> keyCastFunction, Function<TV, CV> valueCastFunction )
 		{
 			map = new TreeMap<>();
-			for ( Map.Entry<?, ?> entry : oldMap.entrySet() )
-				putNotNull( Objs.castTo( entry.getKey(), keyClass ), Objs.castTo( entry.getValue(), valueClass ) );
+			for ( Map.Entry<TK, TV> entry : oldMap.entrySet() )
+				putNotNull( keyCastFunction.apply( entry.getKey() ), valueCastFunction.apply( entry.getValue() ) );
+		}
+
+		private <TK, TV> MapBuilder( Map<TK, TV> oldMap, Function<TK, CK> keyCastFunction, Class<CV> valueClass )
+		{
+			this( oldMap, keyCastFunction, value -> Objs.castTo( value, valueClass ) );
+		}
+
+		private <TK, TV> MapBuilder( Map<TK, TV> oldMap, Class<CK> keyClass, Function<TV, CV> valueCastFunction )
+		{
+			this( oldMap, key -> Objs.castTo( key, keyClass ), valueCastFunction );
+		}
+
+		private <TK, TV> MapBuilder( Map<TK, TV> oldMap, Class<CK> keyClass, Class<CV> valueClass )
+		{
+			this( oldMap, key -> Objs.castTo( key, keyClass ), value -> Objs.castTo( value, valueClass ) );
 		}
 
 		private MapBuilder( Map<?, ?> oldMap, CK key, CV value )
@@ -413,6 +429,21 @@ public class Maps
 			for ( Map.Entry<?, ?> entry : oldMap.entrySet() )
 				if ( function.apply( ( CK ) entry.getKey(), ( CV ) entry.getValue() ) )
 					putNotNull( ( CK ) entry.getKey(), ( CV ) entry.getValue() );
+		}
+
+		public <K, V> MapBuilder<K, V> castTo( Function<CK, K> keyCastFunction, Function<CV, V> valueCastFunction )
+		{
+			return new MapBuilder<>( map, keyCastFunction, valueCastFunction );
+		}
+
+		public <K, V> MapBuilder<K, V> castTo( Class<K> keyClass, Function<CV, V> valueCastFunction )
+		{
+			return new MapBuilder<>( map, keyClass, valueCastFunction );
+		}
+
+		public <K, V> MapBuilder<K, V> castTo( Function<CK, K> keyCastFunction, Class<V> valueClass )
+		{
+			return new MapBuilder<>( map, keyCastFunction, valueClass );
 		}
 
 		public <K, V> MapBuilder<K, V> castTo( Class<K> keyClass, Class<V> valueClass )
