@@ -12,8 +12,6 @@ package io.amelia.support;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 
@@ -23,15 +21,16 @@ import io.amelia.lang.StorageException;
 
 public class StorageConversions
 {
-	public static <Stacker extends StackerWithValue> void loadToStacker( @Nonnull Path path, @Nonnull Stacker stacker, @Nonnull Supplier<Stacker> supplier, @Nonnull String nestingPrefix ) throws StorageException.Error
+	@SuppressWarnings( "unchecked" )
+	public static <Stacker extends StackerWithValue> void loadToStacker( @Nonnull Path path, @Nonnull Stacker stacker, @Nonnull String nestingPrefix ) throws StorageException.Error
 	{
-		Streams.forEachWithException( StorageException.Error.tryCatch( () -> Files.list( path ), "Failed to load configuration " + IO.relPath( path ) ), nextPath -> {
+		Streams.forEachWithException( Exceptions.tryCatch( () -> Files.list( path ), exp -> new StorageException.Error( "Failed to load configuration " + IO.relPath( path ), exp ) ), nextPath -> {
 			String newNestingPrefix = Strs.join( new String[] {nestingPrefix, IO.getLocalName( nextPath )}, "." );
 
 			try
 			{
 				if ( Files.isDirectory( nextPath ) )
-					loadToStacker( nextPath, stacker, supplier, newNestingPrefix );
+					loadToStacker( nextPath, stacker, newNestingPrefix );
 				else
 				{
 					String content = IO.readFileToString( nextPath );
@@ -59,9 +58,9 @@ public class StorageConversions
 		} );
 	}
 
-	public static <Stacker extends StackerWithValue> void loadToStacker( @Nonnull Path path, @Nonnull Stacker stacker, @Nonnull Supplier<Stacker> supplier ) throws StorageException.Error
+	public static <Stacker extends StackerWithValue> void loadToStacker( @Nonnull Path path, @Nonnull Stacker stacker ) throws StorageException.Error
 	{
-		loadToStacker( path, stacker, supplier, "" );
+		loadToStacker( path, stacker, "" );
 	}
 
 	private StorageConversions()

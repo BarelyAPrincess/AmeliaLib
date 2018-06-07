@@ -29,6 +29,11 @@ import java.util.Set;
 
 public class SQLFileSystemProvider extends FileSystemProvider
 {
+	public static FileSystem newFileSystem()
+	{
+		return SQLFileSystem();
+	}
+
 	@Override
 	public void checkAccess( Path path, AccessMode... modes ) throws IOException
 	{
