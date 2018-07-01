@@ -2,7 +2,7 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <theameliadewitt@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
@@ -24,36 +24,39 @@ import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 
 import io.amelia.foundation.Kernel;
+import io.amelia.lang.ApplicationException;
+import io.amelia.support.BiFunctionWithException;
 import io.amelia.support.Objs;
+import io.amelia.support.OptionalExt;
 import io.amelia.support.Pair;
 
 @SuppressWarnings( "unchecked" )
-public abstract class StackerWithValue<BaseClass extends StackerWithValue<BaseClass, ValueType>, ValueType> extends StackerBase<BaseClass>
+public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<BaseClass, ValueType, ExceptionClass>, ValueType, ExceptionClass extends ApplicationException.Error> extends ContainerBase<BaseClass, ExceptionClass>
 {
 	public static final int LISTENER_VALUE_CHANGE = 0x02;
 	public static final int LISTENER_VALUE_STORE = 0x03;
 	public static final int LISTENER_VALUE_REMOVE = 0x04;
 	protected volatile ValueType value;
 
-	protected StackerWithValue( @Nonnull BiFunction<BaseClass, String, BaseClass> creator, @Nonnull String key )
+	protected ContainerWithValue( @Nonnull BiFunctionWithException<BaseClass, String, BaseClass, ExceptionClass> creator, @Nonnull String key ) throws ExceptionClass
 	{
 		this( creator, null, key, null );
 	}
 
-	protected StackerWithValue( @Nonnull BiFunction<BaseClass, String, BaseClass> creator, BaseClass parent, @Nonnull String key )
+	protected ContainerWithValue( @Nonnull BiFunctionWithException<BaseClass, String, BaseClass, ExceptionClass> creator, BaseClass parent, @Nonnull String key ) throws ExceptionClass
 	{
 		this( creator, parent, key, null );
 	}
 
-	protected StackerWithValue( @Nonnull BiFunction<BaseClass, String, BaseClass> creator, BaseClass parent, @Nonnull String key, ValueType value )
+	protected ContainerWithValue( @Nonnull BiFunctionWithException<BaseClass, String, BaseClass, ExceptionClass> creator, BaseClass parent, @Nonnull String key, ValueType value ) throws ExceptionClass
 	{
 		super( creator, parent, key );
 		this.value = value;
 	}
 
-	public final int addValueChangeListener( StackerListener.OnValueChange<BaseClass, ValueType> function, StackerListener.Flags... flags )
+	public final int addValueChangeListener( ContainerListener.OnValueChange<BaseClass, ValueType> function, ContainerListener.Flags... flags )
 	{
-		return addListener( new StackerListener.Container( LISTENER_VALUE_CHANGE, flags )
+		return addListener( new ContainerListener.Container( LISTENER_VALUE_CHANGE, flags )
 		{
 			@Override
 			public void call( Object[] objs )
@@ -63,9 +66,9 @@ public abstract class StackerWithValue<BaseClass extends StackerWithValue<BaseCl
 		} );
 	}
 
-	public final int addValueRemoveListener( StackerListener.OnValueRemove<BaseClass, ValueType> function, StackerListener.Flags... flags )
+	public final int addValueRemoveListener( ContainerListener.OnValueRemove<BaseClass, ValueType> function, ContainerListener.Flags... flags )
 	{
-		return addListener( new StackerListener.Container( LISTENER_VALUE_REMOVE, flags )
+		return addListener( new ContainerListener.Container( LISTENER_VALUE_REMOVE, flags )
 		{
 			@Override
 			public void call( Object[] objs )
@@ -75,9 +78,9 @@ public abstract class StackerWithValue<BaseClass extends StackerWithValue<BaseCl
 		} );
 	}
 
-	public final int addValueStoreListener( StackerListener.OnValueStore<BaseClass, ValueType> function, StackerListener.Flags... flags )
+	public final int addValueStoreListener( ContainerListener.OnValueStore<BaseClass, ValueType> function, ContainerListener.Flags... flags )
 	{
-		return addListener( new StackerListener.Container( LISTENER_VALUE_STORE, flags )
+		return addListener( new ContainerListener.Container( LISTENER_VALUE_STORE, flags )
 		{
 			@Override
 			public void call( Object[] objs )
@@ -91,7 +94,7 @@ public abstract class StackerWithValue<BaseClass extends StackerWithValue<BaseCl
 	{
 		try
 		{
-			Constructor<?> constructor = cls.getConstructor( StackerBase.class );
+			Constructor<?> constructor = cls.getConstructor( ContainerBase.class );
 			return Optional.of( ( O ) constructor.newInstance( this ) );
 		}
 		catch ( Exception ignore )
@@ -163,7 +166,7 @@ public abstract class StackerWithValue<BaseClass extends StackerWithValue<BaseCl
 	}
 
 	@Override
-	public void destroy()
+	public void destroy() throws ExceptionClass
 	{
 		super.destroy();
 		updateValue( null );
@@ -171,8 +174,8 @@ public abstract class StackerWithValue<BaseClass extends StackerWithValue<BaseCl
 
 	public Stream<ValueType> flatValues()
 	{
-		disposeCheck();
-		Stream<ValueType> stream = children.stream().flatMap( StackerWithValue::flatValues );
+		disposalCheck();
+		Stream<ValueType> stream = children.stream().flatMap( ContainerWithValue::flatValues );
 		return Optional.ofNullable( value ).map( t -> Stream.concat( Stream.of( t ), stream ) ).orElse( stream );
 	}
 
@@ -186,14 +189,14 @@ public abstract class StackerWithValue<BaseClass extends StackerWithValue<BaseCl
 		return findChild( key, false ).map( child -> child.getChildren().map( c -> ( ExpectedValueType ) c.value ).filter( Objects::nonNull ).collect( Collectors.toList() ) ).orElse( null );
 	}
 
-	public <T> Optional<T> getChildAsObject( @Nonnull String key, Class<T> cls )
+	public <T> OptionalExt<T, ExceptionClass> getChildAsObject( @Nonnull String key, Class<T> cls )
 	{
-		return findChild( key, false ).flatMap( child -> child.asObject( cls ) );
+		return findChild( key, false ).flatMapCompat( child -> child.asObject( cls ) );
 	}
 
 	public <ExpectedValueType extends ValueType> Map<String, ExpectedValueType> getChildrenAsMap()
 	{
-		return children.stream().collect( Collectors.toMap( StackerBase::getName, c -> ( ExpectedValueType ) c.value ) );
+		return children.stream().collect( Collectors.toMap( ContainerBase::getName, c -> ( ExpectedValueType ) c.value ) );
 	}
 
 	public <ExpectedValueType extends ValueType> Map<String, ExpectedValueType> getChildrenAsMap( String key )
@@ -206,57 +209,71 @@ public abstract class StackerWithValue<BaseClass extends StackerWithValue<BaseCl
 		return children.stream().map( c -> new Pair( c.getName(), c.value ) );
 	}
 
-	public Optional<ValueType> getValue( String key, Function<ValueType, ValueType> computeFunction )
+	public OptionalExt<ValueType, ExceptionClass> getValue( String key, Function<ValueType, ValueType> computeFunction )
 	{
-		return findChild( key, true ).flatMap( child -> child.getValue( computeFunction ) );
+		return findChild( key, true ).flatMapIfPresent( child -> child.getValue( computeFunction ) );
 	}
 
-	public Optional<ValueType> getValue( Function<ValueType, ValueType> computeFunction )
+	public OptionalExt<ValueType, ExceptionClass> getValue( Function<ValueType, ValueType> computeFunction )
 	{
 		ValueType value = getValue().orElse( null );
 		ValueType newValue = computeFunction.apply( value );
 		if ( value != newValue )
-			setValue( newValue );
-		return Optional.ofNullable( newValue );
+			try
+			{
+				setValue( newValue );
+			}
+			catch ( Exception e )
+			{
+				return ( OptionalExt<ValueType, ExceptionClass> ) OptionalExt.withException( e );
+			}
+		return OptionalExt.ofNullable( newValue );
 	}
 
-	public Optional<ValueType> getValue( String key, Supplier<ValueType> supplier )
+	public OptionalExt<ValueType, ExceptionClass> getValue( String key, Supplier<ValueType> supplier )
 	{
-		return findChild( key, true ).flatMap( child -> child.getValue( supplier ) );
+		return findChild( key, true ).flatMapIfPresent( child -> child.getValue( supplier ) );
 	}
 
-	public Optional<ValueType> getValue( Supplier<ValueType> supplier )
+	public OptionalExt<ValueType, ExceptionClass> getValue( Supplier<ValueType> supplier )
 	{
 		if ( !hasValue() )
-			setValue( supplier.get() );
+			try
+			{
+				setValue( supplier.get() );
+			}
+			catch ( Exception e )
+			{
+				return ( OptionalExt<ValueType, ExceptionClass> ) OptionalExt.withException( e );
+			}
 		return getValue();
 	}
 
-	public Optional<ValueType> getValue( String key )
+	public OptionalExt<ValueType, ExceptionClass> getValue( String key )
 	{
-		return findChild( key, false ).flatMap( StackerWithValue::getValue );
+		return findChild( key, false ).flatMapIfPresent( ContainerWithValue::getValue );
 	}
 
-	public Optional<ValueType> getValue()
+	public OptionalExt<ValueType, ExceptionClass> getValue()
 	{
-		disposeCheck();
-		return Optional.ofNullable( value );
+		disposalCheck();
+		return OptionalExt.ofNullable( value );
 	}
 
-	public void setValue( ValueType value )
+	public void setValue( ValueType value ) throws ExceptionClass
 	{
-		disposeCheck();
+		disposalCheck();
 		notFlag( Flag.READ_ONLY );
 		if ( hasFlag( Flag.NO_OVERRIDE ) && hasValue() )
-			throwExceptionIgnorable( getCurrentPath() + " has NO_OVERRIDE flag" );
-		if ( value instanceof StackerBase )
-			throwExceptionIgnorable( "The value can't be of class StackerBase, please use the appropriate methods instead, e.g. SetChild(), MoveChild(), CopyChild(), etc." );
+			throwException( getCurrentPath() + " has NO_OVERRIDE flag" );
+		if ( value instanceof ContainerBase )
+			throwException( "The value can't be of class ContainerBase, please use the appropriate methods instead, e.g. SetChild(), MoveChild(), CopyChild(), etc." );
 		updateValue( value );
 	}
 
 	public final boolean hasValue( String key )
 	{
-		return findChild( key, false ).map( StackerWithValue::hasValue ).orElse( false );
+		return findChild( key, false ).map( ContainerWithValue::hasValue ).orElse( false );
 	}
 
 	public boolean hasValue()
@@ -271,39 +288,39 @@ public abstract class StackerWithValue<BaseClass extends StackerWithValue<BaseCl
 	}
 
 	@Override
-	public void copyChild( @Nonnull BaseClass child )
+	public void copyChild( @Nonnull BaseClass child ) throws ExceptionClass
 	{
 		super.copyChild( child );
 		updateValue( child.value );
 	}
 
-	public Optional<ValueType> pollValue()
+	public OptionalExt<ValueType, ExceptionClass> pollValue()
 	{
-		return Optional.ofNullable( updateValue( null ) );
+		return OptionalExt.ofNullable( updateValue( null ) );
 	}
 
-	public Optional<ValueType> pollValue( String key )
+	public OptionalExt<ValueType, ExceptionClass> pollValue( String key )
 	{
-		return findChild( key, false ).flatMap( StackerWithValue::pollValue );
+		return findChild( key, false ).flatMapIfPresent( ContainerWithValue::pollValue );
 	}
 
-	public void setValue( String key, ValueType value )
+	public void setValue( String key, ValueType value ) throws ExceptionClass
 	{
 		getChildOrCreate( key ).setValue( value );
 	}
 
-	public void setValueIfAbsent( ValueType value )
+	public void setValueIfAbsent( ValueType value ) throws ExceptionClass
 	{
 		if ( !hasValue() )
 			setValue( value );
 	}
 
-	public void setValueIfAbsent( TypeBase.TypeWithDefault type )
+	public void setValueIfAbsent( TypeBase.TypeWithDefault type ) throws ExceptionClass
 	{
 		getChildOrCreate( type.getPath() ).setValueIfAbsent( ( ValueType ) type.getDefault() );
 	}
 
-	public void setValueIfAbsent( String key, ValueType value )
+	public void setValueIfAbsent( String key, ValueType value ) throws ExceptionClass
 	{
 		getChildOrCreate( key ).setValueIfAbsent( value );
 	}
@@ -325,7 +342,7 @@ public abstract class StackerWithValue<BaseClass extends StackerWithValue<BaseCl
 
 	public Map<String, ValueType> values()
 	{
-		disposeCheck();
-		return children.stream().filter( StackerWithValue::hasValue ).collect( Collectors.toMap( StackerWithValue::getName, c -> c.getValue().orElse( null ) ) );
+		disposalCheck();
+		return children.stream().filter( ContainerWithValue::hasValue ).collect( Collectors.toMap( ContainerWithValue::getName, c -> c.getValue().orElse( null ) ) );
 	}
 }

@@ -2,7 +2,7 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <theameliadewitt@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
@@ -18,6 +18,7 @@ public interface FunctionWithException<T, R, E extends Exception>
 	 * Returns a function that always returns its input argument.
 	 *
 	 * @param <T> the type of the input and output objects to the function
+	 *
 	 * @return a function that always returns its input argument
 	 */
 	static <T, E extends Exception> FunctionWithException<T, T, E> identity()
@@ -34,8 +35,10 @@ public interface FunctionWithException<T, R, E extends Exception>
 	 * @param <V>   the type of output of the {@code after} function, and of the
 	 *              composed function
 	 * @param after the function to apply after this function is applied
+	 *
 	 * @return a composed function that first applies this function and then
 	 * applies the {@code after} function
+	 *
 	 * @throws NullPointerException if after is null
 	 * @see #compose(FunctionWithException)
 	 */
@@ -49,9 +52,10 @@ public interface FunctionWithException<T, R, E extends Exception>
 	 * Applies this function to the given argument.
 	 *
 	 * @param t the function argument
+	 *
 	 * @return the function result
 	 */
-	R apply( T t );
+	R apply( T t ) throws E;
 
 	/**
 	 * Returns a composed function that first applies the {@code before}
@@ -62,8 +66,10 @@ public interface FunctionWithException<T, R, E extends Exception>
 	 * @param <V>    the type of input to the {@code before} function, and to the
 	 *               composed function
 	 * @param before the function to apply before this function is applied
+	 *
 	 * @return a composed function that first applies the {@code before}
 	 * function and then applies this function
+	 *
 	 * @throws NullPointerException if before is null
 	 * @see #andThen(FunctionWithException)
 	 */

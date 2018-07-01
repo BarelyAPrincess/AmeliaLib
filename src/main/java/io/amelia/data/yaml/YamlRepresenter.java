@@ -2,7 +2,7 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <theameliadewitt@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
@@ -15,7 +15,7 @@ import org.yaml.snakeyaml.representer.Representer;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import io.amelia.data.StackerWithValue;
+import io.amelia.data.ContainerWithValue;
 import io.amelia.data.serialization.DataSerializable;
 import io.amelia.data.serialization.DataSerialization;
 
@@ -23,7 +23,7 @@ public class YamlRepresenter extends Representer
 {
 	public YamlRepresenter()
 	{
-		this.multiRepresenters.put( StackerWithValue.class, new RepresentConfigurationSection() );
+		this.multiRepresenters.put( ContainerWithValue.class, new RepresentConfigurationSection() );
 		this.multiRepresenters.put( DataSerializable.class, new RepresentConfigurationSerializable() );
 	}
 
@@ -32,7 +32,7 @@ public class YamlRepresenter extends Representer
 		@Override
 		public Node representData( Object data )
 		{
-			return super.representData( ( ( StackerWithValue ) data ).values() );
+			return super.representData( ( ( ContainerWithValue ) data ).values() );
 		}
 	}
 

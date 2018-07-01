@@ -2,7 +2,7 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <theameliadewitt@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
@@ -13,21 +13,22 @@ import java.awt.Color;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 
+import io.amelia.lang.ApplicationException;
 import io.amelia.support.IO;
 import io.amelia.support.Objs;
 import io.amelia.support.OptionalBoolean;
+import io.amelia.support.OptionalExt;
 import io.amelia.support.OptionalLongExt;
 import io.amelia.support.Strs;
 
 /**
- * Provides common methods for converting an unknown value to (and from) {@link Object} using the Java 8 {@link Optional} feature.
+ * Provides common methods for converting an unknown value to (and from) {@link Object} using the Java 8 Optional feature.
  * <p>
  * These types include:
  * Boolean
@@ -41,7 +42,7 @@ import io.amelia.support.Strs;
  * List
  * Class
  */
-public interface ValueTypesTrait
+public interface ValueTypesTrait<ExceptionClass extends ApplicationException.Error>
 {
 	default Boolean getBoolean( TypeBase.TypeBoolean type )
 	{
@@ -53,12 +54,12 @@ public interface ValueTypesTrait
 		return OptionalBoolean.ofNullable( getValue( key ).map( Objs::castToBoolean ).orElse( null ) );
 	}
 
-	default Optional<Color> getColor()
+	default OptionalExt<Color, ExceptionClass> getColor()
 	{
 		return getColor( "" );
 	}
 
-	default Optional<Color> getColor( String key )
+	default OptionalExt<Color, ExceptionClass> getColor( String key )
 	{
 		return getValue( key ).filter( v -> v instanceof Color ).map( v -> ( Color ) v );
 	}
@@ -83,12 +84,12 @@ public interface ValueTypesTrait
 		return getDouble( type.getPath() ).orElse( type.getDefault() );
 	}
 
-	default <T extends Enum<T>> Optional<T> getEnum( Class<T> enumClass )
+	default <T extends Enum<T>> OptionalExt<T, ExceptionClass> getEnum( Class<T> enumClass )
 	{
 		return getEnum( "", enumClass );
 	}
 
-	default <T extends Enum<T>> Optional<T> getEnum( String key, Class<T> enumClass )
+	default <T extends Enum<T>> OptionalExt<T, ExceptionClass> getEnum( String key, Class<T> enumClass )
 	{
 		return getString( key ).map( e -> Enum.valueOf( enumClass, e ) );
 	}
@@ -113,7 +114,7 @@ public interface ValueTypesTrait
 		return getInteger( type.getPath() ).orElse( type.getDefault() );
 	}
 
-	default <T> Optional<List<T>> getList()
+	default <T> OptionalExt<List<T>, ExceptionClass> getList()
 	{
 		return getList( "" );
 	}
@@ -128,17 +129,17 @@ public interface ValueTypesTrait
 		getValue( key ).filter( v -> v instanceof List ).ifPresent( v -> list.addAll( ( List<T> ) v ) );
 	}
 
-	default <T> Optional<List<T>> getList( @Nonnull String key )
+	default <T> OptionalExt<List<T>, ExceptionClass> getList( @Nonnull String key )
 	{
 		return getValue( key ).filter( v -> v instanceof List ).map( v -> ( List<T> ) v );
 	}
 
-	default <T> Optional<List<T>> getList( @Nonnull Class<T> expectedObjectClass )
+	default <T> OptionalExt getList( @Nonnull Class<T> expectedObjectClass )
 	{
 		return getList( "", expectedObjectClass );
 	}
 
-	default <T> Optional<List<T>> getList( @Nonnull String key, @Nonnull Class<T> expectedObjectClass )
+	default <T> OptionalExt<List<T>, ExceptionClass> getList( @Nonnull String key, @Nonnull Class<T> expectedObjectClass )
 	{
 		return getValue( key ).filter( v -> v instanceof List ).map( v -> Objs.castList( ( List<?> ) v, expectedObjectClass ) );
 	}
@@ -158,12 +159,12 @@ public interface ValueTypesTrait
 		return getLong( type.getPath() ).orElse( type.getDefault() );
 	}
 
-	default Optional<String> getString()
+	default OptionalExt<String, ExceptionClass> getString()
 	{
 		return getString( "" );
 	}
 
-	default Optional<String> getString( @Nonnull String key )
+	default OptionalExt<String, ExceptionClass> getString( @Nonnull String key )
 	{
 		return getValue( key ).map( Objs::castToString );
 	}
@@ -173,38 +174,38 @@ public interface ValueTypesTrait
 		return getString( type.getPath() ).orElse( type.getDefault() );
 	}
 
-	default <T> Optional<Class<T>> getStringAsClass()
+	default <T> OptionalExt<Class<T>, ExceptionClass> getStringAsClass()
 	{
 		return getStringAsClass( "" );
 	}
 
-	default <T> Optional<Class<T>> getStringAsClass( @Nonnull String key )
+	default <T> OptionalExt<Class<T>, ExceptionClass> getStringAsClass( @Nonnull String key )
 	{
 		return getStringAsClass( key, null );
 	}
 
 	@SuppressWarnings( "unchecked" )
-	default <T> Optional<Class<T>> getStringAsClass( @Nonnull String key, @Nonnull Class<T> expectedClass )
+	default <T> OptionalExt<Class<T>, ExceptionClass> getStringAsClass( @Nonnull String key, @Nonnull Class<T> expectedClass )
 	{
-		return getString( key ).map( str -> ( Class<T> ) Objs.getClassByName( str ) ).filter( expectedClass::isAssignableFrom );
+		return getString( key ).mapCompat( str -> ( Class<T> ) Objs.getClassByName( str ) ).filter( expectedClass::isAssignableFrom );
 	}
 
-	default Optional<File> getStringAsFile( File rel )
+	default OptionalExt<File, ExceptionClass> getStringAsFile( File rel )
 	{
 		return getStringAsFile( "", rel );
 	}
 
-	default Optional<File> getStringAsFile( String key, File rel )
+	default OptionalExt<File, ExceptionClass> getStringAsFile( String key, File rel )
 	{
-		return getString( key ).map( s -> IO.buildFile( rel, s ) );
+		return getString( key ).mapCompat( s -> IO.buildFile( rel, s ) );
 	}
 
-	default Optional<File> getStringAsFile( String key )
+	default OptionalExt<File, ExceptionClass> getStringAsFile( String key )
 	{
-		return getString( key ).map( IO::buildFile );
+		return getString( key ).mapCompat( IO::buildFile );
 	}
 
-	default Optional<File> getStringAsFile()
+	default OptionalExt<File, ExceptionClass> getStringAsFile()
 	{
 		return getStringAsFile( "" );
 	}
@@ -214,22 +215,22 @@ public interface ValueTypesTrait
 		return getStringAsFile( type.getPath() ).orElse( type.getDefault() );
 	}
 
-	default Optional<Path> getStringAsPath( Path rel )
+	default OptionalExt<Path, ExceptionClass> getStringAsPath( Path rel )
 	{
 		return getStringAsPath( "", rel );
 	}
 
-	default Optional<Path> getStringAsPath( String key, Path rel )
+	default OptionalExt<Path, ExceptionClass> getStringAsPath( String key, Path rel )
 	{
-		return getString( key ).map( s -> IO.buildPath( rel, s ) );
+		return getString( key ).mapCompat( s -> IO.buildPath( rel, s ) );
 	}
 
-	default Optional<Path> getStringAsPath( String key )
+	default OptionalExt<Path, ExceptionClass> getStringAsPath( String key )
 	{
-		return getString( key ).map( IO::buildPath );
+		return getString( key ).mapCompat( IO::buildPath );
 	}
 
-	default Optional<Path> getStringAsPath()
+	default OptionalExt<Path, ExceptionClass> getStringAsPath()
 	{
 		return getStringAsPath( "" );
 	}
@@ -239,25 +240,25 @@ public interface ValueTypesTrait
 		return getStringAsPath( type.getPath() ).orElse( type.getDefault() );
 	}
 
-	default Optional<List<String>> getStringList()
+	default OptionalExt<List<String>, ExceptionClass> getStringList()
 	{
 		return getStringList( "", "|" );
 	}
 
-	default Optional<List<String>> getStringList( String key )
+	default OptionalExt<List<String>, ExceptionClass> getStringList( String key )
 	{
 		return getStringList( key, "|" );
 	}
 
 	@SuppressWarnings( "unchecked" )
-	default Optional<List<String>> getStringList( String key, String delimiter )
+	default OptionalExt<List<String>, ExceptionClass> getStringList( String key, String delimiter )
 	{
 		Object value = getValue( key ).orElse( null );
 		if ( value == null )
-			return Optional.empty();
+			return OptionalExt.empty();
 		if ( value instanceof List )
-			return Optional.of( ( List<String> ) value );
-		return Optional.of( value ).map( Objs::castToString ).map( s -> Strs.split( s, delimiter ).collect( Collectors.toList() ) );
+			return OptionalExt.ofNeverNull( ( List<String> ) value );
+		return OptionalExt.ofNeverNull( value ).map( Objs::castToString ).map( s -> Strs.split( s, delimiter ).collect( Collectors.toList() ) );
 	}
 
 	default List<String> getStringList( TypeBase.TypeStringList type )
@@ -265,9 +266,9 @@ public interface ValueTypesTrait
 		return getStringList( type.getPath() ).orElse( type.getDefault() );
 	}
 
-	Optional<?> getValue( String key );
+	OptionalExt<?, ExceptionClass> getValue( String key );
 
-	Optional<?> getValue();
+	OptionalExt<?, ExceptionClass> getValue();
 
 	default boolean isColor()
 	{
@@ -336,7 +337,7 @@ public interface ValueTypesTrait
 
 	default boolean isType( @Nonnull String key, @Nonnull Class<?> type )
 	{
-		Optional<?> result = getValue( key );
+		OptionalExt<?, ExceptionClass> result = getValue( key );
 		return result.isPresent() && type.isAssignableFrom( result.get().getClass() );
 	}
 }

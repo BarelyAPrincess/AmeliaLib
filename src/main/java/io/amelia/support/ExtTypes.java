@@ -2,7 +2,7 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <theameliadewitt@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
@@ -17,7 +17,7 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 
-import io.amelia.data.StackerWithValue;
+import io.amelia.data.ContainerWithValue;
 import io.amelia.foundation.ConfigMap;
 import io.amelia.foundation.ConfigRegistry;
 
@@ -30,7 +30,7 @@ public class ExtTypes
 
 	public static Stream<String> getAllTypes()
 	{
-		return getConfigMap().getChildren().map( StackerWithValue::getValue ).filter( Optional::isPresent ).map( Optional::get ).map( Objs::castToString ).flatMap( str -> Strs.split( str, "," ) );
+		return getConfigMap().getChildren().map( ContainerWithValue::getValue ).filter( Optional::isPresent ).map( Optional::get ).map( Objs::castToString ).flatMap( str -> Strs.split( str, "," ) );
 	}
 
 	private static ConfigMap getConfigMap()

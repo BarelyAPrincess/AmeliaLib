@@ -2,7 +2,7 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <theameliadewitt@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
@@ -16,11 +16,11 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 
-import io.amelia.data.StackerWithValue;
+import io.amelia.data.ContainerWithValue;
 import io.amelia.lang.ParcelableException;
 
 @SuppressWarnings( "unchecked" )
-public final class BindingMap extends StackerWithValue<BindingMap, BindingMap.BaseBinding>
+public final class BindingMap extends ContainerWithValue<BindingMap, BindingMap.BaseBinding>
 {
 	WeakReference<WritableBinding> owner = null;
 
@@ -72,14 +72,14 @@ public final class BindingMap extends StackerWithValue<BindingMap, BindingMap.Ba
 	}
 
 	@Override
-	protected void throwExceptionError( String message ) throws BindingException.Error
+	protected void throwException( String message ) throws BindingException.Error
 	{
 		// TODO Include node in exception
 		throw new BindingException.Error( message );
 	}
 
 	@Override
-	protected void throwExceptionIgnorable( String message ) throws ParcelableException.Ignorable
+	protected void throwException( String message ) throws ParcelableException.Ignorable
 	{
 		throw new BindingException.Ignorable( message );
 	}

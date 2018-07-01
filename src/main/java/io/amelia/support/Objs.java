@@ -2,7 +2,7 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <theameliadewitt@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
@@ -614,6 +614,11 @@ public class Objs
 	}
 
 	public static <T, R, E extends Exception> R ifPresent( @Nonnull Optional<T> optional, @Nonnull FunctionWithException<T, R, E> ifPresentFunction, SupplierWithException<R, E> notPresentSupplier ) throws E
+	{
+		return optional.isPresent() ? ifPresentFunction.apply( optional.get() ) : notPresentSupplier.get();
+	}
+
+	public static <T, R, E extends Exception> R ifPresent( @Nonnull OptionalExt<T, ?> optional, @Nonnull FunctionWithException<T, R, E> ifPresentFunction, SupplierWithException<R, E> notPresentSupplier ) throws E
 	{
 		return optional.isPresent() ? ifPresentFunction.apply( optional.get() ) : notPresentSupplier.get();
 	}

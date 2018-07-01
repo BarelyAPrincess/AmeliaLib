@@ -2,14 +2,12 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <theameliadewitt@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
 package io.amelia.support;
-
-import com.sun.istack.internal.NotNull;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
@@ -17,6 +15,8 @@ import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+
+import javax.annotation.Nonnull;
 
 public class AsciiLower implements CharSequence, Comparable<CharSequence>
 {
@@ -317,7 +317,7 @@ public class AsciiLower implements CharSequence, Comparable<CharSequence>
 	 * @throws NullPointerException if {@code string} is {@code null}.
 	 */
 	@Override
-	public int compareTo( @NotNull CharSequence charSequence )
+	public int compareTo( @Nonnull CharSequence charSequence )
 	{
 		if ( this == charSequence )
 			return 0;

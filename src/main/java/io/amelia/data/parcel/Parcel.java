@@ -2,7 +2,7 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <theameliadewitt@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
@@ -15,46 +15,42 @@ import java.util.Map;
 
 import javax.annotation.Nonnull;
 
-import io.amelia.data.StackerWithValue;
+import io.amelia.data.ContainerWithValue;
+import io.amelia.data.TypeBase;
 import io.amelia.data.ValueTypesTrait;
+import io.amelia.lang.ParcelException;
 import io.amelia.lang.ParcelableException;
 import io.amelia.support.Reflection;
 
-public class Parcel extends StackerWithValue<Parcel, Object> implements ValueTypesTrait
+public class Parcel extends ContainerWithValue<Parcel, Object, ParcelableException.Error> implements ValueTypesTrait<ParcelableException.Error>
 {
-	public Parcel()
+	public Parcel() throws ParcelableException.Error
 	{
 		super( Parcel::new, "" );
 	}
 
-	protected Parcel( String key )
+	protected Parcel( String key ) throws ParcelableException.Error
 	{
 		super( Parcel::new, key );
 	}
 
-	protected Parcel( Parcel parent, String key )
+	protected Parcel( Parcel parent, String key ) throws ParcelableException.Error
 	{
 		super( Parcel::new, parent, key );
 	}
 
-	protected Parcel( Parcel parent, String key, Object value )
+	protected Parcel( Parcel parent, String key, Object value ) throws ParcelableException.Error
 	{
 		super( Parcel::new, parent, key, value );
 	}
 
+	@SuppressWarnings( "unchecked" )
 	public final <T> T getParcelable( String key ) throws ParcelableException.Error
 	{
 		if ( !hasChild( key ) )
 			return null;
 
-		try
-		{
-			return Factory.deserialize( getChild( key ) );
-		}
-		catch ( ClassNotFoundException e )
-		{
-			throw new ParcelableException.Error( this, e );
-		}
+		return ( T ) getChild( key ).map( Factory::deserialize ).orElseMapException( exception -> new ParcelableException.Error( this, exception ) );
 	}
 
 	public final <T> T getParcelable( String key, Class<T> objClass ) throws ParcelableException.Error
@@ -62,19 +58,13 @@ public class Parcel extends StackerWithValue<Parcel, Object> implements ValueTyp
 		if ( !hasChild( key ) )
 			return null;
 
-		return Factory.deserialize( getChild( key ), objClass );
+		return ( T ) getChild( key ).map( child -> Factory.deserialize( child, objClass ) ).orElseMapException( exception -> new ParcelableException.Error( this, exception ) );
 	}
 
 	@Override
-	public void throwExceptionError( String message ) throws ParcelableException.Error
+	protected ParcelableException.Error getException( String message )
 	{
-		throw new ParcelableException.Error( this, message );
-	}
-
-	@Override
-	public void throwExceptionIgnorable( String message ) throws ParcelableException.Ignorable
-	{
-		throw new ParcelableException.Ignorable( this, message );
+		return new ParcelableException.Error( this, message );
 	}
 
 	/**

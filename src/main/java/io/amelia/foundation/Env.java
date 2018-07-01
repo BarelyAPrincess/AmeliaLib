@@ -2,14 +2,12 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <theameliadewitt@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
 package io.amelia.foundation;
-
-import com.sun.istack.internal.NotNull;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -126,7 +124,7 @@ public class Env
 		return this;
 	}
 
-	private void updateEnvFile( @Nonnull String key, @NotNull Object value )
+	private void updateEnvFile( @Nonnull String key, @Nonnull Object value )
 	{
 		try
 		{

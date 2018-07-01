@@ -2,14 +2,12 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <theameliadewitt@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
 package io.amelia.support;
-
-import com.sun.istack.internal.NotNull;
 
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
@@ -669,7 +667,7 @@ public class Strs
 		return Arrays.stream( str.split( delimiter ) );
 	}
 
-	public static Stream<String> split( @NotNull String str, @Nonnull Pattern delimiter )
+	public static Stream<String> split( @Nonnull String str, @Nonnull Pattern delimiter )
 	{
 		if ( Objs.isEmpty( str ) )
 			return Stream.empty();

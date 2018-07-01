@@ -2,7 +2,7 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <theameliadewitt@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 
-import io.amelia.data.StackerWithValue;
+import io.amelia.data.ContainerWithValue;
 import io.amelia.data.yaml.YamlConstructor;
 import io.amelia.data.yaml.YamlRepresenter;
 import io.amelia.lang.ParcelableException;
@@ -207,7 +207,7 @@ public class ParcelLoader
 	}
 
 	@SuppressWarnings( "unchecked" )
-	public static <ValueType> void decodeMap( Map<String, ValueType> mapEncoded, StackerWithValue<? extends StackerWithValue, ValueType> root )
+	public static <ValueType> void decodeMap( Map<String, ValueType> mapEncoded, ContainerWithValue<? extends ContainerWithValue, ValueType> root )
 	{
 		for ( Map.Entry<String, ValueType> entry : mapEncoded.entrySet() )
 		{
@@ -215,7 +215,7 @@ public class ParcelLoader
 				root.setValue( entry.getValue() );
 			else
 			{
-				StackerWithValue<? extends StackerWithValue, ValueType> child = root.getChildOrCreate( entry.getKey() );
+				ContainerWithValue<? extends ContainerWithValue, ValueType> child = root.getChildOrCreate( entry.getKey() );
 
 				if ( entry.getValue() instanceof Map )
 					decodeMap( ( Map<String, ValueType> ) entry.getValue(), child );
@@ -372,7 +372,7 @@ public class ParcelLoader
 		TODO Implement
 	} */
 
-	public static <ValueType> Map<String, Object> encodeMap( StackerWithValue<? extends StackerWithValue, ValueType> encoded )
+	public static <ValueType> Map<String, Object> encodeMap( ContainerWithValue<? extends ContainerWithValue, ValueType> encoded )
 	{
 		Map<String, Object> map = new HashMap<>();
 

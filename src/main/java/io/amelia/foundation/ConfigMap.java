@@ -2,7 +2,7 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <theameliadewitt@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
@@ -10,40 +10,46 @@
 package io.amelia.foundation;
 
 import java.util.Map;
-import java.util.Optional;
 
-import io.amelia.data.StackerWithValue;
+import io.amelia.data.ContainerWithValue;
 import io.amelia.data.ValueTypesTrait;
 import io.amelia.data.parcel.ParcelLoader;
 import io.amelia.lang.ConfigException;
+import io.amelia.support.OptionalExt;
 
-public final class ConfigMap extends StackerWithValue<ConfigMap, Object> implements ValueTypesTrait
+public final class ConfigMap extends ContainerWithValue<ConfigMap, Object, ConfigException.Error> implements ValueTypesTrait<ConfigException.Error>
 {
 	private String loadedValueHash = null;
 
-	public ConfigMap()
+	public ConfigMap() throws ConfigException.Error
 	{
 		super( ConfigMap::new, "" );
 	}
 
-	public ConfigMap( String key )
+	public ConfigMap( String key ) throws ConfigException.Error
 	{
 		super( ConfigMap::new, key );
 	}
 
-	public ConfigMap( ConfigMap parent, String key )
+	public ConfigMap( ConfigMap parent, String key ) throws ConfigException.Error
 	{
 		super( ConfigMap::new, parent, key );
 	}
 
-	public ConfigMap( ConfigMap parent, String key, Object value )
+	public ConfigMap( ConfigMap parent, String key, Object value ) throws ConfigException.Error
 	{
 		super( ConfigMap::new, parent, key, value );
 	}
 
+	@Override
+	protected ConfigException.Error getException( String message )
+	{
+		return new ConfigException.Error( this, message );
+	}
+
 	void loadNewValue( Object obj )
 	{
-		disposeCheck();
+		disposalCheck();
 		// A loaded value is only set if the current value is null, was never set, or the new value hash doesn't match the loaded one.
 		if ( loadedValueHash == null || value == null || !ParcelLoader.hashObject( obj ).equals( loadedValueHash ) )
 		{
@@ -58,7 +64,7 @@ public final class ConfigMap extends StackerWithValue<ConfigMap, Object> impleme
 	}
 
 	@Override
-	public Optional<Object> getValue( String key )
+	public OptionalExt<Object, ConfigException.Error> getValue( String key )
 	{
 		return super.getValue( key );
 	}
@@ -66,18 +72,6 @@ public final class ConfigMap extends StackerWithValue<ConfigMap, Object> impleme
 	public void setEnviromentVariables( Map<String, Object> map )
 	{
 
-	}
-
-	@Override
-	public void throwExceptionError( String message ) throws ConfigException.Error
-	{
-		throw new ConfigException.Error( this, message );
-	}
-
-	@Override
-	public void throwExceptionIgnorable( String message ) throws ConfigException.Ignorable
-	{
-		throw new ConfigException.Ignorable( this, message );
 	}
 
 	@Override

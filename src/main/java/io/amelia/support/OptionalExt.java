@@ -2,13 +2,14 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <theameliadewitt@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
 package io.amelia.support;
 
+import java.rmi.server.ExportException;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
@@ -87,6 +88,11 @@ public final class OptionalExt<Type, Cause extends Throwable>
 	{
 		this.value = null;
 		this.cause = Objs.notNull( cause );
+	}
+
+	public static <Type, Cause extends Throwable> OptionalExt<Type, Cause> ofNeverNull( Optional<Type> value )
+	{
+		return ( OptionalExt<Type, Cause> ) value.map( OptionalExt::ofNeverNull ).get();
 	}
 
 	public static <Type, Cause extends Throwable> OptionalExt<Type, Cause> ofNeverNull( Type value )
@@ -216,6 +222,30 @@ public final class OptionalExt<Type, Cause extends Throwable>
 		return this;
 	}
 
+	public <E extends Exception> OptionalExt<Type, Cause> ifPresentThrowException( ConsumerWithException<? super Type, E> consumer ) throws E
+	{
+		if ( value != null )
+			consumer.accept( value );
+		return this;
+	}
+
+	@SuppressWarnings( "unchecked" )
+	public <E extends Exception> OptionalExt<Type, E> ifPresentWithException( ConsumerWithException<? super Type, E> consumer )
+	{
+		if ( value != null )
+		{
+			try
+			{
+				consumer.accept( value );
+			}
+			catch ( Exception e )
+			{
+				return OptionalExt.withException( ( E ) e );
+			}
+		}
+		return OptionalExt.empty();
+	}
+
 	public OptionalExt<Type, Cause> ifException( Consumer<? super Cause> consumer )
 	{
 		if ( cause != null )
@@ -292,7 +322,29 @@ public final class OptionalExt<Type, Cause extends Throwable>
 	 * file if one exists.
 	 */
 	@SuppressWarnings( "unchecked" )
-	public <U, C extends Exception> OptionalExt<U, C> map( BiFunctionWithException<? super Type, ? super Cause, ? extends U, ? super C> mapper )
+	public <U, C extends Exception> OptionalExt<U, C> mapWithException( BiFunctionWithException<? super Type, ? super Cause, ? extends U, ? super C> mapper )
+	{
+		Objs.notNull( mapper );
+		try
+		{
+			return ofNullable( mapper.apply( value, cause ) );
+		}
+		catch ( Exception cause )
+		{
+			return withException( ( C ) cause );
+		}
+	}
+
+	public <U> OptionalExt<U, Cause> mapCompat( Function<? super Type, ? extends U> mapper )
+	{
+		Objs.notNull( mapper );
+		if ( !isPresent() )
+			return empty();
+		else
+			return ofNullable( mapper.apply( value ) );
+	}
+
+	public <U, C extends Exception> OptionalExt<U, C> map( FunctionWithException<? super Type, ? extends U, ? super C> mapper )
 	{
 		Objs.notNull( mapper );
 		if ( !isPresent() )
@@ -301,7 +353,7 @@ public final class OptionalExt<Type, Cause extends Throwable>
 		{
 			try
 			{
-				return ofNullable( mapper.apply( value, cause ) );
+				return ofNullable( mapper.apply( value ) );
 			}
 			catch ( Exception cause )
 			{
@@ -313,7 +365,7 @@ public final class OptionalExt<Type, Cause extends Throwable>
 	/**
 	 * If a value is present, apply the provided {@code Optional}-bearing
 	 * mapping function to it, return that result, otherwise return an empty
-	 * {@code Optional}.  This method is similar to {@link #map(BiFunctionWithException)},
+	 * {@code Optional}.  This method is similar to {@link #map(FunctionWithException)},
 	 * but the provided mapper is one whose result is already an {@code Optional},
 	 * and if invoked, {@code flatMap} does not wrap it with an additional
 	 * {@code Optional}.
@@ -340,6 +392,28 @@ public final class OptionalExt<Type, Cause extends Throwable>
 		}
 	}
 
+	public <U, C extends Exception> OptionalExt<U, C> flatMapCompat( Function<? super Type, Optional<U>> mapper )
+	{
+		Objs.notNull( mapper );
+		if ( !isPresent() )
+			return empty();
+		else
+		{
+			return ofNeverNull( Objs.notNull( mapper.apply( value ) ) );
+		}
+	}
+
+	public <U, C extends Exception> OptionalExt<U, C> flatMapIfPresent( Function<? super Type, OptionalExt<U, C>> mapper )
+	{
+		Objs.notNull( mapper );
+		if ( !isPresent() )
+			return empty();
+		else
+		{
+			return Objs.notNull( mapper.apply( value ) );
+		}
+	}
+
 	/**
 	 * Return the value if present, otherwise return {@code other}.
 	 *
@@ -351,6 +425,13 @@ public final class OptionalExt<Type, Cause extends Throwable>
 	public Type orElse( Type other )
 	{
 		return value != null ? value : other;
+	}
+
+	public <Exp extends Exception> Type orElseMapException( Function<Cause, Exp> function ) throws Exp
+	{
+		if ( cause != null )
+			throw function.apply( cause );
+		return value;
 	}
 
 	public Type orElseHasException( Type other )

@@ -9,19 +9,24 @@
  */
 package io.amelia.lang;
 
-public class SynchronizeException extends ApplicationException.Error
+public class ContainerException extends ApplicationException.Ignorable
 {
-	public SynchronizeException( String message )
+	public ContainerException()
+	{
+		super();
+	}
+
+	public ContainerException( String message )
 	{
 		super( message );
 	}
 
-	public SynchronizeException( String message, Throwable cause )
+	public ContainerException( String message, Throwable cause )
 	{
 		super( message, cause );
 	}
 
-	public SynchronizeException( Throwable cause )
+	public ContainerException( Throwable cause )
 	{
 		super( cause );
 	}
