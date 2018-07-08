@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import io.amelia.data.ContainerWithValue;
 import io.amelia.data.TypeBase;
@@ -29,17 +30,17 @@ public class Parcel extends ContainerWithValue<Parcel, Object, ParcelableExcepti
 		super( Parcel::new, "" );
 	}
 
-	protected Parcel( String key ) throws ParcelableException.Error
+	public Parcel( @Nonnull String key ) throws ParcelableException.Error
 	{
 		super( Parcel::new, key );
 	}
 
-	protected Parcel( Parcel parent, String key ) throws ParcelableException.Error
+	protected Parcel( @Nonnull Parcel parent, @Nonnull String key ) throws ParcelableException.Error
 	{
 		super( Parcel::new, parent, key );
 	}
 
-	protected Parcel( Parcel parent, String key, Object value ) throws ParcelableException.Error
+	protected Parcel( @Nonnull Parcel parent, @Nonnull String key, @Nullable Object value ) throws ParcelableException.Error
 	{
 		super( Parcel::new, parent, key, value );
 	}
@@ -50,7 +51,7 @@ public class Parcel extends ContainerWithValue<Parcel, Object, ParcelableExcepti
 		if ( !hasChild( key ) )
 			return null;
 
-		return ( T ) getChild( key ).map( Factory::deserialize ).orElseMapException( exception -> new ParcelableException.Error( this, exception ) );
+		return ( T ) getChildVoluntary( key ).mapCatchException( Factory::deserialize ).orElseThrow( exception -> new ParcelableException.Error( this, exception ) );
 	}
 
 	public final <T> T getParcelable( String key, Class<T> objClass ) throws ParcelableException.Error
@@ -58,7 +59,7 @@ public class Parcel extends ContainerWithValue<Parcel, Object, ParcelableExcepti
 		if ( !hasChild( key ) )
 			return null;
 
-		return ( T ) getChild( key ).map( child -> Factory.deserialize( child, objClass ) ).orElseMapException( exception -> new ParcelableException.Error( this, exception ) );
+		return ( T ) getChildVoluntary( key ).mapCatchException( child -> Factory.deserialize( child, objClass ) ).orElseThrow( exception -> new ParcelableException.Error( this, exception ) );
 	}
 
 	@Override

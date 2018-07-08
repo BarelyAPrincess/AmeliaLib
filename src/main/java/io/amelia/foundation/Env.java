@@ -26,7 +26,7 @@ import javax.annotation.Nonnull;
 import io.amelia.lang.UncaughtException;
 import io.amelia.support.IO;
 import io.amelia.support.Objs;
-import io.amelia.support.OptionalBoolean;
+import io.amelia.support.VoluntaryBoolean;
 import io.amelia.support.Pair;
 
 public class Env
@@ -64,7 +64,7 @@ public class Env
 		return ( T ) env.computeIfAbsent( key, k -> valueSupplier.get() );
 	}
 
-	public OptionalBoolean getBoolean( String key )
+	public VoluntaryBoolean getBoolean( String key )
 	{
 		return Objs.isTrue( getObject( key ) );
 	}

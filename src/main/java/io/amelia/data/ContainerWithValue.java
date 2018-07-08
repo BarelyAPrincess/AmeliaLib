@@ -15,20 +15,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
+import io.amelia.data.parcel.Parcel;
 import io.amelia.foundation.Kernel;
 import io.amelia.lang.ApplicationException;
+import io.amelia.lang.ParcelableException;
 import io.amelia.support.BiFunctionWithException;
 import io.amelia.support.Objs;
-import io.amelia.support.OptionalExt;
 import io.amelia.support.Pair;
+import io.amelia.support.Voluntary;
 
 @SuppressWarnings( "unchecked" )
 public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<BaseClass, ValueType, ExceptionClass>, ValueType, ExceptionClass extends ApplicationException.Error> extends ContainerBase<BaseClass, ExceptionClass>
@@ -43,12 +45,12 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 		this( creator, null, key, null );
 	}
 
-	protected ContainerWithValue( @Nonnull BiFunctionWithException<BaseClass, String, BaseClass, ExceptionClass> creator, BaseClass parent, @Nonnull String key ) throws ExceptionClass
+	protected ContainerWithValue( @Nonnull BiFunctionWithException<BaseClass, String, BaseClass, ExceptionClass> creator, @Nullable BaseClass parent, @Nonnull String key ) throws ExceptionClass
 	{
 		this( creator, parent, key, null );
 	}
 
-	protected ContainerWithValue( @Nonnull BiFunctionWithException<BaseClass, String, BaseClass, ExceptionClass> creator, BaseClass parent, @Nonnull String key, ValueType value ) throws ExceptionClass
+	protected ContainerWithValue( @Nonnull BiFunctionWithException<BaseClass, String, BaseClass, ExceptionClass> creator, @Nullable BaseClass parent, @Nonnull String key, @Nullable ValueType value ) throws ExceptionClass
 	{
 		super( creator, parent, key );
 		this.value = value;
@@ -189,9 +191,9 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 		return findChild( key, false ).map( child -> child.getChildren().map( c -> ( ExpectedValueType ) c.value ).filter( Objects::nonNull ).collect( Collectors.toList() ) ).orElse( null );
 	}
 
-	public <T> OptionalExt<T, ExceptionClass> getChildAsObject( @Nonnull String key, Class<T> cls )
+	public <T> Voluntary<T, ExceptionClass> getChildAsObject( @Nonnull String key, Class<T> cls )
 	{
-		return findChild( key, false ).flatMapCompat( child -> child.asObject( cls ) );
+		return findChild( key, false ).flatMapCompatible( child -> child.asObject( cls ) );
 	}
 
 	public <ExpectedValueType extends ValueType> Map<String, ExpectedValueType> getChildrenAsMap()
@@ -209,12 +211,12 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 		return children.stream().map( c -> new Pair( c.getName(), c.value ) );
 	}
 
-	public OptionalExt<ValueType, ExceptionClass> getValue( String key, Function<ValueType, ValueType> computeFunction )
+	public Voluntary<ValueType, ExceptionClass> getValue( String key, Function<ValueType, ValueType> computeFunction )
 	{
-		return findChild( key, true ).flatMapIfPresent( child -> child.getValue( computeFunction ) );
+		return findChild( key, true ).flatMap( child -> child.getValue( computeFunction ) );
 	}
 
-	public OptionalExt<ValueType, ExceptionClass> getValue( Function<ValueType, ValueType> computeFunction )
+	public Voluntary<ValueType, ExceptionClass> getValue( Function<ValueType, ValueType> computeFunction )
 	{
 		ValueType value = getValue().orElse( null );
 		ValueType newValue = computeFunction.apply( value );
@@ -225,17 +227,17 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 			}
 			catch ( Exception e )
 			{
-				return ( OptionalExt<ValueType, ExceptionClass> ) OptionalExt.withException( e );
+				return ( Voluntary<ValueType, ExceptionClass> ) Voluntary.withException( e );
 			}
-		return OptionalExt.ofNullable( newValue );
+		return Voluntary.ofNullable( newValue );
 	}
 
-	public OptionalExt<ValueType, ExceptionClass> getValue( String key, Supplier<ValueType> supplier )
+	public Voluntary<ValueType, ExceptionClass> getValue( String key, Supplier<ValueType> supplier )
 	{
-		return findChild( key, true ).flatMapIfPresent( child -> child.getValue( supplier ) );
+		return findChild( key, true ).flatMap( child -> child.getValue( supplier ) );
 	}
 
-	public OptionalExt<ValueType, ExceptionClass> getValue( Supplier<ValueType> supplier )
+	public Voluntary<ValueType, ExceptionClass> getValue( Supplier<ValueType> supplier )
 	{
 		if ( !hasValue() )
 			try
@@ -244,20 +246,20 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 			}
 			catch ( Exception e )
 			{
-				return ( OptionalExt<ValueType, ExceptionClass> ) OptionalExt.withException( e );
+				return ( Voluntary<ValueType, ExceptionClass> ) Voluntary.withException( e );
 			}
 		return getValue();
 	}
 
-	public OptionalExt<ValueType, ExceptionClass> getValue( String key )
+	public Voluntary<ValueType, ExceptionClass> getValue( String key )
 	{
-		return findChild( key, false ).flatMapIfPresent( ContainerWithValue::getValue );
+		return findChild( key, false ).flatMap( ContainerWithValue::getValue );
 	}
 
-	public OptionalExt<ValueType, ExceptionClass> getValue()
+	public Voluntary<ValueType, ExceptionClass> getValue()
 	{
 		disposalCheck();
-		return OptionalExt.ofNullable( value );
+		return Voluntary.ofNullable( value );
 	}
 
 	public void setValue( ValueType value ) throws ExceptionClass
@@ -294,14 +296,14 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 		updateValue( child.value );
 	}
 
-	public OptionalExt<ValueType, ExceptionClass> pollValue()
+	public Voluntary<ValueType, ExceptionClass> pollValue()
 	{
-		return OptionalExt.ofNullable( updateValue( null ) );
+		return Voluntary.ofNullable( updateValue( null ) );
 	}
 
-	public OptionalExt<ValueType, ExceptionClass> pollValue( String key )
+	public Voluntary<ValueType, ExceptionClass> pollValue( String key )
 	{
-		return findChild( key, false ).flatMapIfPresent( ContainerWithValue::pollValue );
+		return findChild( key, false ).flatMap( ContainerWithValue::pollValue );
 	}
 
 	public void setValue( String key, ValueType value ) throws ExceptionClass
@@ -323,6 +325,14 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 	public void setValueIfAbsent( String key, ValueType value ) throws ExceptionClass
 	{
 		getChildOrCreate( key ).setValueIfAbsent( value );
+	}
+
+	public Parcel toParcel() throws ParcelableException.Error
+	{
+		Parcel result = new Parcel( getName() );
+		for ( BaseClass child : children )
+			result.setChild( child.toParcel() );
+		return result;
 	}
 
 	/**

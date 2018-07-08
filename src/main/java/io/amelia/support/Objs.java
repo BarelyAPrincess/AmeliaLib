@@ -37,7 +37,6 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import io.amelia.foundation.Kernel;
 import io.amelia.lang.ApplicationException;
 import io.amelia.lang.ReportingLevel;
 import io.amelia.lang.UncaughtException;
@@ -618,7 +617,7 @@ public class Objs
 		return optional.isPresent() ? ifPresentFunction.apply( optional.get() ) : notPresentSupplier.get();
 	}
 
-	public static <T, R, E extends Exception> R ifPresent( @Nonnull OptionalExt<T, ?> optional, @Nonnull FunctionWithException<T, R, E> ifPresentFunction, SupplierWithException<R, E> notPresentSupplier ) throws E
+	public static <T, R, E extends Exception> R ifPresent( @Nonnull Voluntary<T, ?> optional, @Nonnull FunctionWithException<T, R, E> ifPresentFunction, SupplierWithException<R, E> notPresentSupplier ) throws E
 	{
 		return optional.isPresent() ? ifPresentFunction.apply( optional.get() ) : notPresentSupplier.get();
 	}
@@ -789,11 +788,11 @@ public class Objs
 		}
 	}
 
-	public static OptionalBoolean isFalse( Optional<?> bool )
+	public static VoluntaryBoolean isFalse( Optional<?> bool )
 	{
 		if ( !bool.isPresent() )
-			return OptionalBoolean.empty();
-		return OptionalBoolean.ofNullable( !isTrue( bool.get() ) );
+			return VoluntaryBoolean.empty();
+		return VoluntaryBoolean.ofNullable( !isTrue( bool.get() ) );
 	}
 
 	public static <T> boolean isFalse( T bool )
@@ -832,11 +831,11 @@ public class Objs
 		return false;
 	}
 
-	public static OptionalBoolean isTrue( Optional<?> bool )
+	public static VoluntaryBoolean isTrue( Optional<?> bool )
 	{
 		if ( !bool.isPresent() )
-			return OptionalBoolean.empty();
-		return OptionalBoolean.ofNullable( isTrue( bool.get() ) );
+			return VoluntaryBoolean.empty();
+		return VoluntaryBoolean.ofNullable( isTrue( bool.get() ) );
 	}
 
 	public static <T> boolean isTrue( T bool )

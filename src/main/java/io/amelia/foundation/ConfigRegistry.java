@@ -86,7 +86,7 @@ public class ConfigRegistry
 		loader.loadConfig( config );
 		isConfigLoaded = true;
 
-		config.setEnviromentVariables( env.map() );
+		config.setEnvironmentVariables( env.map() );
 
 		ConfigMap envNode = config.getChildOrCreate( "env" );
 		for ( Map.Entry<String, Object> entry : env.map().entrySet() )

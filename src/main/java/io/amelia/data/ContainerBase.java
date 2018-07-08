@@ -14,15 +14,17 @@ import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import io.amelia.foundation.Kernel;
 import io.amelia.lang.ApplicationException;
@@ -31,8 +33,8 @@ import io.amelia.support.BiFunctionWithException;
 import io.amelia.support.Maps;
 import io.amelia.support.Namespace;
 import io.amelia.support.Objs;
-import io.amelia.support.OptionalExt;
 import io.amelia.support.Streams;
+import io.amelia.support.Voluntary;
 
 @SuppressWarnings( "unchecked" )
 public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, ExceptionClass>, ExceptionClass extends ApplicationException.Error>
@@ -52,8 +54,11 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 		this( creator, null, localName );
 	}
 
-	protected ContainerBase( @Nonnull BiFunctionWithException<BaseClass, String, BaseClass, ExceptionClass> creator, BaseClass parent, @Nonnull String localName ) throws ExceptionClass
+	protected ContainerBase( @Nonnull BiFunctionWithException<BaseClass, String, BaseClass, ExceptionClass> creator, @Nullable BaseClass parent, @Nonnull String localName ) throws ExceptionClass
 	{
+		// TODO Should root entries be forced to be nameless or should this only apply for special cases?
+		// if ( parent == null && localName.length() != 0 )
+		//	throwException( "Root must remain nameless." );
 		// TODO Upper and lower case is permitted, however, we should implement a filter that prevents duplicate keys with varying case, e.g., WORD vs. Word - would be the same key.
 		if ( !localName.matches( "[a-zA-Z0-9*_]*" ) )
 			throwException( String.format( "The local name '%s' can only contain characters a-z, A-Z, 0-9, *, and _.", localName ) );
@@ -110,25 +115,25 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 	}
 
 	@Nonnull
-	private OptionalExt<BaseClass, ExceptionClass> createChild( String key )
+	private Voluntary<BaseClass, ExceptionClass> createChild( String key )
 	{
 		disposalCheck();
 		if ( hasFlag( Flag.READ_ONLY ) )
-			return OptionalExt.withException( getException( getCurrentPath() + " is read only." ) );
+			return Voluntary.withException( getException( getCurrentPath() + " is read only." ) );
 		try
 		{
 			BaseClass child = creator.apply( ( BaseClass ) this, key );
 			children.add( child );
 			fireListener( LISTENER_CHILD_ADD, child );
-			return OptionalExt.ofNeverNull( child );
+			return Voluntary.of( child );
 		}
 		catch ( Exception e )
 		{
-			return OptionalExt.withException( ( ExceptionClass ) e );
+			return Voluntary.withException( ( ExceptionClass ) e );
 		}
 	}
 
-	protected void destroy() throws ExceptionClass, ExceptionClass
+	protected void destroy() throws ExceptionClass
 	{
 		disposalCheck();
 		notFlag( Flag.READ_ONLY );
@@ -143,15 +148,14 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 	{
 		if ( hasFlag( Flag.READ_ONLY ) )
 			throwException( getCurrentPath() + " is read only." );
-		getChild( key ).ifPresentThrowException( ContainerBase::destroy );
+		getChildVoluntary( key ).ifPresent( ContainerBase::destroy );
 	}
 
-	public OptionalExt<BaseClass, ExceptionClass> destroyChildAndCreate( String key )
+	public Voluntary<BaseClass, ExceptionClass> destroyChildAndCreate( String key )
 	{
 		if ( hasFlag( Flag.READ_ONLY ) )
-			return OptionalExt.withException( getException( getCurrentPath() + " is read only." ) );
-		getChild( key ).ifPresentWithException( ContainerBase::destroy );
-		return createChild( key );
+			return Voluntary.withException( getException( getCurrentPath() + " is read only." ) );
+		return getChildVoluntary( key ).ifPresentCatchException( ContainerBase::destroy ).hasNotErroredFlat( value -> createChild( key ) );
 	}
 
 	protected final void disposalCheck() throws ContainerException
@@ -160,49 +164,39 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 			throw new ContainerException( getCurrentPath() + " has been disposed." );
 	}
 
-	public final BaseClass empty( @Nonnull String key ) throws ExceptionClass
-	{
-		return creator.apply( null, key );
-	}
-
-	public final BaseClass empty() throws ExceptionClass
-	{
-		return empty( "" );
-	}
-
-	protected OptionalExt<BaseClass, ExceptionClass> findChild( @Nonnull String key, boolean create )
+	protected Voluntary<BaseClass, ExceptionClass> findChild( @Nonnull String key, boolean create )
 	{
 		disposalCheck();
 		Objs.notNull( key );
 
 		if ( create && hasFlag( Flag.READ_ONLY ) )
-			return OptionalExt.withException( getException( getCurrentPath() + " is read only." ) );
+			return Voluntary.withException( getException( getCurrentPath() + " is read only." ) );
 
 		Namespace ns = Namespace.parseString( key, getOptions().getSeparator() );
 		if ( ns.getNodeCount() == 0 )
-			return OptionalExt.ofNeverNull( ( BaseClass ) this );
+			return Voluntary.of( ( BaseClass ) this );
 
 		String first = ns.getFirst();
-		OptionalExt<BaseClass, ExceptionClass> found = null;
+		Voluntary<BaseClass, ExceptionClass> found = null;
 
 		for ( BaseClass child : children )
 			if ( child.getName() == null )
 				children.remove( child );
 			else if ( first.equalsIgnoreCase( child.getName() ) )
 			{
-				found = OptionalExt.ofNeverNull( child );
+				found = Voluntary.of( child );
 				break;
 			}
 
 		if ( found == null && !create )
-			return OptionalExt.empty();
+			return Voluntary.empty();
 		if ( found == null )
 			found = createChild( first );
 
 		if ( ns.getNodeCount() <= 1 )
 			return found;
 		else
-			return found.flatMap( ( child, exception ) -> child.findChild( ns.subString( 1 ), create ) );
+			return found.flatMap( child -> child.findChild( ns.subString( 1 ), create ) );
 	}
 
 	final BaseClass findFlag( Flag flag )
@@ -230,12 +224,17 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 			}
 	}
 
-	public final OptionalExt<BaseClass, ExceptionClass> getChild( @Nonnull String key )
+	public final Voluntary<BaseClass, ExceptionClass> getChildVoluntary( @Nonnull String key )
 	{
 		return findChild( key, false );
 	}
 
-	public final OptionalExt<BaseClass, ExceptionClass> getChild( @Nonnull TypeBase type )
+	public final BaseClass getChild( @Nonnull String key ) throws NoSuchElementException
+	{
+		return findChild( key, false ).orElseThrow( NoSuchElementException::new );
+	}
+
+	public final BaseClass getChild( @Nonnull TypeBase type ) throws NoSuchElementException
 	{
 		return getChild( type.getPath() );
 	}
@@ -391,7 +390,7 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 
 		for ( BaseClass oldChild : child.children )
 		{
-			BaseClass newChild = getChild( oldChild.getName() ).orElse( null );
+			BaseClass newChild = getChildVoluntary( oldChild.getName() ).orElse( null );
 			if ( newChild == null )
 				setChild( oldChild );
 			else
@@ -433,7 +432,7 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 				if ( i == ns.getNodeCount() - 1 ) // We're on the last node, so set this to our new localName.
 					this.localName = node;
 				else
-					newParent = newParent == null ? empty( node ) : newParent.getChildOrCreate( node ); // Shift us one child down
+					newParent = newParent == null ? creator.apply( null, node ) : newParent.getChildOrCreate( node ); // Shift us one child down
 			}
 		}
 
@@ -460,9 +459,9 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 	 *
 	 * @return found instance or null if does not exist.
 	 */
-	public OptionalExt<BaseClass, ExceptionClass> pollChild( String key )
+	public Voluntary<BaseClass, ExceptionClass> pollChild( String key )
 	{
-		return getChild( key ).map( ContainerBase::removeFromParent );
+		return getChildVoluntary( key ).ifPresentCatchException( ContainerBase::removeFromParent );
 	}
 
 	public final void removeAllListeners()
@@ -562,7 +561,7 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 				current.destroy();
 		}
 
-		createChild( targetKey ).ifPresentThrowException( element -> element.copyChild( child ) );
+		createChild( targetKey ).ifPresent( element -> element.copyChild( child ) );
 		child.destroy();
 	}
 
@@ -573,7 +572,7 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 
 	public int getChildCountOf( String key )
 	{
-		return getChild( key ).map( ContainerBase::getChildCount ).orElse( -1 );
+		return getChildVoluntary( key ).map( ContainerBase::getChildCount ).orElse( -1 );
 	}
 
 	protected abstract ExceptionClass getException( String message );

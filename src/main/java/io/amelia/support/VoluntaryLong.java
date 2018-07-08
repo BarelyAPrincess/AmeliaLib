@@ -31,44 +31,44 @@ import java.util.function.Supplier;
  * <p>This is a <a href="../lang/doc-files/ValueBased.html">value-based</a>
  * class; use of identity-sensitive operations (including reference equality
  * ({@code ==}), identity hash code, or synchronization) on instances of
- * {@code OptionalLongExt} may have unpredictable results and should be avoided.
+ * {@code VoluntaryLong} may have unpredictable results and should be avoided.
  */
-public final class OptionalLongExt
+public final class VoluntaryLong
 {
 	/**
 	 * Common instance for {@code empty()}.
 	 */
-	private static final OptionalLongExt EMPTY = new OptionalLongExt();
+	private static final VoluntaryLong EMPTY = new VoluntaryLong();
 
 	/**
-	 * Returns an empty {@code OptionalLongExt} instance.  No value is present for this
-	 * OptionalLongExt.
+	 * Returns an empty {@code VoluntaryLong} instance.  No value is present for this
+	 * VoluntaryLong.
 	 *
-	 * @return an empty {@code OptionalLongExt}.
+	 * @return an empty {@code VoluntaryLong}.
 	 *
 	 * @apiNote Though it may be tempting to do so, avoid testing if an object
 	 * is empty by comparing with {@code ==} against instances returned by
 	 * {@code Option.empty()}. There is no guarantee that it is a singleton.
 	 * Instead, use {@link #isPresent()}.
 	 */
-	public static OptionalLongExt empty()
+	public static VoluntaryLong empty()
 	{
 		return EMPTY;
 	}
 
 	/**
-	 * Return an {@code OptionalLongExt} with the specified value present.
+	 * Return an {@code VoluntaryLong} with the specified value present.
 	 *
 	 * @param value the value to be present
 	 *
-	 * @return an {@code OptionalLongExt} with the value present
+	 * @return an {@code VoluntaryLong} with the value present
 	 */
-	public static OptionalLongExt of( long value )
+	public static VoluntaryLong of( long value )
 	{
-		return new OptionalLongExt( value );
+		return new VoluntaryLong( value );
 	}
 
-	public static OptionalLongExt of( OptionalLong value )
+	public static VoluntaryLong of( OptionalLong value )
 	{
 		return value.isPresent() ? of( value.getAsLong() ) : empty();
 	}
@@ -82,10 +82,10 @@ public final class OptionalLongExt
 	/**
 	 * Construct an empty instance.
 	 *
-	 * @implNote generally only one empty instance, {@link OptionalLongExt#EMPTY},
+	 * @implNote generally only one empty instance, {@link VoluntaryLong#EMPTY},
 	 * should exist per VM.
 	 */
-	private OptionalLongExt()
+	private VoluntaryLong()
 	{
 		this.isPresent = false;
 		this.value = 0;
@@ -96,17 +96,17 @@ public final class OptionalLongExt
 	 *
 	 * @param value the long value to be present
 	 */
-	private OptionalLongExt( long value )
+	private VoluntaryLong( long value )
 	{
 		this.isPresent = true;
 		this.value = value;
 	}
 
 	/**
-	 * Indicates whether some other object is "equal to" this OptionalLongExt. The
+	 * Indicates whether some other object is "equal to" this VoluntaryLong. The
 	 * other object is considered equal if:
 	 * <ul>
-	 * <li>it is also an {@code OptionalLongExt} and;
+	 * <li>it is also an {@code VoluntaryLong} and;
 	 * <li>both instances have no value present or;
 	 * <li>the present values are "equal to" each other via {@code ==}.
 	 * </ul>
@@ -124,16 +124,16 @@ public final class OptionalLongExt
 			return true;
 		}
 
-		if ( !( obj instanceof OptionalLongExt ) )
+		if ( !( obj instanceof VoluntaryLong ) )
 		{
 			return false;
 		}
 
-		OptionalLongExt other = ( OptionalLongExt ) obj;
+		VoluntaryLong other = ( VoluntaryLong ) obj;
 		return ( isPresent && other.isPresent ) ? value == other.value : isPresent == other.isPresent;
 	}
 
-	public OptionalLongExt filter( Predicate<Long> predicate )
+	public VoluntaryLong filter( Predicate<Long> predicate )
 	{
 		Objs.notNull( predicate );
 		if ( !isPresent() )
@@ -142,20 +142,20 @@ public final class OptionalLongExt
 			return predicate.test( value ) ? this : empty();
 	}
 
-	public OptionalLongExt flatMap( Function<Long, OptionalLong> function )
+	public VoluntaryLong flatMap( Function<Long, OptionalLong> function )
 	{
 		Objs.notNull( function );
 		return !this.isPresent() ? empty() : of( Objs.notNull( function.apply( value ) ) );
 	}
 
 	/**
-	 * If a value is present in this {@code OptionalLongExt}, returns the value,
+	 * If a value is present in this {@code VoluntaryLong}, returns the value,
 	 * otherwise throws {@code NoSuchElementException}.
 	 *
-	 * @return the value held by this {@code OptionalLongExt}
+	 * @return the value held by this {@code VoluntaryLong}
 	 *
 	 * @throws NoSuchElementException if there is no value present
-	 * @see OptionalLongExt#isPresent()
+	 * @see VoluntaryLong#isPresent()
 	 */
 	public long getAsLong()
 	{
@@ -203,7 +203,7 @@ public final class OptionalLongExt
 		return isPresent;
 	}
 
-	public OptionalLongExt map( Function<Long, Long> function )
+	public VoluntaryLong map( Function<Long, Long> function )
 	{
 		Objs.notNull( function );
 		return !this.isPresent() ? empty() : of( function.apply( value ) );
@@ -288,6 +288,6 @@ public final class OptionalLongExt
 	@Override
 	public String toString()
 	{
-		return isPresent ? String.format( "OptionalLongExt[%s]", value ) : "OptionalLongExt.empty";
+		return isPresent ? String.format( "VoluntaryLong[%s]", value ) : "VoluntaryLong.empty";
 	}
 }

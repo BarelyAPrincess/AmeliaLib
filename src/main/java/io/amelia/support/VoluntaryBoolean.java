@@ -17,24 +17,25 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
-public final class OptionalBoolean
+public final class VoluntaryBoolean
 {
 	/**
 	 * Common instance for {@code empty()}.
 	 */
-	private static final OptionalBoolean EMPTY = new OptionalBoolean();
+	private static final VoluntaryBoolean EMPTY = new VoluntaryBoolean();
 
 	/**
 	 * Returns an empty {@code OptionalInt} instance.  No value is present for this
 	 * OptionalInt.
 	 *
 	 * @return an empty {@code OptionalInt}
+	 *
 	 * @apiNote Though it may be tempting to do so, avoid testing if an object
 	 * is empty by comparing with {@code ==} against instances returned by
 	 * {@code Option.empty()}. There is no guarantee that it is a singleton.
 	 * Instead, use {@link #isPresent()}.
 	 */
-	public static OptionalBoolean empty()
+	public static VoluntaryBoolean empty()
 	{
 		return EMPTY;
 	}
@@ -43,11 +44,12 @@ public final class OptionalBoolean
 	 * Return an {@code OptionalInt} with the specified value present.
 	 *
 	 * @param value the value to be present
+	 *
 	 * @return an {@code OptionalInt} with the value present
 	 */
-	public static OptionalBoolean of( Boolean value )
+	public static VoluntaryBoolean of( Boolean value )
 	{
-		return new OptionalBoolean( value );
+		return new VoluntaryBoolean( value );
 	}
 
 	/**
@@ -55,10 +57,11 @@ public final class OptionalBoolean
 	 * otherwise returns an empty {@code Optional}.
 	 *
 	 * @param value the possibly-null value to describe
+	 *
 	 * @return an {@code Optional} with a present value if the specified value
 	 * is non-null, otherwise an empty {@code Optional}
 	 */
-	public static OptionalBoolean ofNullable( Boolean value )
+	public static VoluntaryBoolean ofNullable( Boolean value )
 	{
 		return value == null ? empty() : of( value );
 	}
@@ -69,9 +72,10 @@ public final class OptionalBoolean
 	 * Constructs an instance with the value present.
 	 *
 	 * @param value the non-null value to be present
+	 *
 	 * @throws NullPointerException if value is null
 	 */
-	private OptionalBoolean( Boolean value )
+	private VoluntaryBoolean( Boolean value )
 	{
 		this.value = Objects.requireNonNull( value );
 	}
@@ -79,10 +83,10 @@ public final class OptionalBoolean
 	/**
 	 * Construct an empty instance.
 	 *
-	 * @implNote Generally only one empty instance, {@link OptionalBoolean#EMPTY},
+	 * @implNote Generally only one empty instance, {@link VoluntaryBoolean#EMPTY},
 	 * should exist per VM.
 	 */
-	private OptionalBoolean()
+	private VoluntaryBoolean()
 	{
 		this.value = null;
 	}
@@ -93,12 +97,14 @@ public final class OptionalBoolean
 	 * empty {@code Optional}.
 	 *
 	 * @param predicate a predicate to apply to the value, if present
+	 *
 	 * @return an {@code Optional} describing the value of this {@code Optional}
 	 * if a value is present and the value matches the given predicate,
 	 * otherwise an empty {@code Optional}
+	 *
 	 * @throws NullPointerException if the predicate is null
 	 */
-	public OptionalBoolean filter( Predicate<Boolean> predicate )
+	public VoluntaryBoolean filter( Predicate<Boolean> predicate )
 	{
 		Objects.requireNonNull( predicate );
 		if ( !isPresent() )
@@ -118,9 +124,11 @@ public final class OptionalBoolean
 	 * @param <U>    The type parameter to the {@code Optional} returned by
 	 * @param mapper a mapping function to apply to the value, if present
 	 *               the mapping function
+	 *
 	 * @return the result of applying an {@code Optional}-bearing mapping
 	 * function to the value of this {@code Optional}, if a value is present,
 	 * otherwise an empty {@code Optional}
+	 *
 	 * @throws NullPointerException if the mapping function is null or returns
 	 *                              a null result
 	 */
@@ -138,8 +146,9 @@ public final class OptionalBoolean
 	 * otherwise throws {@code NoSuchElementException}.
 	 *
 	 * @return the value held by this {@code OptionalInt}
+	 *
 	 * @throws NoSuchElementException if there is no value present
-	 * @see OptionalBoolean#isPresent()
+	 * @see VoluntaryBoolean#isPresent()
 	 */
 	public Boolean get()
 	{
@@ -170,6 +179,7 @@ public final class OptionalBoolean
 	 * </ul>
 	 *
 	 * @param obj an object to be tested for equality
+	 *
 	 * @return {code true} if the other object is "equal to" this object
 	 * otherwise {@code false}
 	 */
@@ -179,10 +189,10 @@ public final class OptionalBoolean
 		if ( this == obj )
 			return true;
 
-		if ( !( obj instanceof OptionalBoolean ) )
+		if ( !( obj instanceof VoluntaryBoolean ) )
 			return false;
 
-		OptionalBoolean other = ( OptionalBoolean ) obj;
+		VoluntaryBoolean other = ( VoluntaryBoolean ) obj;
 		return ( isPresent() && other.isPresent() ) ? value == other.value : isPresent() == other.isPresent();
 	}
 
@@ -194,6 +204,7 @@ public final class OptionalBoolean
 	 * between implementations and versions.
 	 *
 	 * @return the string representation of this instance
+	 *
 	 * @implSpec If a value is present the result must include its string
 	 * representation in the result. Empty and present instances must be
 	 * unambiguously differentiable.
@@ -201,7 +212,7 @@ public final class OptionalBoolean
 	@Override
 	public String toString()
 	{
-		return isPresent() ? String.format( "OptionalBoolean[%s]", value ) : "OptionalBoolean.empty";
+		return isPresent() ? String.format( "VoluntaryBoolean[%s]", value ) : "VoluntaryBoolean.empty";
 	}
 
 	/**
@@ -209,6 +220,7 @@ public final class OptionalBoolean
 	 * otherwise do nothing.
 	 *
 	 * @param consumer block to be executed if a value is present
+	 *
 	 * @throws NullPointerException if value is present and {@code consumer} is
 	 *                              null
 	 */
@@ -235,9 +247,11 @@ public final class OptionalBoolean
 	 *
 	 * @param <U>    The type of the result of the mapping function
 	 * @param mapper a mapping function to apply to the value, if present
+	 *
 	 * @return an {@code Optional} describing the result of applying a mapping
 	 * function to the value of this {@code Optional}, if a value is present,
 	 * otherwise an empty {@code Optional}
+	 *
 	 * @throws NullPointerException if the mapping function is null
 	 * @apiNote This method supports post-processing on optional values, without
 	 * the need to explicitly check for a return status.  For example, the
@@ -271,6 +285,7 @@ public final class OptionalBoolean
 	 * Return the value if present, otherwise return {@code other}.
 	 *
 	 * @param other the value to be returned if there is no value present
+	 *
 	 * @return the value, if present, otherwise {@code other}
 	 */
 	public Boolean orElse( Boolean other )
@@ -284,7 +299,9 @@ public final class OptionalBoolean
 	 *
 	 * @param other a {@code IntSupplier} whose result is returned if no value
 	 *              is present
+	 *
 	 * @return the value if present otherwise the result of {@code other.getAsInt()}
+	 *
 	 * @throws NullPointerException if value is not present and {@code other} is
 	 *                              null
 	 */
@@ -300,7 +317,9 @@ public final class OptionalBoolean
 	 * @param <X>               Type of the exception to be thrown
 	 * @param exceptionSupplier The supplier which will return the exception to
 	 *                          be thrown
+	 *
 	 * @return the present value
+	 *
 	 * @throws X                    if there is no value present
 	 * @throws NullPointerException if no value is present and
 	 *                              {@code exceptionSupplier} is null

@@ -11,11 +11,14 @@ package io.amelia.foundation;
 
 import java.util.Map;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import io.amelia.data.ContainerWithValue;
 import io.amelia.data.ValueTypesTrait;
 import io.amelia.data.parcel.ParcelLoader;
 import io.amelia.lang.ConfigException;
-import io.amelia.support.OptionalExt;
+import io.amelia.support.Voluntary;
 
 public final class ConfigMap extends ContainerWithValue<ConfigMap, Object, ConfigException.Error> implements ValueTypesTrait<ConfigException.Error>
 {
@@ -26,19 +29,32 @@ public final class ConfigMap extends ContainerWithValue<ConfigMap, Object, Confi
 		super( ConfigMap::new, "" );
 	}
 
-	public ConfigMap( String key ) throws ConfigException.Error
+	public ConfigMap( @Nonnull String key ) throws ConfigException.Error
 	{
 		super( ConfigMap::new, key );
 	}
 
-	public ConfigMap( ConfigMap parent, String key ) throws ConfigException.Error
+	public ConfigMap( @Nullable ConfigMap parent, @Nonnull String key ) throws ConfigException.Error
 	{
 		super( ConfigMap::new, parent, key );
 	}
 
-	public ConfigMap( ConfigMap parent, String key, Object value ) throws ConfigException.Error
+	public ConfigMap( @Nullable ConfigMap parent, @Nonnull String key, @Nullable Object value ) throws ConfigException.Error
 	{
 		super( ConfigMap::new, parent, key, value );
+	}
+
+	public static ConfigMap empty()
+	{
+		try
+		{
+			return new ConfigMap( null, "" );
+		}
+		catch ( ConfigException.Error error )
+		{
+			// This should never happen!
+			return null;
+		}
 	}
 
 	@Override
@@ -64,14 +80,14 @@ public final class ConfigMap extends ContainerWithValue<ConfigMap, Object, Confi
 	}
 
 	@Override
-	public OptionalExt<Object, ConfigException.Error> getValue( String key )
+	public Voluntary<Object, ConfigException.Error> getValue( String key )
 	{
 		return super.getValue( key );
 	}
 
-	public void setEnviromentVariables( Map<String, Object> map )
+	public void setEnvironmentVariables( Map<String, Object> map )
 	{
-
+		// TODO
 	}
 
 	@Override

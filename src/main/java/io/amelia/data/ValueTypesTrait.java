@@ -22,9 +22,9 @@ import javax.annotation.Nonnull;
 import io.amelia.lang.ApplicationException;
 import io.amelia.support.IO;
 import io.amelia.support.Objs;
-import io.amelia.support.OptionalBoolean;
-import io.amelia.support.OptionalExt;
-import io.amelia.support.OptionalLongExt;
+import io.amelia.support.VoluntaryBoolean;
+import io.amelia.support.Voluntary;
+import io.amelia.support.VoluntaryLong;
 import io.amelia.support.Strs;
 
 /**
@@ -49,17 +49,17 @@ public interface ValueTypesTrait<ExceptionClass extends ApplicationException.Err
 		return getBoolean( type.getPath() ).orElse( type.getDefault() );
 	}
 
-	default OptionalBoolean getBoolean( String key )
+	default VoluntaryBoolean getBoolean( String key )
 	{
-		return OptionalBoolean.ofNullable( getValue( key ).map( Objs::castToBoolean ).orElse( null ) );
+		return VoluntaryBoolean.ofNullable( getValue( key ).map( Objs::castToBoolean ).orElse( null ) );
 	}
 
-	default OptionalExt<Color, ExceptionClass> getColor()
+	default Voluntary<Color, ExceptionClass> getColor()
 	{
 		return getColor( "" );
 	}
 
-	default OptionalExt<Color, ExceptionClass> getColor( String key )
+	default Voluntary<Color, ExceptionClass> getColor( String key )
 	{
 		return getValue( key ).filter( v -> v instanceof Color ).map( v -> ( Color ) v );
 	}
@@ -84,12 +84,12 @@ public interface ValueTypesTrait<ExceptionClass extends ApplicationException.Err
 		return getDouble( type.getPath() ).orElse( type.getDefault() );
 	}
 
-	default <T extends Enum<T>> OptionalExt<T, ExceptionClass> getEnum( Class<T> enumClass )
+	default <T extends Enum<T>> Voluntary<T, ExceptionClass> getEnum( Class<T> enumClass )
 	{
 		return getEnum( "", enumClass );
 	}
 
-	default <T extends Enum<T>> OptionalExt<T, ExceptionClass> getEnum( String key, Class<T> enumClass )
+	default <T extends Enum<T>> Voluntary<T, ExceptionClass> getEnum( String key, Class<T> enumClass )
 	{
 		return getString( key ).map( e -> Enum.valueOf( enumClass, e ) );
 	}
@@ -114,7 +114,7 @@ public interface ValueTypesTrait<ExceptionClass extends ApplicationException.Err
 		return getInteger( type.getPath() ).orElse( type.getDefault() );
 	}
 
-	default <T> OptionalExt<List<T>, ExceptionClass> getList()
+	default <T> Voluntary<List<T>, ExceptionClass> getList()
 	{
 		return getList( "" );
 	}
@@ -129,29 +129,29 @@ public interface ValueTypesTrait<ExceptionClass extends ApplicationException.Err
 		getValue( key ).filter( v -> v instanceof List ).ifPresent( v -> list.addAll( ( List<T> ) v ) );
 	}
 
-	default <T> OptionalExt<List<T>, ExceptionClass> getList( @Nonnull String key )
+	default <T> Voluntary<List<T>, ExceptionClass> getList( @Nonnull String key )
 	{
 		return getValue( key ).filter( v -> v instanceof List ).map( v -> ( List<T> ) v );
 	}
 
-	default <T> OptionalExt getList( @Nonnull Class<T> expectedObjectClass )
+	default <T> Voluntary getList( @Nonnull Class<T> expectedObjectClass )
 	{
 		return getList( "", expectedObjectClass );
 	}
 
-	default <T> OptionalExt<List<T>, ExceptionClass> getList( @Nonnull String key, @Nonnull Class<T> expectedObjectClass )
+	default <T> Voluntary<List<T>, ExceptionClass> getList( @Nonnull String key, @Nonnull Class<T> expectedObjectClass )
 	{
 		return getValue( key ).filter( v -> v instanceof List ).map( v -> Objs.castList( ( List<?> ) v, expectedObjectClass ) );
 	}
 
-	default OptionalLongExt getLong()
+	default VoluntaryLong getLong()
 	{
 		return getLong( "" );
 	}
 
-	default OptionalLongExt getLong( @Nonnull String key )
+	default VoluntaryLong getLong( @Nonnull String key )
 	{
-		return Objs.ifPresent( getValue( key ).map( Objs::castToLong ), OptionalLongExt::of, OptionalLongExt::empty );
+		return Objs.ifPresent( getValue( key ).map( Objs::castToLong ), VoluntaryLong::of, VoluntaryLong::empty );
 	}
 
 	default Long getLong( TypeBase.TypeLong type )
@@ -159,12 +159,12 @@ public interface ValueTypesTrait<ExceptionClass extends ApplicationException.Err
 		return getLong( type.getPath() ).orElse( type.getDefault() );
 	}
 
-	default OptionalExt<String, ExceptionClass> getString()
+	default Voluntary<String, ExceptionClass> getString()
 	{
 		return getString( "" );
 	}
 
-	default OptionalExt<String, ExceptionClass> getString( @Nonnull String key )
+	default Voluntary<String, ExceptionClass> getString( @Nonnull String key )
 	{
 		return getValue( key ).map( Objs::castToString );
 	}
@@ -174,38 +174,38 @@ public interface ValueTypesTrait<ExceptionClass extends ApplicationException.Err
 		return getString( type.getPath() ).orElse( type.getDefault() );
 	}
 
-	default <T> OptionalExt<Class<T>, ExceptionClass> getStringAsClass()
+	default <T> Voluntary<Class<T>, ExceptionClass> getStringAsClass()
 	{
 		return getStringAsClass( "" );
 	}
 
-	default <T> OptionalExt<Class<T>, ExceptionClass> getStringAsClass( @Nonnull String key )
+	default <T> Voluntary<Class<T>, ExceptionClass> getStringAsClass( @Nonnull String key )
 	{
 		return getStringAsClass( key, null );
 	}
 
 	@SuppressWarnings( "unchecked" )
-	default <T> OptionalExt<Class<T>, ExceptionClass> getStringAsClass( @Nonnull String key, @Nonnull Class<T> expectedClass )
+	default <T> Voluntary<Class<T>, ExceptionClass> getStringAsClass( @Nonnull String key, @Nonnull Class<T> expectedClass )
 	{
-		return getString( key ).mapCompat( str -> ( Class<T> ) Objs.getClassByName( str ) ).filter( expectedClass::isAssignableFrom );
+		return getString( key ).map( str -> ( Class<T> ) Objs.getClassByName( str ) ).filter( expectedClass::isAssignableFrom );
 	}
 
-	default OptionalExt<File, ExceptionClass> getStringAsFile( File rel )
+	default Voluntary<File, ExceptionClass> getStringAsFile( File rel )
 	{
 		return getStringAsFile( "", rel );
 	}
 
-	default OptionalExt<File, ExceptionClass> getStringAsFile( String key, File rel )
+	default Voluntary<File, ExceptionClass> getStringAsFile( String key, File rel )
 	{
-		return getString( key ).mapCompat( s -> IO.buildFile( rel, s ) );
+		return getString( key ).map( s -> IO.buildFile( rel, s ) );
 	}
 
-	default OptionalExt<File, ExceptionClass> getStringAsFile( String key )
+	default Voluntary<File, ExceptionClass> getStringAsFile( String key )
 	{
-		return getString( key ).mapCompat( IO::buildFile );
+		return getString( key ).map( IO::buildFile );
 	}
 
-	default OptionalExt<File, ExceptionClass> getStringAsFile()
+	default Voluntary<File, ExceptionClass> getStringAsFile()
 	{
 		return getStringAsFile( "" );
 	}
@@ -215,22 +215,22 @@ public interface ValueTypesTrait<ExceptionClass extends ApplicationException.Err
 		return getStringAsFile( type.getPath() ).orElse( type.getDefault() );
 	}
 
-	default OptionalExt<Path, ExceptionClass> getStringAsPath( Path rel )
+	default Voluntary<Path, ExceptionClass> getStringAsPath( Path rel )
 	{
 		return getStringAsPath( "", rel );
 	}
 
-	default OptionalExt<Path, ExceptionClass> getStringAsPath( String key, Path rel )
+	default Voluntary<Path, ExceptionClass> getStringAsPath( String key, Path rel )
 	{
-		return getString( key ).mapCompat( s -> IO.buildPath( rel, s ) );
+		return getString( key ).map( s -> IO.buildPath( rel, s ) );
 	}
 
-	default OptionalExt<Path, ExceptionClass> getStringAsPath( String key )
+	default Voluntary<Path, ExceptionClass> getStringAsPath( String key )
 	{
-		return getString( key ).mapCompat( IO::buildPath );
+		return getString( key ).map( IO::buildPath );
 	}
 
-	default OptionalExt<Path, ExceptionClass> getStringAsPath()
+	default Voluntary<Path, ExceptionClass> getStringAsPath()
 	{
 		return getStringAsPath( "" );
 	}
@@ -240,25 +240,25 @@ public interface ValueTypesTrait<ExceptionClass extends ApplicationException.Err
 		return getStringAsPath( type.getPath() ).orElse( type.getDefault() );
 	}
 
-	default OptionalExt<List<String>, ExceptionClass> getStringList()
+	default Voluntary<List<String>, ExceptionClass> getStringList()
 	{
 		return getStringList( "", "|" );
 	}
 
-	default OptionalExt<List<String>, ExceptionClass> getStringList( String key )
+	default Voluntary<List<String>, ExceptionClass> getStringList( String key )
 	{
 		return getStringList( key, "|" );
 	}
 
 	@SuppressWarnings( "unchecked" )
-	default OptionalExt<List<String>, ExceptionClass> getStringList( String key, String delimiter )
+	default Voluntary<List<String>, ExceptionClass> getStringList( String key, String delimiter )
 	{
 		Object value = getValue( key ).orElse( null );
 		if ( value == null )
-			return OptionalExt.empty();
+			return Voluntary.empty();
 		if ( value instanceof List )
-			return OptionalExt.ofNeverNull( ( List<String> ) value );
-		return OptionalExt.ofNeverNull( value ).map( Objs::castToString ).map( s -> Strs.split( s, delimiter ).collect( Collectors.toList() ) );
+			return Voluntary.of( ( List<String> ) value );
+		return ( Voluntary<List<String>, ExceptionClass> ) Voluntary.of( value ).map( Objs::castToString ).map( s -> Strs.split( s, delimiter ).collect( Collectors.toList() ) );
 	}
 
 	default List<String> getStringList( TypeBase.TypeStringList type )
@@ -266,9 +266,9 @@ public interface ValueTypesTrait<ExceptionClass extends ApplicationException.Err
 		return getStringList( type.getPath() ).orElse( type.getDefault() );
 	}
 
-	OptionalExt<?, ExceptionClass> getValue( String key );
+	Voluntary<?, ExceptionClass> getValue( String key );
 
-	OptionalExt<?, ExceptionClass> getValue();
+	Voluntary<?, ExceptionClass> getValue();
 
 	default boolean isColor()
 	{
@@ -337,7 +337,7 @@ public interface ValueTypesTrait<ExceptionClass extends ApplicationException.Err
 
 	default boolean isType( @Nonnull String key, @Nonnull Class<?> type )
 	{
-		OptionalExt<?, ExceptionClass> result = getValue( key );
+		Voluntary<?, ExceptionClass> result = getValue( key );
 		return result.isPresent() && type.isAssignableFrom( result.get().getClass() );
 	}
 }
