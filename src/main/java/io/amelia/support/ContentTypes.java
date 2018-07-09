@@ -20,20 +20,21 @@ import javax.annotation.Nonnull;
 import io.amelia.data.ContainerWithValue;
 import io.amelia.foundation.ConfigMap;
 import io.amelia.foundation.ConfigRegistry;
+import io.amelia.lang.ConfigException;
 
 /**
  * Provides an easy translator for content-types specified from configuration.
  */
 public class ContentTypes
 {
-	public static void clearType( String ext )
+	public static void clearType( String ext ) throws ConfigException.Error
 	{
 		getConfigMap().destroyChild( ext );
 	}
 
 	public static Stream<String> getAllTypes()
 	{
-		return getConfigMap().getChildren().map( ContainerWithValue::getValue ).filter( Optional::isPresent ).map( Optional::get ).map( Objs::castToString );
+		return getConfigMap().getChildren().map( ContainerWithValue::getValue ).filter( Voluntary::isPresent ).map( Voluntary::get ).map( Objs::castToString );
 	}
 
 	private static ConfigMap getConfigMap()
@@ -71,7 +72,7 @@ public class ContentTypes
 		return getContentTypes( path ).anyMatch( contentType -> contentType.contains( test ) );
 	}
 
-	public static void setType( String ext, String type )
+	public static void setType( String ext, String type ) throws ConfigException.Error
 	{
 		ConfigMap map = getConfigMap().getChildOrCreate( ext );
 		if ( map.hasValue() )

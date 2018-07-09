@@ -22,25 +22,25 @@ public class ParcelableException
 	{
 		protected final ContainerBase node;
 
-		public <T extends ContainerBase> Error( T node )
+		public Error( ContainerBase node )
 		{
 			super();
 			this.node = node;
 		}
 
-		public <T extends ContainerBase> Error( T node, String message )
+		public Error( ContainerBase node, String message )
 		{
 			super( message );
 			this.node = node;
 		}
 
-		public <T extends ContainerBase> Error( T node, String message, Throwable cause )
+		public Error( ContainerBase node, String message, Throwable cause )
 		{
 			super( message, cause );
 			this.node = node;
 		}
 
-		public <T extends ContainerBase> Error( T node, Throwable cause )
+		public Error( ContainerBase node, Throwable cause )
 		{
 			super( cause );
 			this.node = node;

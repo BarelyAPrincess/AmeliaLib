@@ -134,7 +134,7 @@ public interface ValueTypesTrait<ExceptionClass extends ApplicationException.Err
 		return getValue( key ).filter( v -> v instanceof List ).map( v -> ( List<T> ) v );
 	}
 
-	default <T> Voluntary getList( @Nonnull Class<T> expectedObjectClass )
+	default <T> Voluntary<List<T>, ExceptionClass> getList( @Nonnull Class<T> expectedObjectClass )
 	{
 		return getList( "", expectedObjectClass );
 	}
@@ -258,7 +258,7 @@ public interface ValueTypesTrait<ExceptionClass extends ApplicationException.Err
 			return Voluntary.empty();
 		if ( value instanceof List )
 			return Voluntary.of( ( List<String> ) value );
-		return ( Voluntary<List<String>, ExceptionClass> ) Voluntary.of( value ).map( Objs::castToString ).map( s -> Strs.split( s, delimiter ).collect( Collectors.toList() ) );
+		return Voluntary.of( value ).map( Objs::castToString ).map( s -> Strs.split( s, delimiter ).collect( Collectors.toList() ) ).removeException();
 	}
 
 	default List<String> getStringList( TypeBase.TypeStringList type )

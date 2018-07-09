@@ -24,10 +24,11 @@ import io.amelia.support.IO;
 import io.amelia.support.Objs;
 import io.amelia.support.Streams;
 import io.amelia.support.Strs;
+import io.amelia.support.Voluntary;
 
 public class ConfigRegistry
 {
-	public static final ConfigMap config = new ConfigMap();
+	public static final ConfigMap config = ConfigMap.empty();
 	private static boolean isConfigLoaded;
 
 	/*
@@ -35,10 +36,17 @@ public class ConfigRegistry
 	 */
 	static
 	{
-		config.setValueIfAbsent( Config.WARN_ON_OVERLOAD );
-		config.setValueIfAbsent( Config.DEVELOPMENT_MODE );
-		config.setValueIfAbsent( Config.DEFAULT_BINARY_CHARSET );
-		config.setValueIfAbsent( Config.DEFAULT_TEXT_CHARSET );
+		try
+		{
+			config.setValueIfAbsent( Config.WARN_ON_OVERLOAD );
+			config.setValueIfAbsent( Config.DEVELOPMENT_MODE );
+			config.setValueIfAbsent( Config.DEFAULT_BINARY_CHARSET );
+			config.setValueIfAbsent( Config.DEFAULT_TEXT_CHARSET );
+		}
+		catch ( ConfigException.Error e )
+		{
+			// Ignore
+		}
 	}
 
 	public static void clearCache( @Nonnull Path path, @Nonnegative long keepHistory )
@@ -67,7 +75,7 @@ public class ConfigRegistry
 		clearCache( Kernel.getPath( Kernel.PATH_CACHE ), keepHistory );
 	}
 
-	public static Optional<ConfigMap> getChild( String key )
+	public static ConfigMap getChild( String key )
 	{
 		return config.getChild( key );
 	}
@@ -106,7 +114,7 @@ public class ConfigRegistry
 		// TODO Save
 	}
 
-	public static void setObject( String key, Object value )
+	public static void setObject( String key, Object value ) throws ConfigException.Error
 	{
 		if ( value instanceof ConfigMap )
 			config.getChildOrCreate( key ).setChild( ( ConfigMap ) value, false );

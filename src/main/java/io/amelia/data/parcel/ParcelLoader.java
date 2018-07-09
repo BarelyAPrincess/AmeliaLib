@@ -27,7 +27,6 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
@@ -36,11 +35,13 @@ import javax.annotation.Nonnull;
 import io.amelia.data.ContainerWithValue;
 import io.amelia.data.yaml.YamlConstructor;
 import io.amelia.data.yaml.YamlRepresenter;
+import io.amelia.lang.ApplicationException;
 import io.amelia.lang.ParcelableException;
 import io.amelia.support.Encrypt;
 import io.amelia.support.IO;
 import io.amelia.support.Maps;
 import io.amelia.support.Strs;
+import io.amelia.support.Voluntary;
 
 public class ParcelLoader
 {
@@ -72,7 +73,7 @@ public class ParcelLoader
 		throw new ParcelableException.Ignorable( null, "AUTO_DETECT couldn't determine the file type based on the file extension." );
 	}
 
-	public static Parcel decode( @Nonnull Path path, @Nonnull Type type ) throws IOException
+	public static Parcel decode( @Nonnull Path path, @Nonnull Type type ) throws IOException, ParcelableException.Error
 	{
 		if ( type == Type.AUTO_DETECT )
 			type = autoDetect( path.getFileName().toString() );
@@ -80,7 +81,7 @@ public class ParcelLoader
 		return decode( IO.readFileToString( path ), type );
 	}
 
-	public static Parcel decode( @Nonnull File file, Type type ) throws IOException
+	public static Parcel decode( @Nonnull File file, Type type ) throws IOException, ParcelableException.Error
 	{
 		if ( type == Type.AUTO_DETECT )
 			type = autoDetect( file.getName() );
@@ -88,12 +89,12 @@ public class ParcelLoader
 		return decode( IO.readFileToString( file ), type );
 	}
 
-	public static Parcel decode( @Nonnull InputStream inputStream, Type type ) throws IOException
+	public static Parcel decode( @Nonnull InputStream inputStream, Type type ) throws IOException, ParcelableException.Error
 	{
 		return decode( IO.readStreamToString( inputStream ), type );
 	}
 
-	public static Parcel decode( @Nonnull String encoded, Type type )
+	public static Parcel decode( @Nonnull String encoded, Type type ) throws ParcelableException.Error
 	{
 		if ( type == Type.AUTO_DETECT )
 			throw new ParcelableException.Ignorable( null, "AUTO_DETECT can only be used on files for now. Future use will be to inspect streams and strings content for the type." );
@@ -109,22 +110,22 @@ public class ParcelLoader
 		throw new ParcelableException.Ignorable( null, "Could not decode." );
 	}
 
-	public static Parcel decodeJson( String jsonEncoded )
+	public static Parcel decodeJson( String jsonEncoded ) throws ParcelableException.Error
 	{
 		return decodeMap( decodeJsonToMap( jsonEncoded ) );
 	}
 
-	public static Parcel decodeJson( Path path ) throws IOException
+	public static Parcel decodeJson( Path path ) throws IOException, ParcelableException.Error
 	{
 		return decodeJson( IO.readFileToString( path ) );
 	}
 
-	public static Parcel decodeJson( File file ) throws IOException
+	public static Parcel decodeJson( File file ) throws IOException, ParcelableException.Error
 	{
 		return decodeJson( IO.readFileToString( file ) );
 	}
 
-	public static Parcel decodeJson( InputStream inputStream ) throws IOException
+	public static Parcel decodeJson( InputStream inputStream ) throws IOException, ParcelableException.Error
 	{
 		return decodeJson( IO.readStreamToString( inputStream ) );
 	}
@@ -149,22 +150,22 @@ public class ParcelLoader
 		return Maps.builder().putAll( ( Map<?, ?> ) gson.fromJson( IO.readStreamToString( inputStream ), Map.class ) ).castTo( String.class, Object.class ).hashMap();
 	}
 
-	public static Parcel decodeList( String listEncoded )
+	public static Parcel decodeList( String listEncoded ) throws ParcelableException.Error
 	{
 		return decodeMap( decodeListToMap( listEncoded ) );
 	}
 
-	public static Parcel decodeList( Path path ) throws IOException
+	public static Parcel decodeList( Path path ) throws IOException, ParcelableException.Error
 	{
 		return decodeMap( decodeListToMap( path ) );
 	}
 
-	public static Parcel decodeList( File file ) throws FileNotFoundException
+	public static Parcel decodeList( File file ) throws FileNotFoundException, ParcelableException.Error
 	{
 		return decodeMap( decodeListToMap( file ) );
 	}
 
-	public static Parcel decodeList( InputStream inputStream )
+	public static Parcel decodeList( InputStream inputStream ) throws ParcelableException.Error
 	{
 		return decodeMap( decodeListToMap( inputStream ) );
 	}
@@ -199,15 +200,15 @@ public class ParcelLoader
 		return decodeListToMap( IO.readFileToLines( file, "#" ) );
 	}
 
-	public static Parcel decodeMap( Map<String, Object> mapEncoded )
+	public static Parcel decodeMap( Map<String, Object> mapEncoded ) throws ParcelableException.Error
 	{
-		Parcel dataMap = new Parcel();
+		Parcel dataMap = Parcel.empty();
 		decodeMap( mapEncoded, dataMap );
 		return dataMap;
 	}
 
 	@SuppressWarnings( "unchecked" )
-	public static <ValueType> void decodeMap( Map<String, ValueType> mapEncoded, ContainerWithValue<? extends ContainerWithValue, ValueType> root )
+	public static <ValueType, ExceptionClass extends ApplicationException.Error> void decodeMap( Map<String, ValueType> mapEncoded, ContainerWithValue<? extends ContainerWithValue, ValueType, ExceptionClass> root ) throws ExceptionClass
 	{
 		for ( Map.Entry<String, ValueType> entry : mapEncoded.entrySet() )
 		{
@@ -215,7 +216,7 @@ public class ParcelLoader
 				root.setValue( entry.getValue() );
 			else
 			{
-				ContainerWithValue<? extends ContainerWithValue, ValueType> child = root.getChildOrCreate( entry.getKey() );
+				ContainerWithValue<? extends ContainerWithValue, ValueType, ExceptionClass> child = root.getChildOrCreate( entry.getKey() );
 
 				if ( entry.getValue() instanceof Map )
 					decodeMap( ( Map<String, ValueType> ) entry.getValue(), child );
@@ -225,22 +226,22 @@ public class ParcelLoader
 		}
 	}
 
-	public static Parcel decodeProp( String propEncoded )
+	public static Parcel decodeProp( String propEncoded ) throws ParcelableException.Error
 	{
 		return decodeMap( decodePropToMap( propEncoded ) );
 	}
 
-	public static Parcel decodeProp( Path path ) throws IOException
+	public static Parcel decodeProp( Path path ) throws IOException, ParcelableException.Error
 	{
 		return decodeMap( decodePropToMap( path ) );
 	}
 
-	public static Parcel decodeProp( File file ) throws IOException
+	public static Parcel decodeProp( File file ) throws IOException, ParcelableException.Error
 	{
 		return decodeMap( decodePropToMap( file ) );
 	}
 
-	public static Parcel decodeProp( InputStream inputStream ) throws IOException
+	public static Parcel decodeProp( InputStream inputStream ) throws IOException, ParcelableException.Error
 	{
 		return decodeMap( decodePropToMap( inputStream ) );
 	}
@@ -322,22 +323,22 @@ public class ParcelLoader
 		throw new ParcelableException.Ignorable( null, "Could not decode." );
 	}
 
-	public static Parcel decodeYaml( Path path ) throws IOException
+	public static Parcel decodeYaml( Path path ) throws IOException, ParcelableException.Error
 	{
 		return decodeYaml( IO.readStreamToString( Files.newInputStream( path ) ) );
 	}
 
-	public static Parcel decodeYaml( File file ) throws IOException
+	public static Parcel decodeYaml( File file ) throws IOException, ParcelableException.Error
 	{
 		return decodeYaml( IO.readFileToString( file ) );
 	}
 
-	public static Parcel decodeYaml( InputStream inputStream ) throws IOException
+	public static Parcel decodeYaml( InputStream inputStream ) throws IOException, ParcelableException.Error
 	{
 		return decodeYaml( IO.readStreamToString( inputStream ) );
 	}
 
-	public static Parcel decodeYaml( String yamlEncoded )
+	public static Parcel decodeYaml( String yamlEncoded ) throws ParcelableException.Error
 	{
 		return decodeMap( decodeYamlToMap( yamlEncoded ) );
 	}
@@ -372,12 +373,12 @@ public class ParcelLoader
 		TODO Implement
 	} */
 
-	public static <ValueType> Map<String, Object> encodeMap( ContainerWithValue<? extends ContainerWithValue, ValueType> encoded )
+	public static <ValueType, ExceptionClass extends ApplicationException.Error> Map<String, Object> encodeMap( ContainerWithValue<? extends ContainerWithValue, ValueType, ExceptionClass> encoded )
 	{
 		Map<String, Object> map = new HashMap<>();
 
 		encoded.getChildren().forEach( child -> {
-			Optional<ValueType> value = child.getValue();
+			Voluntary<ValueType, ExceptionClass> value = child.getValue();
 
 			if ( child.hasChildren() )
 			{

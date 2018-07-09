@@ -121,7 +121,7 @@ public class ParcelCarrier
 	/**
 	 * The Parcel payload.
 	 */
-	private Parcel payloadParcel = new Parcel();
+	private Parcel payloadParcel = Parcel.empty();
 	/**
 	 * Explicitly specifies where to send reply parcels.
 	 * If null, then {@link ParcelSender#getReplyTo()} is used.

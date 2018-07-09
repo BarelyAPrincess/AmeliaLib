@@ -975,7 +975,7 @@ public class IO
 		String result = "";
 		char[] chars = encodeHex( elements );
 		for ( int i = 0; i < chars.length; i = i + 2 )
-			result += " " + chars[i] + chars[i + 1];
+			result += " 0x" + chars[i] + chars[i + 1];
 
 		if ( result.length() > 0 )
 			result = result.substring( 1 );

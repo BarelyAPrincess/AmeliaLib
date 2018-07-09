@@ -227,7 +227,7 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 			}
 			catch ( Exception e )
 			{
-				return ( Voluntary<ValueType, ExceptionClass> ) Voluntary.withException( e );
+				return Voluntary.withException( ( ExceptionClass ) e );
 			}
 		return Voluntary.ofNullable( newValue );
 	}
@@ -246,7 +246,7 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 			}
 			catch ( Exception e )
 			{
-				return ( Voluntary<ValueType, ExceptionClass> ) Voluntary.withException( e );
+				return Voluntary.withException( ( ExceptionClass ) e );
 			}
 		return getValue();
 	}

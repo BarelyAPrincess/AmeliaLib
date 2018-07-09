@@ -16,6 +16,7 @@ import java.util.Map;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import io.amelia.data.ContainerBase;
 import io.amelia.data.ContainerWithValue;
 import io.amelia.data.TypeBase;
 import io.amelia.data.ValueTypesTrait;
@@ -25,6 +26,19 @@ import io.amelia.support.Reflection;
 
 public class Parcel extends ContainerWithValue<Parcel, Object, ParcelableException.Error> implements ValueTypesTrait<ParcelableException.Error>
 {
+	public static Parcel empty()
+	{
+		try
+		{
+			return new Parcel();
+		}
+		catch ( ParcelableException.Error error )
+		{
+			// Ignore - should never happen!
+			throw new RuntimeException( error );
+		}
+	}
+
 	public Parcel() throws ParcelableException.Error
 	{
 		super( Parcel::new, "" );
@@ -51,7 +65,7 @@ public class Parcel extends ContainerWithValue<Parcel, Object, ParcelableExcepti
 		if ( !hasChild( key ) )
 			return null;
 
-		return ( T ) getChildVoluntary( key ).mapCatchException( Factory::deserialize ).orElseThrow( exception -> new ParcelableException.Error( this, exception ) );
+		return ( T ) getChildVoluntary( key ).mapCatchException( Factory::deserialize ).orElseThrowCause( exception -> new ParcelableException.Error( this, exception ) );
 	}
 
 	public final <T> T getParcelable( String key, Class<T> objClass ) throws ParcelableException.Error
@@ -59,7 +73,7 @@ public class Parcel extends ContainerWithValue<Parcel, Object, ParcelableExcepti
 		if ( !hasChild( key ) )
 			return null;
 
-		return ( T ) getChildVoluntary( key ).mapCatchException( child -> Factory.deserialize( child, objClass ) ).orElseThrow( exception -> new ParcelableException.Error( this, exception ) );
+		return ( T ) getChildVoluntary( key ).mapCatchException( child -> Factory.deserialize( child, objClass ) ).orElseThrowCause( exception -> new ParcelableException.Error( this, exception ) );
 	}
 
 	@Override
@@ -172,7 +186,7 @@ public class Parcel extends ContainerWithValue<Parcel, Object, ParcelableExcepti
 
 		public static <T> Parcel serialize( @Nonnull T src ) throws ParcelableException.Error
 		{
-			Parcel desc = new Parcel();
+			Parcel desc = Parcel.empty();
 			serialize( src, desc );
 			return desc;
 		}

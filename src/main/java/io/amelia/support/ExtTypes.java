@@ -20,17 +20,18 @@ import javax.annotation.Nonnull;
 import io.amelia.data.ContainerWithValue;
 import io.amelia.foundation.ConfigMap;
 import io.amelia.foundation.ConfigRegistry;
+import io.amelia.lang.ConfigException;
 
 public class ExtTypes
 {
-	public static void clearType( String ext )
+	public static void clearType( String ext ) throws ConfigException.Error
 	{
 		getConfigMap().destroyChild( ext );
 	}
 
 	public static Stream<String> getAllTypes()
 	{
-		return getConfigMap().getChildren().map( ContainerWithValue::getValue ).filter( Optional::isPresent ).map( Optional::get ).map( Objs::castToString ).flatMap( str -> Strs.split( str, "," ) );
+		return getConfigMap().getChildren().map( ContainerWithValue::getValue ).filter( Voluntary::isPresent ).map( Voluntary::get ).map( Objs::castToString ).flatMap( str -> Strs.split( str, "," ) );
 	}
 
 	private static ConfigMap getConfigMap()
@@ -68,7 +69,7 @@ public class ExtTypes
 		return getExtTypes( path ).anyMatch( contentType -> contentType.contains( test ) );
 	}
 
-	public static void setType( String ext, String type )
+	public static void setType( String ext, String type ) throws ConfigException.Error
 	{
 		ConfigMap map = getConfigMap().getChildOrCreate( ext );
 		if ( map.hasValue() )

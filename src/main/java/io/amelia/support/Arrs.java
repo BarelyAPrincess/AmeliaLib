@@ -145,6 +145,32 @@ public class Arrs
 		return 0;
 	}
 
+	public static int compareTo( byte[] left, byte[] right )
+	{
+		if ( left == right )
+			return 0;
+
+		if ( left == null )
+			return -1;
+
+		if ( right == null )
+			return +1;
+
+		if ( left.length > right.length )
+			return +1;
+
+		if ( right.length > left.length )
+			return -1;
+
+		for ( int i = 0; i < left.length; i++ )
+			if ( left[i] > right[i] )
+				return +1;
+			else if ( right[i] > left[i] )
+				return -1;
+
+		return 0;
+	}
+
 	public static int compareToSum( long[] left, long[] right )
 	{
 		if ( left == right )

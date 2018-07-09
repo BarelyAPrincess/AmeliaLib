@@ -10,26 +10,45 @@
 package io.amelia.foundation.bindings;
 
 import java.lang.ref.WeakReference;
-import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 
 import io.amelia.data.ContainerWithValue;
-import io.amelia.lang.ParcelableException;
+import io.amelia.lang.ApplicationException;
+import io.amelia.support.Voluntary;
 
 @SuppressWarnings( "unchecked" )
-public final class BindingMap extends ContainerWithValue<BindingMap, BindingMap.BaseBinding>
+public final class BindingMap extends ContainerWithValue<BindingMap, BindingMap.BaseBinding, BindingException.Error>
 {
 	WeakReference<WritableBinding> owner = null;
 
-	protected BindingMap( String key )
+	@Nonnull
+	public static BindingMap empty()
+	{
+		try
+		{
+			return new BindingMap();
+		}
+		catch ( BindingException.Error error )
+		{
+			// This should never happen!
+			throw new RuntimeException( error );
+		}
+	}
+
+	private BindingMap() throws BindingException.Error
+	{
+		super( BindingMap::new, "" );
+	}
+
+	protected BindingMap( String key ) throws BindingException.Error
 	{
 		super( BindingMap::new, key );
 	}
 
-	protected BindingMap( BindingMap parent, String key )
+	protected BindingMap( BindingMap parent, String key ) throws BindingException.Error
 	{
 		super( BindingMap::new, parent, key );
 	}
@@ -39,7 +58,7 @@ public final class BindingMap extends ContainerWithValue<BindingMap, BindingMap.
 		return getAllChildren().filter( child -> child.hasValue() && valueClass.isAssignableFrom( child.getValue().get().getObjClass() ) ).map( map -> map.value );
 	}
 
-	public <T> Optional<T> getValue( String key, Class<T> cls )
+	public <T> Voluntary<T, BindingException.Error> getValue( String key, Class<T> cls )
 	{
 		return getValue( key ).filter( obj -> cls.isAssignableFrom( obj.getClass() ) ).map( obj -> ( T ) obj );
 	}
@@ -58,12 +77,12 @@ public final class BindingMap extends ContainerWithValue<BindingMap, BindingMap.
 		owner = new WeakReference<>( writableBinding );
 	}
 
-	public <S> void set( @Nonnull Class<S> objClass, @Nonnull Supplier<S> objSupplier )
+	public <S> void set( @Nonnull Class<S> objClass, @Nonnull Supplier<S> objSupplier ) throws BindingException.Error
 	{
 		setValue( new BaseBinding( objClass, objSupplier ) );
 	}
 
-	public void set( Object obj )
+	public void set( Object obj ) throws BindingException.Error
 	{
 		if ( obj == null )
 			setValue( null );
@@ -72,16 +91,10 @@ public final class BindingMap extends ContainerWithValue<BindingMap, BindingMap.
 	}
 
 	@Override
-	protected void throwException( String message ) throws BindingException.Error
+	protected BindingException.Error getException( String message )
 	{
 		// TODO Include node in exception
-		throw new BindingException.Error( message );
-	}
-
-	@Override
-	protected void throwException( String message ) throws ParcelableException.Ignorable
-	{
-		throw new BindingException.Ignorable( message );
+		return new BindingException.Error( message );
 	}
 
 	private void unprivatize()

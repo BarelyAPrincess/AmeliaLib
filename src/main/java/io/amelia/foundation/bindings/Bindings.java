@@ -24,6 +24,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import io.amelia.foundation.Kernel;
+import io.amelia.lang.ApplicationException;
 import io.amelia.support.BiFunctionWithException;
 import io.amelia.support.FunctionWithException;
 import io.amelia.support.Namespace;
@@ -35,7 +36,7 @@ import io.amelia.support.TriFunctionWithException;
 public class Bindings
 {
 	public static final Kernel.Logger L = Kernel.getLogger( Bindings.class );
-	protected static final BindingMap bindings = new BindingMap( "" );
+	protected static final BindingMap bindings = BindingMap.empty();
 	protected static final List<BindingResolver> resolvers = new ArrayList<>();
 	protected static final WritableBinding root = new WritableBinding( "" );
 
@@ -137,9 +138,9 @@ public class Bindings
 
 					return obj;
 				}
-				catch ( IllegalAccessException e )
+				catch ( IllegalAccessException | BindingException.Error error )
 				{
-					e.printStackTrace();
+					error.printStackTrace();
 				}
 
 		return null;

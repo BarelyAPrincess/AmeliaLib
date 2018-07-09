@@ -42,6 +42,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnegative;
@@ -436,6 +437,16 @@ public class Strs
 	public static String join( @Nonnull String[] args, @Nonnull String glue )
 	{
 		return Arrays.stream( args ).collect( Collectors.joining( glue ) );
+	}
+
+	public static String join( @Nonnull int[] args )
+	{
+		return join( args, ", " );
+	}
+
+	public static String join( @Nonnull int[] args, @Nonnull String glue )
+	{
+		return Arrays.stream( args ).mapToObj( Integer::toString ).collect( Collectors.joining( glue ) );
 	}
 
 	public static String lcFirst( String value )

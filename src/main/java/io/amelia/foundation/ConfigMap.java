@@ -24,7 +24,7 @@ public final class ConfigMap extends ContainerWithValue<ConfigMap, Object, Confi
 {
 	private String loadedValueHash = null;
 
-	public ConfigMap() throws ConfigException.Error
+	private ConfigMap() throws ConfigException.Error
 	{
 		super( ConfigMap::new, "" );
 	}
@@ -44,6 +44,7 @@ public final class ConfigMap extends ContainerWithValue<ConfigMap, Object, Confi
 		super( ConfigMap::new, parent, key, value );
 	}
 
+	@Nonnull
 	public static ConfigMap empty()
 	{
 		try
@@ -53,7 +54,7 @@ public final class ConfigMap extends ContainerWithValue<ConfigMap, Object, Confi
 		catch ( ConfigException.Error error )
 		{
 			// This should never happen!
-			return null;
+			throw new RuntimeException( error );
 		}
 	}
 
