@@ -9,6 +9,7 @@
  */
 package io.amelia.support;
 
+import java.lang.reflect.Array;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * Manipulates arrays typically using Java 8 Streams
@@ -75,13 +77,20 @@ public class Arrs
 		return ~lo;  // value not present
 	}
 
+	public static byte[] primitiveByteArray( Byte[] bytes )
+	{
+		byte[] newBytes = new byte[bytes.length];
+		for ( int i = 0; i < bytes.length; i++ )
+			newBytes[i] = bytes[i];
+		return newBytes;
+	}
+
 	public static Stream<Byte> byteStream( byte[] bytes )
 	{
-		return new ArrayList<Byte>()
-		{{
-			for ( byte b : bytes )
-				add( b );
-		}}.stream();
+		Byte[] newBytes = new Byte[bytes.length];
+		for ( int i = 0; i < bytes.length; i++ )
+			newBytes[i] = bytes[i];
+		return Arrays.stream( newBytes );
 	}
 
 	public static Stream<Character> charStream( char[] chars )
@@ -227,9 +236,19 @@ public class Arrs
 		return Arrays.stream( arr ).limit( limit ).toArray( size -> Arrays.copyOf( arr, size ) );
 	}
 
+	public static int[] pop( @Nonnull int[] arr )
+	{
+		return Arrays.copyOf( arr, arr.length - 1 );
+	}
+
+	public static byte[] pop( @Nonnull byte[] bytes )
+	{
+		return Arrays.copyOf( bytes, bytes.length - 1 );
+	}
+
 	public static <T> T[] pop( @Nonnull T[] arr )
 	{
-		return trimEnd( arr, 1 );
+		return Arrays.copyOf( arr, arr.length - 1 );
 	}
 
 	public static <T> T[] prepend( @Nonnull T[] arr, T first )
@@ -237,9 +256,25 @@ public class Arrs
 		return Stream.concat( Stream.of( first ), Arrays.stream( arr ) ).toArray( size -> Arrays.copyOf( arr, size ) );
 	}
 
-	public static <T> T[] push( @Nonnull T[] arr, @Nonnull T obj )
+	public static int[] push( @Nonnull int[] bytes, int b )
 	{
-		return ( obj == null ? arr : Stream.concat( Arrays.stream( arr ), Stream.of( obj ) ).toArray( size -> Arrays.copyOf( arr, size ) ) );
+		int[] newBytes = Arrays.copyOf( bytes, bytes.length + 1 );
+		newBytes[bytes.length] = b;
+		return newBytes;
+	}
+
+	public static byte[] push( @Nonnull byte[] bytes, byte b )
+	{
+		byte[] newBytes = Arrays.copyOf( bytes, bytes.length + 1 );
+		newBytes[bytes.length] = b;
+		return newBytes;
+	}
+
+	public static <T> T[] push( @Nonnull T[] arr, @Nullable T obj )
+	{
+		T[] newArray = Arrays.copyOf( arr, arr.length + 1 );
+		newArray[arr.length] = obj;
+		return newArray;
 	}
 
 	public static <T> T[] skip( @Nonnull T[] arr, int skip )
@@ -314,23 +349,8 @@ public class Arrs
 		return list.toArray( new Long[0] );
 	}
 
-	public static <T> T[] trim( @Nonnull T[] arr, int start, int end )
-	{
-		return arr.length == 0 ? arr : ( T[] ) Arrays.stream( arr ).limit( arr.length - end ).skip( start ).toArray();
-	}
-
-	public static <T> T[] trimEnd( @Nonnull T[] arr, int inx )
-	{
-		return arr.length == 0 ? arr : ( T[] ) Arrays.stream( arr ).limit( arr.length - inx ).toArray();
-	}
-
-	public static <T> T[] trimStart( @Nonnull T[] arr, int inx )
-	{
-		return arr.length == 0 ? arr : ( T[] ) Arrays.stream( arr ).skip( inx ).toArray();
-	}
-
 	private Arrs()
 	{
-
+		// Static Access
 	}
 }

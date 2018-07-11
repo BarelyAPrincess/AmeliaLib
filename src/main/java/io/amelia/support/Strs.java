@@ -39,6 +39,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -427,6 +428,16 @@ public class Strs
 	public static String join( @Nonnull Collection<String> args, @Nonnull String glue )
 	{
 		return args.stream().collect( Collectors.joining( glue ) );
+	}
+
+	public static <T> String join( @Nonnull Collection<T> args, @Nonnull Function<T, String> function )
+	{
+		return join( args, function, ", " );
+	}
+
+	public static <T> String join( @Nonnull Collection<T> args, @Nonnull Function<T, String> function, @Nonnull String glue )
+	{
+		return args.stream().map( function ).collect( Collectors.joining( glue ) );
 	}
 
 	public static String join( @Nonnull String[] args )
