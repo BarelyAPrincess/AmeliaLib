@@ -33,7 +33,7 @@ import javax.annotation.Nullable;
 
 public class Lists
 {
-	public static <V> V add( List<V> list, V obj )
+	public static <V> V add( @Nonnull List<V> list, @Nonnull V obj )
 	{
 		Objs.notNull( list );
 		Objs.notNull( obj );
@@ -42,7 +42,7 @@ public class Lists
 		return obj;
 	}
 
-	public static List<String> collect( Iterator<String> iterator )
+	public static List<String> collect( @Nonnull Iterator<String> iterator )
 	{
 		List<String> result = new ArrayList<>();
 		while ( iterator.hasNext() )
@@ -211,6 +211,44 @@ public class Lists
 		if ( list == null )
 			return null;
 		return list.stream().map( function ).filter( Objects::nonNull ).collect( Collectors.toList() );
+	}
+
+	public static <T> boolean removeIf( Set<T> list, Predicate<T> filter )
+	{
+		Objs.notNull( list );
+		Objs.notNull( filter );
+
+		boolean removed = false;
+		final Iterator<T> each = list.iterator();
+		while ( each.hasNext() )
+		{
+			T next = each.next();
+			if ( filter.test( next ) )
+			{
+				each.remove();
+				removed = true;
+			}
+		}
+		return removed;
+	}
+
+	public static <T> boolean removeIf( List<T> list, Predicate<T> filter )
+	{
+		Objs.notNull( list );
+		Objs.notNull( filter );
+
+		boolean removed = false;
+		final Iterator<T> each = list.iterator();
+		while ( each.hasNext() )
+		{
+			T next = each.next();
+			if ( filter.test( next ) )
+			{
+				each.remove();
+				removed = true;
+			}
+		}
+		return removed;
 	}
 
 	private Lists()
