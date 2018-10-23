@@ -26,7 +26,7 @@ import java.util.Iterator;
 
 import javax.annotation.Nonnull;
 
-public class SQLPath extends StoragePath
+public class SQLPath extends StoragePath<SQLFileSystem>
 {
 	private final String path;
 
@@ -49,10 +49,15 @@ public class SQLPath extends StoragePath
 			throw new AccessDeniedException( getPath() );
 	}
 
+	private String getResolvedPath()
+	{
+		return null;
+	}
+
 	@Override
 	public boolean endsWith( Path other )
 	{
-		return false;
+		return endsWith( other.toString() );
 	}
 
 	@Override
@@ -181,7 +186,7 @@ public class SQLPath extends StoragePath
 	}
 
 	@Override
-	public Path toAbsolutePath()
+	public SQLPath toAbsolutePath()
 	{
 		return null;
 	}
@@ -195,7 +200,7 @@ public class SQLPath extends StoragePath
 	@Override
 	public Path toRealPath( LinkOption... options ) throws IOException
 	{
-		SQLPath var2 = ( new SQLPath( fileSystem, getResolvedPath() ) ).toAbsolutePath();
+		SQLPath var2 = new SQLPath( fileSystem, getResolvedPath() ).toAbsolutePath();
 		var2.checkAccess();
 		return var2;
 	}

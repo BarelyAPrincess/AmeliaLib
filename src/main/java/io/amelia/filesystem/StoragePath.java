@@ -15,11 +15,11 @@ import java.nio.file.ProviderMismatchException;
 import io.amelia.support.Namespace;
 import io.amelia.support.Objs;
 
-public abstract class StoragePath implements Path
+public abstract class StoragePath<FS extends StorageFileSystem> implements Path
 {
-	protected final StorageFileSystem fileSystem;
+	protected final FS fileSystem;
 
-	public StoragePath( StorageFileSystem fileSystem )
+	public StoragePath( FS fileSystem )
 	{
 		this.fileSystem = fileSystem;
 	}

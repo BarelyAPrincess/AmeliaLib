@@ -23,7 +23,7 @@ public class ConfigStorageLoader implements ConfigRegistryLoader
 	{
 		try
 		{
-			StorageConversions.loadToStacker( Kernel.getPath( Kernel.PATH_CONFIG, true ), config, ConfigMap::new );
+			StorageConversions.loadToStacker( Kernel.getPath( Kernel.PATH_CONFIG, true ), config );
 		}
 		catch ( StorageException.Error e )
 		{
@@ -34,6 +34,6 @@ public class ConfigStorageLoader implements ConfigRegistryLoader
 	@Override
 	public void loadConfigAdditional( ConfigMap config ) throws ConfigException.Error
 	{
-		// Currently unused. :(
+		// XXX Currently unused. :(
 	}
 }

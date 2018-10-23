@@ -29,9 +29,9 @@ import java.util.Set;
 
 public class SQLFileSystemProvider extends FileSystemProvider
 {
-	public static FileSystem newFileSystem()
+	public static SQLFileSystem newFileSystem()
 	{
-		return SQLFileSystem();
+		return new SQLFileSystem();
 	}
 
 	@Override

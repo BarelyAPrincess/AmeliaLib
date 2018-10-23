@@ -13,5 +13,8 @@ import java.nio.file.FileSystem;
 
 public abstract class StorageFileSystem extends FileSystem
 {
-
+	public StorageFileAttributes getFileAttributes( String path )
+	{
+		return null;
+	}
 }
