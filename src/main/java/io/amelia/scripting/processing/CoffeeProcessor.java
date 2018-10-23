@@ -18,15 +18,21 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 
-import io.amelia.foundation.events.EventHandler;
-import io.amelia.scripting.event.PreEvalEvent;
+import io.amelia.scripting.ScriptingContext;
+import io.amelia.scripting.ScriptingProcessor;
 
-public class PreCoffeeProcessor
+public class CoffeeProcessor implements ScriptingProcessor
 {
-	@EventHandler
-	public void onEvent( PreEvalEvent event )
+	@Override
+	public void postEvaluate( ScriptingContext scriptingContext )
 	{
-		if ( !event.getScriptingContext().getContentType().endsWith( "coffee" ) && !event.getScriptingContext().getContentType().endsWith( "litcoffee" ) && !event.getScriptingContext().getContentType().endsWith( "coffee.md" ) )
+
+	}
+
+	@Override
+	public void preEvaluate( ScriptingContext scriptingContext )
+	{
+		if ( !scriptingContext.getContentType().endsWith( "coffee" ) && !scriptingContext.getContentType().endsWith( "litcoffee" ) && !scriptingContext.getContentType().endsWith( "coffee.md" ) )
 			return;
 
 		/*
@@ -34,9 +40,9 @@ public class PreCoffeeProcessor
 		 * You must first install NodeJS and do the following:
 		 * > git clone https://github.com/jashkenas/coffee-script.git
 		 * > cd coffee-script
-		 * > npm install uglify-js
+		 * > npm install uglify-js @babel/core @babel/preset-env babel-preset-minify
 		 * > ./bin/cake build:browser
-		 * The compiled js file will be at `/docs/browser-compiler/coffeescript.js` as of v2.2.4.
+		 * The compiled js file will be at `/docs/browser-compiler/coffeescript.js` as of v2.3.2.
 		 */
 		ClassLoader classLoader = getClass().getClassLoader();
 		InputStream inputStream = classLoader.getResourceAsStream( "coffeescript.js" );
@@ -55,9 +61,9 @@ public class PreCoffeeProcessor
 
 				Scriptable compileScope = context.newObject( globalScope );
 				compileScope.setParentScope( globalScope );
-				compileScope.put( "coffeeScriptSource", compileScope, event.getScriptingContext().readString() );
+				compileScope.put( "coffeeScriptSource", compileScope, scriptingContext.readString() );
 
-				event.getScriptingContext().resetAndWrite( ( ( String ) context.evaluateString( compileScope, String.format( "CoffeeScript.compile(coffeeScriptSource, %s);", String.format( "{bare: %s, filename: '%s'}", true, event.getScriptingContext().getFileName() ) ), "CoffeeScriptCompiler-" + event.getScriptingContext().getFileName(), 0, null ) ).getBytes() );
+				scriptingContext.resetAndWrite( ( ( String ) context.evaluateString( compileScope, String.format( "CoffeeScript.compile(coffeeScriptSource, %s);", String.format( "{bare: %s, filename: '%s'}", true, scriptingContext.getFileName() ) ), "CoffeeScriptCompiler-" + scriptingContext.getFileName(), 0, null ) ).getBytes() );
 			}
 			finally
 			{
@@ -65,13 +71,8 @@ public class PreCoffeeProcessor
 				Context.exit();
 			}
 		}
-		catch ( JavaScriptException e )
+		catch ( IOException | JavaScriptException e )
 		{
-			return;
-		}
-		catch ( IOException e )
-		{
-			return;
 		}
 	}
 }

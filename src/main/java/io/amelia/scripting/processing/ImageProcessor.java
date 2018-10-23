@@ -9,8 +9,6 @@
  */
 package io.amelia.scripting.processing;
 
-import com.chiorichan.net.http.HttpRequestWrapper;
-
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.Toolkit;
@@ -30,9 +28,9 @@ import java.util.List;
 import javax.imageio.ImageIO;
 
 import io.amelia.foundation.ConfigRegistry;
-import io.amelia.foundation.Kernel;
 import io.amelia.scripting.ScriptingContext;
 import io.amelia.scripting.ScriptingFactory;
+import io.amelia.scripting.ScriptingOption;
 import io.amelia.scripting.ScriptingProcessor;
 import io.amelia.support.Encrypt;
 import io.amelia.support.EnumColor;
@@ -44,21 +42,26 @@ import io.netty.buffer.ByteBufInputStream;
  */
 public class ImageProcessor implements ScriptingProcessor
 {
+	public static class Options
+	{
+		public static final ScriptingOption.Int width = new ScriptingOption.Int( "width", -1, "x", "w" );
+		public static final ScriptingOption.Int height = new ScriptingOption.Int( "height", -1, "y", "h" );
+		public static final ScriptingOption.Bool thumb = new ScriptingOption.Bool( "thumb", false );
+	}
+
 	@Override
-	public void postEval( ScriptingContext scriptingContext )
+	public void postEvaluate( ScriptingContext scriptingContext )
 	{
 		try
 		{
-			if ( scriptingContext.getContentType() == null !scriptingContext.getContentType().toLowerCase().startsWith( "image" ) )
-			return;
+			if ( scriptingContext.getContentType() == null && !scriptingContext.getContentType().toLowerCase().startsWith( "image" ) )
+				return;
 
 			float x = -1;
 			float y = -1;
 
 			boolean cacheEnabled = ConfigRegistry.config.getBoolean( ScriptingFactory.Config.PROCESSORS_IMAGES_CACHE );
 			boolean grayscale = false;
-
-			HttpRequestWrapper request = scriptingContext.request();
 
 			x = request.getArgumentInt( "width" ).orElse( x );
 			y = request.getArgumentInt( "height" ).orElse( y );
@@ -67,10 +70,16 @@ public class ImageProcessor implements ScriptingProcessor
 			x = request.getArgumentInt( "w" ).orElse( x );
 			y = request.getArgumentInt( "h" ).orElse( y );
 
-			if ( request.hasArgument( "thumb" ) )
+			ScriptingContext.DefinedOption option = scriptingContext.getOption( Options.thumb ).orElse( null );
+			if ( isTrue() )
 			{
 				x = 150;
 				y = 0;
+			}
+			else
+			{
+				x = scriptingContext.getOption( width ).getInt();
+				y = scriptingContext.getOption( height ).getInt();
 			}
 
 			if ( request.hasArgument( "bw" ) || request.hasArgument( "grayscale" ) )
@@ -121,10 +130,9 @@ public class ImageProcessor implements ScriptingProcessor
 			if ( !resize && !argb && !grayscale )
 				return;
 
-			// Produce a unique encapsulated id based on this image processing request
-			String encapId = Encrypt.md5( scriptingContext.getFileName() + w1 + h1 + request.getArgument( "argb" ) + grayscale );
-			Path tempPath = scriptingContext.site() == null ? Kernel.getPath( Kernel.PATH_CACHE ) : scriptingContext.site().tempPath();
-			Path tempFile = Paths.get( encapId + "_" + scriptingContext.getFileName().toLowerCase() ).resolve( tempPath );
+			// Produce a unique encapsulated id based on this request
+			String encapId = Encrypt.sha1( scriptingContext.getFileName() + w1 + h1 + request.getArgument( "argb" ) + grayscale );
+			Path tempFile = Paths.get( encapId + "_" + scriptingContext.getFileName().toLowerCase() ).resolve( scriptingContext.getCachePath() );
 
 			if ( cacheEnabled && Files.isRegularFile( tempFile ) )
 			{
@@ -182,7 +190,7 @@ public class ImageProcessor implements ScriptingProcessor
 	}
 
 	@Override
-	public void preEval( ScriptingContext scriptingContext )
+	public void preEvaluate( ScriptingContext scriptingContext )
 	{
 
 	}

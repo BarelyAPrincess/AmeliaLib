@@ -24,16 +24,22 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.util.Map;
 
-import io.amelia.foundation.events.EventHandler;
+import io.amelia.scripting.ScriptingContext;
 import io.amelia.scripting.ScriptingFactory;
-import io.amelia.scripting.event.PreEvalEvent;
+import io.amelia.scripting.ScriptingProcessor;
 
-public class PreLessProcessor
+public class LessProcessor implements ScriptingProcessor
 {
-	@EventHandler
-	public void onEvent( PreEvalEvent event )
+	@Override
+	public void postEvaluate( ScriptingContext scriptingContext )
 	{
-		if ( !event.getScriptingContext().getContentType().equals( "stylesheet/less" ) || !event.getScriptingContext().getShell().equals( "less" ) )
+
+	}
+
+	@Override
+	public void preEvaluate( ScriptingContext scriptingContext )
+	{
+		if ( !scriptingContext.getContentType().equals( "stylesheet/less" ) || !scriptingContext.getShell().equals( "less" ) )
 			return;
 
 		ClassLoader classLoader = getClass().getClassLoader();
@@ -54,12 +60,12 @@ public class PreLessProcessor
 
 				Scriptable compileScope = context.newObject( globalScope );
 				compileScope.setParentScope( globalScope );
-				compileScope.put( "lessSource", compileScope, event.getScriptingContext().readString() );
+				compileScope.put( "lessSource", compileScope, scriptingContext.readString() );
 
 				String filename = "dummyFile.less";
 
-				if ( event.getScriptingContext().getFileName() != null && !event.getScriptingContext().getFileName().isEmpty() )
-					filename = new File( event.getScriptingContext().getFileName() ).getName();
+				if ( scriptingContext.getFileName() != null && !scriptingContext.getFileName().isEmpty() )
+					filename = new File( scriptingContext.getFileName() ).getName();
 
 				/*
 				 * try
@@ -88,7 +94,7 @@ public class PreLessProcessor
 				// Loader.getLogger().debug( "" + globalScope.get( "source" ) );
 
 				if ( globalScope.get( "source" ) != null && globalScope.get( "source" ) instanceof String )
-					event.getScriptingContext().resetAndWrite( ( String ) globalScope.get( "source" ) );
+					scriptingContext.resetAndWrite( ( String ) globalScope.get( "source" ) );
 				else if ( globalScope.get( "source" ) != null )
 					ScriptingFactory.L.warning( "We did not get what we expected back from Less.js: " + globalScope.get( "source" ) );
 			}
@@ -98,11 +104,7 @@ public class PreLessProcessor
 				Context.exit();
 			}
 		}
-		catch ( JavaScriptException e )
-		{
-			e.printStackTrace();
-		}
-		catch ( IOException e )
+		catch ( JavaScriptException | IOException e )
 		{
 			e.printStackTrace();
 		}

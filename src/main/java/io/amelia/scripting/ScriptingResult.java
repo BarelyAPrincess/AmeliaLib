@@ -12,8 +12,10 @@ package io.amelia.scripting;
 import java.nio.charset.Charset;
 
 import groovy.lang.Script;
+import io.amelia.lang.ExceptionContext;
 import io.amelia.lang.ExceptionReport;
 import io.amelia.lang.ReportingLevel;
+import io.amelia.lang.ScriptingException;
 import io.netty.buffer.ByteBuf;
 
 /**
@@ -36,7 +38,7 @@ public class ScriptingResult
 	}
 
 	@Override
-	public ScriptingResult addException( IException exception )
+	public ScriptingResult addException( Exception exception )
 	{
 		IException.check( exception );
 		if ( exception != null )
@@ -46,8 +48,8 @@ public class ScriptingResult
 				if ( !( ( ScriptingException ) exception ).hasScriptTrace() )
 					if ( context.getScriptingFactory() != null )
 						( ( ScriptingException ) exception ).populateScriptTrace( context.getScriptingFactory().stack() );
-					else if ( context.request() != null )
-						( ( ScriptingException ) exception ).populateScriptTrace( context.request().getScriptingFactory().stack() );
+					else if ( context.getRequest() != null )
+						( ( ScriptingException ) exception ).populateScriptTrace( context.getRequest().getScriptingFactory().stack() );
 				caughtExceptions.add( exception );
 			}
 			else

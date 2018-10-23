@@ -16,11 +16,16 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Stream;
 
+import io.amelia.data.ValueTypesTrait;
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.foundation.Kernel;
 import io.amelia.injection.LibraryClassLoader;
+import io.amelia.lang.ApplicationException;
 import io.amelia.lang.ExceptionReport;
 import io.amelia.lang.MultipleException;
 import io.amelia.lang.ScriptingException;
@@ -29,6 +34,7 @@ import io.amelia.support.Encrypt;
 import io.amelia.support.IO;
 import io.amelia.support.Objs;
 import io.amelia.support.Strs;
+import io.amelia.support.Voluntary;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
@@ -102,6 +108,7 @@ public abstract class ScriptingContext
 		return ConfigRegistry.config.getStringList( ScriptingFactory.Config.PREFERRED_EXTENSIONS );
 	}
 
+	private final List<DefinedOption> options = new ArrayList<>();
 	private Path cacheDirectory;
 	private Charset charset = Charset.defaultCharset();
 	private ByteBuf content = Unpooled.buffer();
@@ -115,6 +122,26 @@ public abstract class ScriptingContext
 	private ScriptingFactory scriptingFactory = null;
 	private String shell = "embedded";
 	private String source = null;
+
+	public void addOption( String key, String value )
+	{
+		options.add( new KeyValueDefinedOption( key, value ) );
+	}
+
+	public void addOption( ScriptingOption option, String value )
+	{
+		options.add( new ImplDefinedOption( option, value ) );
+	}
+
+	public Optional<DefinedOption> getOption( ScriptingOption scriptingOption )
+	{
+		return getOptions().filter( opt -> opt instanceof ImplDefinedOption && ( ( ImplDefinedOption ) opt ).getOption() == scriptingOption ).findAny();
+	}
+
+	public Stream<DefinedOption> getOptions()
+	{
+		return options.stream();
+	}
 
 	public Object eval() throws ScriptingException.Error, ScriptingException.Runtime, MultipleException
 	{
@@ -472,5 +499,48 @@ public abstract class ScriptingContext
 	public void write( ByteBuf source )
 	{
 		content.writeBytes( source );
+	}
+
+	public class KeyValueDefinedOption extends DefinedOption
+	{
+		private final String key;
+
+		KeyValueDefinedOption( String key, String value )
+		{
+			this.key = key;
+			this.value = value;
+		}
+
+		public String getKey()
+		{
+			return key;
+		}
+	}
+
+	public class ImplDefinedOption extends DefinedOption
+	{
+		ScriptingOption option;
+
+		ImplDefinedOption( ScriptingOption option, String value )
+		{
+			this.option = option;
+			this.value = value;
+		}
+
+		public ScriptingOption getOption()
+		{
+			return option;
+		}
+	}
+
+	public class DefinedOption implements ValueTypesTrait<ApplicationException.Error>
+	{
+		String value;
+
+		@Override
+		public Voluntary<String, ApplicationException.Error> getValue()
+		{
+			return Voluntary.ofNullable( value );
+		}
 	}
 }

@@ -208,7 +208,7 @@ public class GroovyRegistry implements ScriptingRegistry
 	@Override
 	public ScriptingEngine[] makeEngines( ScriptingContext context )
 	{
-		return new ScriptingEngine[] {new GroovyEngine( this ), new EmbeddedGroovyEngine( this )};
+		return new ScriptingEngine[] {new GroovyEngine( this ), new GroovyServerPagesEngine( this )};
 	}
 
 	public Script makeScript( GroovyShell shell, ScriptingContext context ) throws ScriptingException.Error

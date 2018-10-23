@@ -11,8 +11,6 @@ package io.amelia.scripting.groovy;
 
 import com.chiorichan.factory.ScriptBinding;
 import com.chiorichan.factory.ScriptingContext;
-import com.chiorichan.factory.ScriptingEngine;
-import com.chiorichan.helpers.Triplet;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -26,24 +24,32 @@ import java.util.List;
 import groovy.lang.Binding;
 import groovy.lang.GroovyShell;
 import groovy.lang.Script;
+import io.amelia.data.TypeBase;
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.lang.ReportingLevel;
 import io.amelia.lang.ScriptingException;
+import io.amelia.scripting.ScriptBinding;
+import io.amelia.scripting.ScriptingContext;
+import io.amelia.scripting.ScriptingEngine;
+import io.amelia.support.Strs;
+import io.amelia.support.Triplet;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufOutputStream;
 
 /**
- * ScriptingEngine for handling GSP files, i.e., Embedded Groovy File a.k.a. Groovy Server Pages.
+ * ScriptingEngine for handling Groovy Server Pages (GSP)
  * <p>
  * <code>This is plain html<%= print ", with a twist of groovy. Today's date is: " + date("") %>.</code>
  */
-public class EmbeddedGroovyEngine implements ScriptingEngine
+public class GroovyServerPagesEngine implements ScriptingEngine
 {
 	// private static final String MARKER_START = "<%";
 	// private static final String MARKER_END = "%>";
 
 	private static final String[] DO_NOT_PREPEND = new String[] {"println", "print", "echo", "def", "import", "if", "for", "do", "while", "{", "}", "else", "//", "/*", "\n", "\r"};
 	private static final List<Triplet<String, String, String>> MARKERS = new ArrayList<>();
+
+	public static final TypeBase.TypeBoolean PHP_STYLE_TAGS = new TypeBase.TypeBoolean( "scripting.gsp.phpStyleTags", false );
 
 	static
 	{
@@ -54,7 +60,7 @@ public class EmbeddedGroovyEngine implements ScriptingEngine
 		MARKERS.add( new Triplet<>( "{!!", "print", "!!}" ) );
 		MARKERS.add( new Triplet<>( "{{--", "comment", "--}}" ) );
 
-		if ( ConfigRegistry.i().getBoolean( "advanced.scripting.gspAllowPhpTags" ) )
+		if ( ConfigRegistry.config.getBoolean( PHP_STYLE_TAGS ) )
 		{
 			MARKERS.add( new Triplet<>( "<?", null, "?>" ) );
 			MARKERS.add( new Triplet<>( "<?=", "echo", "?>" ) );
@@ -64,7 +70,7 @@ public class EmbeddedGroovyEngine implements ScriptingEngine
 	private Binding binding = new Binding();
 	private GroovyRegistry registry;
 
-	public EmbeddedGroovyEngine( GroovyRegistry registry )
+	public GroovyServerPagesEngine( GroovyRegistry registry )
 	{
 		this.registry = registry;
 	}
@@ -148,7 +154,7 @@ public class EmbeddedGroovyEngine implements ScriptingEngine
 
 						int endIndex = source.indexOf( activeMarker.getEnd(), Math.max( startIndex, fullFileIndex ) );
 						if ( endIndex == -1 )
-							throw new ScriptingException( ReportingLevel.E_PARSE, String.format( "Found starting marker '%s' at line %s, expected close marker '%s' not found.", activeMarker.getStart(), StringUtils.countMatches( output.toString(), "\n" ) + 1, activeMarker.getEnd() ) );
+							throw new ScriptingException( ReportingLevel.E_PARSE, String.format( "Found starting marker '%s' at line %s, expected close marker '%s' not found.", activeMarker.getStart(), Strs.countMatches( output.toString(), '\n' ) + 1, activeMarker.getEnd() ) );
 
 						// Gets the entire fragment?
 						fragment = source.substring( startIndex + activeMarker.getStart().length(), endIndex ).trim();
@@ -196,14 +202,14 @@ public class EmbeddedGroovyEngine implements ScriptingEngine
 					}
 				}
 
-				context.baseSource( output.toString() );
+				context.getBaseSource( output.toString() );
 
 				GroovyShell shell = registry.getNewShell( context, binding );
 				script = registry.makeScript( shell, output.toString(), context );
 			}
 
-			context.result().setScript( script );
-			context.result().setObject( script.run() );
+			context.getResult().setScript( script );
+			context.getResult().setObject( script.run() );
 		}
 		catch ( Throwable t )
 		{

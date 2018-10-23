@@ -41,7 +41,7 @@ public class StackFactory
 		{
 			boolean contains = false;
 			for ( ScriptTraceElement ste : scriptTrace )
-				if ( ste.context().filename().equals( context.filename() ) )
+				if ( ste.context().getFileName().equals( context.getFileName() ) )
 					contains = true;
 			if ( !contains )
 				scriptTrace.add( 0, new ScriptTraceElement( context, "" ) );

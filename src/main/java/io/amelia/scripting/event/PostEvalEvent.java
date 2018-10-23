@@ -9,8 +9,8 @@
  */
 package io.amelia.scripting.event;
 
-import io.amelia.foundation.events.AbstractEvent;
-import io.amelia.foundation.events.Cancellable;
+import io.amelia.events.AbstractEvent;
+import io.amelia.events.Cancellable;
 import io.amelia.scripting.ScriptingContext;
 
 public class PostEvalEvent extends AbstractEvent implements Cancellable

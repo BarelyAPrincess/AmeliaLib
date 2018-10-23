@@ -21,6 +21,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import io.amelia.data.TypeBase;
+import io.amelia.events.EventException;
+import io.amelia.events.Events;
 import io.amelia.foundation.events.EventException;
 import io.amelia.foundation.events.Events;
 import io.amelia.foundation.ConfigRegistry;
@@ -30,9 +32,9 @@ import io.amelia.scripting.event.PostEvalEvent;
 import io.amelia.scripting.event.PreEvalEvent;
 import io.amelia.scripting.groovy.GroovyRegistry;
 import io.amelia.scripting.processing.ImageProcessor;
-import io.amelia.scripting.processing.PostJSMinProcessor;
-import io.amelia.scripting.processing.PreCoffeeProcessor;
-import io.amelia.scripting.processing.PreLessProcessor;
+import io.amelia.scripting.processing.JSMinProcessor;
+import io.amelia.scripting.processing.CoffeeProcessor;
+import io.amelia.scripting.processing.LessProcessor;
 import io.amelia.support.Encrypt;
 import io.amelia.support.IO;
 import io.amelia.support.Objs;
@@ -56,16 +58,16 @@ public class ScriptingFactory
 		// register( new PreLinksParserWrapper() );
 		// register( new PreIncludesParserWrapper() );
 		if ( ConfigRegistry.config.getBoolean( Config.PROCESSORS_COFFEE ) )
-			register( new PreCoffeeProcessor() );
+			register( new CoffeeProcessor() );
 		if ( ConfigRegistry.config.getBoolean( Config.PROCESSORS_LESS ) )
-			register( new PreLessProcessor() );
+			register( new LessProcessor() );
 		// register( new SassPreProcessor() );
 
 		/*
 		 * Register Post-Processors
 		 */
 		if ( ConfigRegistry.config.getBoolean( Config.PROCESSORS_MINIFY_JS ) )
-			register( new PostJSMinProcessor() );
+			register( new JSMinProcessor() );
 		if ( ConfigRegistry.config.getBoolean( Config.PROCESSORS_IMAGES ) )
 			register( new ImageProcessor() );
 	}
@@ -210,6 +212,10 @@ public class ScriptingFactory
 			context.setScriptName( name );
 			stackFactory.stack( name, context );
 
+			processors.forEach( scriptingProcessor -> scriptingProcessor.transformScriptingContext( context ) );
+			processors.forEach( scriptingProcessor -> scriptingProcessor.preEvaluate( context ) );
+
+			// TODO should evaluations still flow through the events or is that becoming too resource intensive?
 			PreEvalEvent preEvent = new PreEvalEvent( context );
 			try
 			{
@@ -251,6 +257,8 @@ public class ScriptingFactory
 							bufferPop( level );
 						}
 					}
+
+			processors.forEach( scriptingProcessor -> scriptingProcessor.postEvaluate( context ) );
 
 			PostEvalEvent postEvent = new PostEvalEvent( context );
 			try
