@@ -9,12 +9,15 @@
  */
 package io.amelia.support;
 
+import com.google.common.io.CharStreams;
+
 import java.lang.reflect.Array;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
@@ -75,6 +78,26 @@ public class Arrs
 				return mid;  // value found
 		}
 		return ~lo;  // value not present
+	}
+
+	public static <T> boolean contains( T[] arr, T t )
+	{
+		return Arrays.stream( arr ).anyMatch( t::equals );
+	}
+
+	public static boolean contains( int[] arr, int t )
+	{
+		return IntStream.of( arr ).anyMatch( x -> x == t );
+	}
+
+	public static boolean contains( byte[] arr, byte t )
+	{
+		return byteStream( arr ).anyMatch( ( ( Byte ) t )::equals );
+	}
+
+	public static boolean contains( char[] arr, char t )
+	{
+		return charStream( arr ).anyMatch( ( ( Character ) t )::equals );
 	}
 
 	public static byte[] primitiveByteArray( Byte[] bytes )

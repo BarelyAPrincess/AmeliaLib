@@ -15,12 +15,12 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import io.amelia.data.ContainerWithValue;
-import io.amelia.data.ValueTypesTrait;
+import io.amelia.data.KeyValueTypesTrait;
 import io.amelia.data.parcel.ParcelLoader;
 import io.amelia.lang.ConfigException;
 import io.amelia.support.Voluntary;
 
-public final class ConfigMap extends ContainerWithValue<ConfigMap, Object, ConfigException.Error> implements ValueTypesTrait<ConfigException.Error>
+public final class ConfigMap extends ContainerWithValue<ConfigMap, Object, ConfigException.Error> implements KeyValueTypesTrait<ConfigException.Error>
 {
 	private String loadedValueHash = null;
 

@@ -16,15 +16,12 @@ import java.util.Map;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import io.amelia.data.ContainerBase;
 import io.amelia.data.ContainerWithValue;
-import io.amelia.data.TypeBase;
-import io.amelia.data.ValueTypesTrait;
-import io.amelia.lang.ParcelException;
+import io.amelia.data.KeyValueTypesTrait;
 import io.amelia.lang.ParcelableException;
 import io.amelia.support.Reflection;
 
-public class Parcel extends ContainerWithValue<Parcel, Object, ParcelableException.Error> implements ValueTypesTrait<ParcelableException.Error>
+public class Parcel extends ContainerWithValue<Parcel, Object, ParcelableException.Error> implements KeyValueTypesTrait<ParcelableException.Error>
 {
 	public static Parcel empty()
 	{

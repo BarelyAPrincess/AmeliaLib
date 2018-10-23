@@ -9,6 +9,8 @@
  */
 package io.amelia.support;
 
+import com.sun.istack.internal.NotNull;
+
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -43,7 +45,6 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnegative;
@@ -357,6 +358,12 @@ public class Strs
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		t.printStackTrace( new PrintStream( out ) );
 		return encodeDefault( out.toByteArray() );
+	}
+
+	@NotNull
+	public static String ifNullReturnEmpty( @Nullable String str )
+	{
+		return str == null ? "" : str;
 	}
 
 	public static boolean isCamelCase( String var )
@@ -926,29 +933,37 @@ public class Strs
 		return IDN.toUnicode( str );
 	}
 
+	public static String trimAll( @Nullable String text )
+	{
+		// TODO Add more trimable characters
+		char[] chars = new char[] {' ', '\n', '\t'};
+		String normalizedText = trimStart( text, chars );
+		return trimEnd( normalizedText, chars );
+	}
+
 	/**
 	 * Trim specified character from both ends of a String
 	 *
-	 * @param text      Text
-	 * @param character Character to remove
+	 * @param text       Text
+	 * @param characters Characters to remove
 	 *
 	 * @return Trimmed text
 	 */
-	public static String trimAll( String text, char character )
+	public static String trimAll( @Nullable String text, char... characters )
 	{
-		String normalizedText = trimStart( text, character );
-		return trimEnd( normalizedText, character );
+		String normalizedText = trimStart( text, characters );
+		return trimEnd( normalizedText, characters );
 	}
 
 	/**
 	 * Trim specified character from end of string
 	 *
-	 * @param text      Text
-	 * @param character Character to remove
+	 * @param text       Text
+	 * @param characters Character to remove
 	 *
 	 * @return Trimmed text
 	 */
-	public static String trimEnd( String text, char character )
+	public static String trimEnd( @Nullable String text, char... characters )
 	{
 		String normalizedText;
 		int index;
@@ -959,13 +974,13 @@ public class Strs
 		normalizedText = text.trim();
 		index = normalizedText.length() - 1;
 
-		while ( normalizedText.charAt( index ) == character )
+		while ( Arrs.contains( characters, normalizedText.charAt( index ) ) )
 			if ( --index < 0 )
 				return "";
 		return normalizedText.substring( 0, index + 1 ).trim();
 	}
 
-	public static String trimEnd( String text, String substr )
+	public static String trimEnd( @Nullable String text, String substr )
 	{
 		if ( Objs.isEmpty( text ) )
 			return text;
@@ -976,7 +991,7 @@ public class Strs
 		return text;
 	}
 
-	private static String trimRegex( String text, String regex )
+	private static String trimRegex( @Nullable String text, String regex )
 	{
 		if ( Objs.isEmpty( text ) )
 			return text;
@@ -994,12 +1009,12 @@ public class Strs
 	/**
 	 * Trim specified character from front of string
 	 *
-	 * @param text      Text
-	 * @param character Character to remove
+	 * @param text       Text
+	 * @param characters Character to remove
 	 *
 	 * @return Trimmed text
 	 */
-	public static String trimStart( String text, char character )
+	public static String trimStart( @Nullable String text, char... characters )
 	{
 		if ( Objs.isEmpty( text ) )
 			return text;
@@ -1009,12 +1024,12 @@ public class Strs
 
 		do
 			index++;
-		while ( index < normalizedText.length() && normalizedText.charAt( index ) == character );
+		while ( index < normalizedText.length() && Arrs.contains( characters, normalizedText.charAt( index ) ) );
 
 		return normalizedText.substring( index ).trim();
 	}
 
-	public static String trimStart( String text, String substr )
+	public static String trimStart( @Nullable String text, String substr )
 	{
 		if ( Objs.isEmpty( text ) )
 			return text;

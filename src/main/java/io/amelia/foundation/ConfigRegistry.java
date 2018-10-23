@@ -101,7 +101,8 @@ public class ConfigRegistry
 			envNode.setValue( entry.getKey().replace( '-', '_' ), entry.getValue() );
 		envNode.addFlag( ConfigMap.Flag.READ_ONLY, ConfigMap.Flag.NO_SAVE );
 
-		// TODO Call loader.loadConfigAdditional( config ) once some additional internal systems are initialized.
+		// TODO Call loader.loadConfigAdditional() after network, database, and/or additional filesystems are initialized.
+		// loader.loadConfigAdditional( config );
 	}
 
 	public static boolean isConfigLoaded()

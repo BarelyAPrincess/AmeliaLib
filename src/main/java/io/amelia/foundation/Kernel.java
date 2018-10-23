@@ -85,7 +85,9 @@ public class Kernel
 			return newThread;
 		}
 	};
+
 	private static ImplLogHandler log = new BuiltinLogHandler();
+	private static ImplUtils implUtils = new BuiltinImplUtils();
 
 	static
 	{
@@ -144,8 +146,20 @@ public class Kernel
 	public static void setDevMeta( ImplDevMeta devMeta )
 	{
 		if ( Kernel.devMeta != null && !( Kernel.devMeta instanceof NoDevMeta ) )
-			throw new IllegalStateException( "DevMeta has already been set, are you setting it too late?" );
+			throw new IllegalStateException( "Improper Implementation: DevMeta has already been set." );
 		Kernel.devMeta = devMeta;
+	}
+
+	public static ImplUtils getImplUtils()
+	{
+		return implUtils;
+	}
+
+	public static void setImplUtils( ImplUtils implUtils )
+	{
+		if ( Kernel.implUtils != null && !( Kernel.implUtils instanceof BuiltinImplUtils ) )
+			throw new IllegalStateException( "Improper Implementation: ImplUtils has already been set." );
+		Kernel.implUtils = implUtils;
 	}
 
 	public static ExceptionRegistrar getExceptionRegistrar()
@@ -319,7 +333,17 @@ public class Kernel
 
 	private Kernel()
 	{
+		// Static Access
+	}
 
+	private static class BuiltinImplUtils implements ImplUtils
+	{
+		@Override
+		public boolean isPrimaryThread()
+		{
+			// TODO
+			return false;
+		}
 	}
 
 	private static class BuiltinLogHandler implements ImplLogHandler

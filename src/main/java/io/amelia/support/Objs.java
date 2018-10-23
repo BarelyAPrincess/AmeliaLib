@@ -10,6 +10,7 @@
 package io.amelia.support;
 
 import com.google.common.base.Charsets;
+import com.sun.istack.internal.NotNull;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -775,7 +776,7 @@ public class Objs
 		}
 	}
 
-	public static <T> boolean isEmpty( T obj )
+	public static <T> boolean isEmpty( @Nullable T obj )
 	{
 		try
 		{
@@ -788,7 +789,7 @@ public class Objs
 		}
 	}
 
-	public static VoluntaryBoolean isFalse( Optional<?> bool )
+	public static VoluntaryBoolean isFalse( @NotNull Optional<?> bool )
 	{
 		if ( !bool.isPresent() )
 			return VoluntaryBoolean.empty();

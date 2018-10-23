@@ -22,10 +22,10 @@ import javax.annotation.Nonnull;
 import io.amelia.lang.ApplicationException;
 import io.amelia.support.IO;
 import io.amelia.support.Objs;
-import io.amelia.support.VoluntaryBoolean;
-import io.amelia.support.Voluntary;
-import io.amelia.support.VoluntaryLong;
 import io.amelia.support.Strs;
+import io.amelia.support.Voluntary;
+import io.amelia.support.VoluntaryBoolean;
+import io.amelia.support.VoluntaryLong;
 
 /**
  * Provides common methods for converting an unknown value to (and from) {@link Object} using the Java 8 Optional feature.
@@ -44,216 +44,96 @@ import io.amelia.support.Strs;
  */
 public interface ValueTypesTrait<ExceptionClass extends ApplicationException.Error>
 {
-	default Boolean getBoolean( TypeBase.TypeBoolean type )
+	default VoluntaryBoolean getBoolean()
 	{
-		return getBoolean( type.getPath() ).orElse( type.getDefault() );
-	}
-
-	default VoluntaryBoolean getBoolean( String key )
-	{
-		return VoluntaryBoolean.ofNullable( getValue( key ).map( Objs::castToBoolean ).orElse( null ) );
+		return VoluntaryBoolean.ofNullable( getValue().map( Objs::castToBoolean ).orElse( null ) );
 	}
 
 	default Voluntary<Color, ExceptionClass> getColor()
 	{
-		return getColor( "" );
-	}
-
-	default Voluntary<Color, ExceptionClass> getColor( String key )
-	{
-		return getValue( key ).filter( v -> v instanceof Color ).map( v -> ( Color ) v );
-	}
-
-	default Color getColor( TypeBase.TypeColor type )
-	{
-		return getColor( type.getPath() ).orElse( type.getDefault() );
+		return getValue().filter( v -> v instanceof Color ).map( v -> ( Color ) v );
 	}
 
 	default OptionalDouble getDouble()
 	{
-		return getDouble( "" );
-	}
-
-	default OptionalDouble getDouble( String key )
-	{
-		return Objs.ifPresent( getValue( key ).map( Objs::castToDouble ), OptionalDouble::of, OptionalDouble::empty );
-	}
-
-	default Double getDouble( TypeBase.TypeDouble type )
-	{
-		return getDouble( type.getPath() ).orElse( type.getDefault() );
+		return Objs.ifPresent( getValue().map( Objs::castToDouble ), OptionalDouble::of, OptionalDouble::empty );
 	}
 
 	default <T extends Enum<T>> Voluntary<T, ExceptionClass> getEnum( Class<T> enumClass )
 	{
-		return getEnum( "", enumClass );
-	}
-
-	default <T extends Enum<T>> Voluntary<T, ExceptionClass> getEnum( String key, Class<T> enumClass )
-	{
-		return getString( key ).map( e -> Enum.valueOf( enumClass, e ) );
-	}
-
-	default <T extends Enum<T>> T getEnum( TypeBase.TypeEnum<T> type )
-	{
-		return getEnum( type.getPath(), type.getEnumClass() ).orElse( type.getDefault() );
+		return getString().map( e -> Enum.valueOf( enumClass, e ) );
 	}
 
 	default OptionalInt getInteger()
 	{
-		return getInteger( "" );
-	}
-
-	default OptionalInt getInteger( String key )
-	{
-		return Objs.ifPresent( getValue( key ).map( Objs::castToInt ), OptionalInt::of, OptionalInt::empty );
-	}
-
-	default Integer getInteger( TypeBase.TypeInteger type )
-	{
-		return getInteger( type.getPath() ).orElse( type.getDefault() );
+		return Objs.ifPresent( getValue().map( Objs::castToInt ), OptionalInt::of, OptionalInt::empty );
 	}
 
 	default <T> Voluntary<List<T>, ExceptionClass> getList()
 	{
-		return getList( "" );
+		return getValue().filter( v -> v instanceof List ).map( v -> ( List<T> ) v );
 	}
 
 	default <T> void getList( @Nonnull List<T> list )
 	{
-		getList( "", list );
-	}
-
-	default <T> void getList( @Nonnull String key, @Nonnull List<T> list )
-	{
-		getValue( key ).filter( v -> v instanceof List ).ifPresent( v -> list.addAll( ( List<T> ) v ) );
-	}
-
-	default <T> Voluntary<List<T>, ExceptionClass> getList( @Nonnull String key )
-	{
-		return getValue( key ).filter( v -> v instanceof List ).map( v -> ( List<T> ) v );
+		getValue().filter( v -> v instanceof List ).ifPresent( v -> list.addAll( ( List<T> ) v ) );
 	}
 
 	default <T> Voluntary<List<T>, ExceptionClass> getList( @Nonnull Class<T> expectedObjectClass )
 	{
-		return getList( "", expectedObjectClass );
-	}
-
-	default <T> Voluntary<List<T>, ExceptionClass> getList( @Nonnull String key, @Nonnull Class<T> expectedObjectClass )
-	{
-		return getValue( key ).filter( v -> v instanceof List ).map( v -> Objs.castList( ( List<?> ) v, expectedObjectClass ) );
+		return getValue().filter( v -> v instanceof List ).map( v -> Objs.castList( ( List<?> ) v, expectedObjectClass ) );
 	}
 
 	default VoluntaryLong getLong()
 	{
-		return getLong( "" );
-	}
-
-	default VoluntaryLong getLong( @Nonnull String key )
-	{
-		return Objs.ifPresent( getValue( key ).map( Objs::castToLong ), VoluntaryLong::of, VoluntaryLong::empty );
-	}
-
-	default Long getLong( TypeBase.TypeLong type )
-	{
-		return getLong( type.getPath() ).orElse( type.getDefault() );
+		return Objs.ifPresent( getValue().map( Objs::castToLong ), VoluntaryLong::of, VoluntaryLong::empty );
 	}
 
 	default Voluntary<String, ExceptionClass> getString()
 	{
-		return getString( "" );
-	}
-
-	default Voluntary<String, ExceptionClass> getString( @Nonnull String key )
-	{
-		return getValue( key ).map( Objs::castToString );
-	}
-
-	default String getString( TypeBase.TypeString type )
-	{
-		return getString( type.getPath() ).orElse( type.getDefault() );
+		return getString();
 	}
 
 	default <T> Voluntary<Class<T>, ExceptionClass> getStringAsClass()
 	{
-		return getStringAsClass( "" );
-	}
-
-	default <T> Voluntary<Class<T>, ExceptionClass> getStringAsClass( @Nonnull String key )
-	{
-		return getStringAsClass( key, null );
+		return getStringAsClass( null );
 	}
 
 	@SuppressWarnings( "unchecked" )
-	default <T> Voluntary<Class<T>, ExceptionClass> getStringAsClass( @Nonnull String key, @Nonnull Class<T> expectedClass )
+	default <T> Voluntary<Class<T>, ExceptionClass> getStringAsClass( @Nonnull Class<T> expectedClass )
 	{
-		return getString( key ).map( str -> ( Class<T> ) Objs.getClassByName( str ) ).filter( expectedClass::isAssignableFrom );
+		return getString().map( str -> ( Class<T> ) Objs.getClassByName( str ) ).filter( expectedClass::isAssignableFrom );
 	}
 
 	default Voluntary<File, ExceptionClass> getStringAsFile( File rel )
 	{
-		return getStringAsFile( "", rel );
-	}
-
-	default Voluntary<File, ExceptionClass> getStringAsFile( String key, File rel )
-	{
-		return getString( key ).map( s -> IO.buildFile( rel, s ) );
-	}
-
-	default Voluntary<File, ExceptionClass> getStringAsFile( String key )
-	{
-		return getString( key ).map( IO::buildFile );
+		return getString().map( s -> IO.buildFile( rel, s ) );
 	}
 
 	default Voluntary<File, ExceptionClass> getStringAsFile()
 	{
-		return getStringAsFile( "" );
-	}
-
-	default File getStringAsFile( TypeBase.TypeFile type )
-	{
-		return getStringAsFile( type.getPath() ).orElse( type.getDefault() );
+		return getString().map( IO::buildFile );
 	}
 
 	default Voluntary<Path, ExceptionClass> getStringAsPath( Path rel )
 	{
-		return getStringAsPath( "", rel );
-	}
-
-	default Voluntary<Path, ExceptionClass> getStringAsPath( String key, Path rel )
-	{
-		return getString( key ).map( s -> IO.buildPath( rel, s ) );
-	}
-
-	default Voluntary<Path, ExceptionClass> getStringAsPath( String key )
-	{
-		return getString( key ).map( IO::buildPath );
+		return getString().map( s -> IO.buildPath( rel, s ) );
 	}
 
 	default Voluntary<Path, ExceptionClass> getStringAsPath()
 	{
-		return getStringAsPath( "" );
-	}
-
-	default Path getStringAsPath( TypeBase.TypePath type )
-	{
-		return getStringAsPath( type.getPath() ).orElse( type.getDefault() );
+		return getString().map( IO::buildPath );
 	}
 
 	default Voluntary<List<String>, ExceptionClass> getStringList()
 	{
-		return getStringList( "", "|" );
-	}
-
-	default Voluntary<List<String>, ExceptionClass> getStringList( String key )
-	{
-		return getStringList( key, "|" );
+		return getStringList( "|" );
 	}
 
 	@SuppressWarnings( "unchecked" )
-	default Voluntary<List<String>, ExceptionClass> getStringList( String key, String delimiter )
+	default Voluntary<List<String>, ExceptionClass> getStringList( String delimiter )
 	{
-		Object value = getValue( key ).orElse( null );
+		Object value = getValue().orElse( null );
 		if ( value == null )
 			return Voluntary.empty();
 		if ( value instanceof List )
@@ -261,48 +141,26 @@ public interface ValueTypesTrait<ExceptionClass extends ApplicationException.Err
 		return Voluntary.of( value ).map( Objs::castToString ).map( s -> Strs.split( s, delimiter ).collect( Collectors.toList() ) ).removeException();
 	}
 
-	default List<String> getStringList( TypeBase.TypeStringList type )
-	{
-		return getStringList( type.getPath() ).orElse( type.getDefault() );
-	}
-
-	Voluntary<?, ExceptionClass> getValue( String key );
-
 	Voluntary<?, ExceptionClass> getValue();
 
 	default boolean isColor()
 	{
-		return isColor( "" );
-	}
-
-	default boolean isColor( String key )
-	{
-		return getValue( key ).map( v -> v instanceof Color ).orElse( false );
+		return getValue().map( v -> v instanceof Color ).orElse( false );
 	}
 
 	default boolean isEmpty()
 	{
-		return isEmpty( "" );
+		return getValue().map( Objs::isEmpty ).orElse( true );
 	}
 
-	default boolean isEmpty( String key )
+	default boolean isList()
 	{
-		return getValue( key ).map( Objs::isEmpty ).orElse( true );
-	}
-
-	default boolean isList( String key )
-	{
-		return getValue( key ).map( o -> o instanceof List ).orElse( false );
+		return getValue().map( o -> o instanceof List ).orElse( false );
 	}
 
 	default boolean isNull()
 	{
-		return isNull( "" );
-	}
-
-	default boolean isNull( String key )
-	{
-		return getValue( key ).map( Objs::isNull ).orElse( true );
+		return getValue().map( Objs::isNull ).orElse( true );
 	}
 
 	default boolean isSet()
@@ -310,34 +168,19 @@ public interface ValueTypesTrait<ExceptionClass extends ApplicationException.Err
 		return !isNull();
 	}
 
-	default boolean isSet( String key )
-	{
-		return !isNull( key );
-	}
-
 	default boolean isTrue()
 	{
-		return isTrue( "" );
+		return isTrue( false );
 	}
 
-	default boolean isTrue( TypeBase.TypeBoolean type )
+	default boolean isTrue( boolean def )
 	{
-		return isTrue( type.getPath(), type.getDefault() );
+		return getValue().map( Objs::isTrue ).orElse( def );
 	}
 
-	default boolean isTrue( String key )
+	default boolean isType( @Nonnull Class<?> type )
 	{
-		return isTrue( key, false );
-	}
-
-	default boolean isTrue( String key, boolean def )
-	{
-		return getValue( key ).map( Objs::isTrue ).orElse( def );
-	}
-
-	default boolean isType( @Nonnull String key, @Nonnull Class<?> type )
-	{
-		Voluntary<?, ExceptionClass> result = getValue( key );
+		Voluntary<?, ExceptionClass> result = getValue();
 		return result.isPresent() && type.isAssignableFrom( result.get().getClass() );
 	}
 }
