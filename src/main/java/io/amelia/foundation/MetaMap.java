@@ -2,7 +2,7 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
@@ -57,8 +57,8 @@ public class MetaMap extends HashMap<String, Object>
 			return Maps.builder( ( Map<Object, Object> ) value ).castTo( String.class, Object.class ).map( MetaMap::new );
 		if ( value instanceof List )
 			return Maps.builder().increment( ( List<Object> ) value ).castTo( String.class, Object.class ).map( MetaMap::new );
-		if ( value instanceof ConfigMap )
-			return new MetaMap( ( ( ConfigMap ) value ).values() );
+		if ( value instanceof ConfigData )
+			return new MetaMap( ( ( ConfigData ) value ).values() );
 		return null;
 	}
 

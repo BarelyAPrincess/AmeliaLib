@@ -2,7 +2,7 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
@@ -21,7 +21,6 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 
-import io.amelia.foundation.Kernel;
 import io.amelia.lang.ApplicationException;
 
 /**
@@ -31,7 +30,7 @@ import io.amelia.lang.ApplicationException;
  */
 public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneable, Comparable<T>
 {
-	// TODO Implement a flag setup that does things such as forces nodes to lowercase or normalizes with it being done manually.
+	// TODO Implement a flag setup that does things such as forces nodes to lowercase, normalizes, or converts to ASCII
 
 	public static final Pattern RANGE_EXPRESSION = Pattern.compile( "(0-9+)-(0-9+)" );
 
@@ -41,8 +40,8 @@ public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneabl
 	}
 
 	private final NonnullFunction<String[], T> creator;
+	protected String glue;
 	protected String[] nodes;
-	private String glue;
 
 	protected NamespaceBase( NonnullFunction<String[], T> creator, String glue, String[] nodes )
 	{
@@ -128,14 +127,21 @@ public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneabl
 		return false;
 	}
 
-	public T dropFirst()
+	private T create( String... nodes )
 	{
-		return subNamespace( 1 );
+		T node = creator.apply( nodes );
+		node.glue = glue;
+		return node;
 	}
 
-	public T dropLast()
+	public T dropFirst()
 	{
-		return subNamespace( 0, getNodeCount() - 1 );
+		return subNodes( 1 );
+	}
+
+	public boolean endsWith( String other )
+	{
+		return getString().endsWith( other );
 	}
 
 	@Override
@@ -181,14 +187,14 @@ public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneabl
 		return creator.apply( result );
 	}
 
-	public String getFirst()
+	public T getFirst()
 	{
-		return getNode( 0 );
+		return create( getStringFirst() );
 	}
 
-	public String getLast()
+	public T getLast()
 	{
-		return getNode( getNodeCount() - 1 );
+		return create( getStringLast() );
 	}
 
 	public String getLocalName()
@@ -196,16 +202,9 @@ public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneabl
 		return nodes[nodes.length - 1];
 	}
 
-	public String getNode( int inx )
+	public T getNode( int inx )
 	{
-		try
-		{
-			return nodes[inx];
-		}
-		catch ( IndexOutOfBoundsException e )
-		{
-			return null;
-		}
+		return create( getStringNode( inx ) );
 	}
 
 	public int getNodeCount()
@@ -213,32 +212,19 @@ public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneabl
 		return nodes.length;
 	}
 
-	public String getNodeWithException( int inx )
-	{
-		return nodes[inx];
-	}
-
 	public String[] getNodes()
 	{
 		return nodes;
 	}
 
-	public String getParent()
+	public T getParent()
 	{
-		if ( nodes.length <= 1 )
-			return "";
-
-		return Strs.join( Arrays.copyOf( nodes, nodes.length - 1 ), glue );
+		return create( getStringParent() );
 	}
 
-	public T getParentNamespace()
+	public T getParent( int depth )
 	{
-		return getParentNamespace( 1 );
-	}
-
-	public T getParentNamespace( int depth )
-	{
-		return getNodeCount() >= depth ? subNamespace( 0, getNodeCount() - depth ) : creator.apply( new String[0] );
+		return create( getStringParent( depth ) );
 	}
 
 	public String getRootName()
@@ -265,14 +251,49 @@ public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneabl
 		return Arrays.stream( nodes ).filter( Strs::isNotEmpty ).collect( Collectors.joining( glue ) );
 	}
 
+	public String getStringFirst()
+	{
+		return getStringNode( 0 );
+	}
+
+	public String getStringLast()
+	{
+		return getStringNode( getNodeCount() - 1 );
+	}
+
+	public String getStringNode( int inx )
+	{
+		try
+		{
+			return nodes[inx];
+		}
+		catch ( IndexOutOfBoundsException e )
+		{
+			return null;
+		}
+	}
+
+	public String getStringNodeWithException( int inx )
+	{
+		return nodes[inx];
+	}
+
+	public String getStringParent()
+	{
+		return getStringParent( 1 );
+	}
+
+	public String getStringParent( int depth )
+	{
+		if ( nodes.length <= depth )
+			return "";
+
+		return Strs.join( Arrays.copyOf( nodes, nodes.length - depth ), glue );
+	}
+
 	public boolean isEmpty()
 	{
 		return nodes.length == 0;
-	}
-
-	public int matchPercentage( @Nonnull String namespace )
-	{
-		return matchPercentage( namespace, this.glue );
 	}
 
 	public int matchPercentage( @Nonnull String namespace, @Nonnull String glue )
@@ -303,6 +324,11 @@ public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneabl
 			total += 10 * ( other.length - nodes.length );
 
 		return total;
+	}
+
+	public int matchPercentage( @Nonnull String namespace )
+	{
+		return matchPercentage( namespace, this.glue );
 	}
 
 	public int matchPercentage( @Nonnull T namespace )
@@ -339,6 +365,14 @@ public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneabl
 		for ( int i = 0; i < nodes.length; i++ )
 			result[i] = Strs.toUnicode( nodes[i] ).toLowerCase( Locale.US );
 		return creator.apply( result );
+	}
+
+	/**
+	 * Pops the last node
+	 */
+	public T pop()
+	{
+		return subNodes( 0, getNodeCount() - 1 );
 	}
 
 	/**
@@ -389,68 +423,48 @@ public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneabl
 		}
 	}
 
-	@SuppressWarnings( "unchecked" )
 	public T prepend( String... nodes )
 	{
-		if ( nodes.length == 0 )
-			throw new IllegalArgumentException( "Nodes are empty" );
-		if ( nodes.length == 1 )
-			nodes = splitString( nodes[0] );
-		this.nodes = Arrs.concat( nodes, this.nodes );
-		return ( T ) this;
-	}
-
-	public T prependNew( String... nodes )
-	{
-		if ( nodes.length == 0 )
-			throw new IllegalArgumentException( "Nodes are empty" );
-		if ( nodes.length == 1 )
-			nodes = splitString( nodes[0] );
-		return creator.apply( Arrs.concat( nodes, this.nodes ) );
+		return create( prependString( nodes ) );
 	}
 
 	@SuppressWarnings( "unchecked" )
-	public T replace( String literal, String replacement )
+	public String[] prependString( String... nodes )
 	{
-		nodes = Arrays.stream( nodes ).map( s -> s.replace( literal, replacement ) ).collect( Collectors.toList() ).toArray( new String[0] );
-		return ( T ) this;
+		if ( nodes.length == 0 )
+			throw new IllegalArgumentException( "Nodes are empty" );
+		if ( nodes.length == 1 )
+			nodes = splitString( nodes[0] );
+		return Arrs.concat( nodes, this.nodes );
 	}
 
-	public T replaceNew( String literal, String replacement )
+	public T replace( String literal, String replacement )
 	{
-		return creator.apply( Arrays.stream( nodes ).map( s -> s.replace( literal, replacement ) ).collect( Collectors.toList() ).toArray( new String[0] ) );
+		return create( replaceString( literal, replacement ) );
+	}
+
+	@SuppressWarnings( "unchecked" )
+	public String[] replaceString( String literal, String replacement )
+	{
+		return Arrays.stream( nodes ).map( s -> s.replace( literal, replacement ) ).collect( Collectors.toList() ).toArray( new String[0] );
 	}
 
 	public T reverseOrder()
 	{
 		List<String> tmpNodes = Arrays.asList( nodes );
 		Collections.reverse( tmpNodes );
-		nodes = tmpNodes.toArray( new String[0] );
-		return ( T ) this;
-	}
-
-	public T reverseOrderNew()
-	{
-		List<String> tmpNodes = Arrays.asList( nodes );
-		Collections.reverse( tmpNodes );
-		return creator.apply( tmpNodes.toArray( new String[0] ) );
-	}
-
-	public T setGlue( String glue )
-	{
-		this.glue = glue;
-		return ( T ) this;
-	}
-
-	private String[] splitString( @Nonnull String str )
-	{
-		return splitString( str, null );
+		return create( tmpNodes.toArray( new String[0] ) );
 	}
 
 	private String[] splitString( @Nonnull String str, String separator )
 	{
 		separator = Objs.notEmptyOrDef( separator, glue );
 		return Strs.split( str, separator ).filter( Strs::isNotEmpty ).toArray( String[]::new );
+	}
+
+	private String[] splitString( @Nonnull String str )
+	{
+		return splitString( str, null );
 	}
 
 	public boolean startsWith( @Nonnull T namespace )
@@ -489,19 +503,9 @@ public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneabl
 		return true;
 	}
 
-	public boolean startsWith( @Nonnull String namespace, String separator, boolean matchAtSeparator )
-	{
-		return startsWith( creator.apply( splitString( namespace, separator ) ), matchAtSeparator );
-	}
-
 	public boolean startsWith( @Nonnull String namespace )
 	{
 		return startsWith( namespace, null );
-	}
-
-	public boolean startsWith( @Nonnull String namespace, boolean matchAtSeparator )
-	{
-		return startsWith( namespace, null, matchAtSeparator );
 	}
 
 	public boolean startsWith( @Nonnull String namespace, String separator )
@@ -509,22 +513,17 @@ public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneabl
 		return startsWith( creator.apply( splitString( namespace, separator ) ), true );
 	}
 
-	public T subNamespace( int start )
+	public boolean startsWith( @Nonnull String namespace, boolean matchAtSeparator )
 	{
-		return subNamespace( start, getNodeCount() );
+		return startsWith( namespace, null, matchAtSeparator );
 	}
 
-	public T subNamespace( int start, int end )
+	public boolean startsWith( @Nonnull String namespace, String separator, boolean matchAtSeparator )
 	{
-		return creator.apply( subNodes( start, end ) );
+		return startsWith( creator.apply( splitString( namespace, separator ) ), matchAtSeparator );
 	}
 
-	public String[] subNodes( int start )
-	{
-		return subNodes( start, getNodeCount() );
-	}
-
-	public String[] subNodes( int start, int end )
+	public String[] subArray( int start, int end )
 	{
 		if ( start < 0 )
 			throw new IllegalArgumentException( "Start can't be less than 0" );
@@ -536,6 +535,21 @@ public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneabl
 		return Arrays.copyOfRange( nodes, start, end );
 	}
 
+	public String[] subArray( int start )
+	{
+		return subArray( start, getNodeCount() );
+	}
+
+	public T subNodes( int start )
+	{
+		return subNodes( start, getNodeCount() );
+	}
+
+	public T subNodes( int start, int end )
+	{
+		return create( subArray( start, end ) );
+	}
+
 	public String subString( int start )
 	{
 		return subString( start, getNodeCount() );
@@ -543,7 +557,7 @@ public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneabl
 
 	public String subString( int start, int end )
 	{
-		return Strs.join( subNodes( start, end ), glue );
+		return Strs.join( subArray( start, end ), glue );
 	}
 
 	@Override

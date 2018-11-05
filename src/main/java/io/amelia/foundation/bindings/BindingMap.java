@@ -2,7 +2,7 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
@@ -16,7 +16,6 @@ import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 
 import io.amelia.data.ContainerWithValue;
-import io.amelia.lang.ApplicationException;
 import io.amelia.support.Voluntary;
 
 @SuppressWarnings( "unchecked" )
@@ -91,7 +90,7 @@ public final class BindingMap extends ContainerWithValue<BindingMap, BindingMap.
 	}
 
 	@Override
-	protected BindingException.Error getException( String message )
+	protected BindingException.Error getException( @Nonnull String message, Exception exception )
 	{
 		// TODO Include node in exception
 		return new BindingException.Error( message );

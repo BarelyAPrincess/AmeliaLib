@@ -2,7 +2,7 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
@@ -34,13 +34,14 @@ public class Namespace extends NamespaceBase<Namespace>
 		}
 	}
 
-	public static boolean isTld( String domain )
+	public static NodePath empty( String separator )
 	{
-		domain = Http.hostnameNormalize( domain );
-		for ( String tld : tldMaps )
-			if ( domain.matches( tld ) )
-				return true;
-		return false;
+		return new NodePath( new String[0], separator );
+	}
+
+	public static NodePath empty()
+	{
+		return new NodePath( new String[0], "." );
 	}
 
 	public static Domain parseDomain( String namespace )
@@ -55,7 +56,7 @@ public class Namespace extends NamespaceBase<Namespace>
 
 		for ( int n = 0; n < ns.getNodeCount(); n++ )
 		{
-			String sns = ns.subNamespace( n ).getString();
+			String sns = ns.subNodes( n ).getString();
 			if ( isTld( sns ) )
 			{
 				parentNodePos = n;
@@ -63,12 +64,21 @@ public class Namespace extends NamespaceBase<Namespace>
 			}
 		}
 
-		return parentNodePos > 0 ? new Domain( ns.subNamespace( parentNodePos ), ns.subNamespace( 0, parentNodePos ) ) : new Domain( new Namespace(), ns );
+		return parentNodePos > 0 ? new Domain( ns.subNodes( parentNodePos ), ns.subNodes( 0, parentNodePos ) ) : new Domain( new Namespace(), ns );
 	}
 
 	public static Namespace parseString( String namespace )
 	{
 		return parseString( namespace, null );
+	}
+
+	public static boolean isTld( String domain )
+	{
+		domain = Http.hostnameNormalize( domain );
+		for ( String tld : tldMaps )
+			if ( domain.matches( tld ) )
+				return true;
+		return false;
 	}
 
 	public static Namespace parseString( String namespace, String glue )
@@ -133,7 +143,7 @@ public class Namespace extends NamespaceBase<Namespace>
 
 		public Namespace getChildDomain()
 		{
-			return child.getNodeCount() <= 1 ? new Namespace() : child.subNamespace( 1 );
+			return child.getNodeCount() <= 1 ? new Namespace() : child.subNodes( 1 );
 		}
 
 		public Namespace getFullDomain()
@@ -143,12 +153,23 @@ public class Namespace extends NamespaceBase<Namespace>
 
 		public Namespace getRootDomain()
 		{
-			return Namespace.parseString( child.getLast() + "." + tld.getString() );
+			return Namespace.parseString( child.getStringLast() + "." + tld.getString() );
 		}
 
 		public Namespace getTld()
 		{
 			return tld;
 		}
+	}
+
+	public Namespace setGlue( String glue )
+	{
+		this.glue = glue;
+		return this;
+	}
+
+	public String getGlue()
+	{
+		return glue;
 	}
 }

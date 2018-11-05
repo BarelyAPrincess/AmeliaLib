@@ -2,7 +2,7 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
@@ -12,6 +12,7 @@ package io.amelia.support;
 import java.util.Objects;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * Represents a function that accepts one argument and produces a result.
@@ -63,13 +64,14 @@ public interface NonnullFunction<InputType, ResultType>
 	}
 
 	@Nonnull
-	default ResultType apply( @Nonnull InputType var )
+	default ResultType apply( @Nullable InputType var )
 	{
 		return Objs.notNull( apply0( Objs.notNull( var ) ) );
 	}
 
 	/**
 	 * Applies this function to the given argument.
+	 * DO NOT CALL! Will circumvent null-check.
 	 *
 	 * @param var the function argument
 	 *

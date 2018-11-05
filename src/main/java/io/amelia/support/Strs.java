@@ -2,7 +2,7 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
@@ -12,8 +12,6 @@ package io.amelia.support;
 import com.sun.istack.internal.NotNull;
 
 import java.awt.Color;
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.net.IDN;
@@ -25,22 +23,11 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.IdentityHashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -53,6 +40,8 @@ import javax.annotation.Nullable;
 
 public class Strs
 {
+	private static final Pattern SIMPLE_REGEX_PATTERN_CHARS = Pattern.compile( "^[\\w\\d\\s\\n\\t\\r\\\\.,*?+{}|]*$" );
+
 	public static final Map<String, String[]> CHARS_MAP;
 
 	static
@@ -176,6 +165,20 @@ public class Strs
 		CHARS_MAP = Collections.unmodifiableMap( chars );
 	}
 
+	public static boolean matchesIgnoreCase( @Nullable String str, String... compareTo )
+	{
+		if ( str == null )
+			return false;
+		return Arrays.asList( toLowerCase( compareTo ) ).contains( str.toLowerCase() );
+	}
+
+	public static boolean matches( @Nullable String str, String... compareTo )
+	{
+		if ( str == null )
+			return false;
+		return Arrays.asList( compareTo ).contains( str );
+	}
+
 	public static String bytesToStringASCII( byte[] bytes )
 	{
 		return new String( bytes, StandardCharsets.US_ASCII );
@@ -253,11 +256,6 @@ public class Strs
 		return false;
 	}
 
-	public static boolean containsValidChars( String ref )
-	{
-		return ref.matches( "[a-z0-9_]*" );
-	}
-
 	/**
 	 * Copies all elements from the iterable collection of originals to the collection provided.
 	 *
@@ -267,8 +265,7 @@ public class Strs
 	 *
 	 * @return the collection provided that would have the elements copied into
 	 *
-	 * @throws UnsupportedOperationException if the collection is immutable and originals contains a string which starts with the specified search
-	 *                                       string.
+	 * @throws UnsupportedOperationException if the collection is immutable and originals contains a string which starts with the specified search string.
 	 * @throws IllegalArgumentException      if any parameter is is null
 	 * @throws IllegalArgumentException      if originals contains a null element. <b>Note: the collection may be modified before this is thrown</b>
 	 */
@@ -321,10 +318,12 @@ public class Strs
 	 * @param right         The second string
 	 * @param caseSensitive Is case sensitive
 	 *
-	 * @return Returns true if they match
+	 * @return Returns true if they match. If either string is null, we return false.
 	 */
-	public static boolean equals( @Nonnull String left, @Nonnull String right, boolean caseSensitive )
+	public static boolean equals( @Nullable String left, @Nullable String right, boolean caseSensitive )
 	{
+		if ( left == null || right == null )
+			return false;
 		return caseSensitive ? left.equals( right ) : left.equalsIgnoreCase( right );
 	}
 
@@ -333,6 +332,7 @@ public class Strs
 		return EscapeTranslator.HTML_ESCAPE().translate( str );
 	}
 
+	@Deprecated
 	public static String fixQuotes( String var )
 	{
 		try
@@ -353,34 +353,30 @@ public class Strs
 		return var;
 	}
 
-	public static String getStackTrace( Throwable t )
-	{
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		t.printStackTrace( new PrintStream( out ) );
-		return encodeDefault( out.toByteArray() );
-	}
-
 	@NotNull
 	public static String ifNullReturnEmpty( @Nullable String str )
 	{
 		return str == null ? "" : str;
 	}
 
-	public static boolean isCamelCase( String var )
+	public static boolean isCamelCase( @Nonnull String var )
 	{
-		Objs.notNull( var );
 		return var.matches( "[a-z0-9]+(?:[A-Z]{1,2}[a-z0-9]+)*" );
 	}
 
-	public static boolean isCapitalizedWords( String str )
+	public static boolean isCapitalizedWordsFully( @Nonnull String str )
 	{
-		Objs.notNull( str );
+		return str.equals( capitalizeWordsFully( str ) );
+	}
+
+	public static boolean isCapitalizedWords( @Nonnull String str )
+	{
 		return str.equals( capitalizeWords( str ) );
 	}
 
-	public static boolean isEmpty( String str )
+	public static boolean isEmpty( @Nullable String str )
 	{
-		return str.length() == 0;
+		return str != null && str.length() == 0;
 	}
 
 	/**
@@ -407,22 +403,22 @@ public class Strs
 		return str.toUpperCase().equals( str );
 	}
 
-	public static String join( @Nonnull Map<String, Object> args, @Nonnull String glue )
+	public static String join( @Nonnull Map<String, ?> args, @Nonnull String glue )
 	{
 		return join( args, glue, "=" );
 	}
 
-	public static String join( @Nonnull Map<String, Object> args )
+	public static String join( @Nonnull Map<String, ?> args )
 	{
 		return join( args, ", ", "=" );
 	}
 
-	public static String join( @Nonnull Map<String, Object> args, @Nonnull String glue, @Nonnull String keyValueSeparator )
+	public static String join( @Nonnull Map<String, ?> args, @Nonnull String glue, @Nonnull String keyValueSeparator )
 	{
 		return args.entrySet().stream().map( e -> e.getKey() + keyValueSeparator + Objs.castToString( e.getValue() ) ).collect( Collectors.joining( glue ) );
 	}
 
-	public static String join( @Nonnull Map<String, Object> args, @Nonnull String glue, @Nonnull String keyValueSeparator, @Nonnull String nullValue )
+	public static String join( @Nonnull Map<String, ?> args, @Nonnull String glue, @Nonnull String keyValueSeparator, @Nonnull String nullValue )
 	{
 		return args.entrySet().stream().map( e -> e.getKey() + keyValueSeparator + ( e.getValue() == null ? nullValue : Objs.castToString( e.getValue() ) ) ).collect( Collectors.joining( glue ) );
 	}
@@ -474,7 +470,6 @@ public class Strs
 
 	public static void lengthMustEqual( @Nonnull String str, @Nonnegative int len )
 	{
-		Objs.notNull( str );
 		Objs.notFalse( str.length() == len, "String is lessThan or greatThan the required string length. {required=" + len + ",got=" + str.length() + "}" );
 	}
 
@@ -488,6 +483,12 @@ public class Strs
 		if ( str.length() <= max )
 			return str;
 		return str.substring( 0, max ) + ( appendEllipsis ? "..." : "" );
+	}
+
+	@Nonnull
+	public static String notEmptyOrDef( @Nullable String value, @Nonnull String def )
+	{
+		return isEmpty( value ) ? def : value;
 	}
 
 	public static Color parseColor( String color )
@@ -569,9 +570,6 @@ public class Strs
 	@Nullable
 	public static String regexCapture( @Nonnull String var, @Nonnull String regex, int group )
 	{
-		Objs.notNull( var );
-		Objs.notNull( regex );
-
 		Pattern p = Pattern.compile( regex );
 		Matcher m = p.matcher( var );
 
@@ -581,13 +579,18 @@ public class Strs
 		return m.group( group );
 	}
 
+	/**
+	 * @deprecated Use Pattern.quote( str ) instead;
+	 */
+	@Deprecated
 	public static String regexQuote( String str )
 	{
-		if ( str == null )
+		return Pattern.quote( str );
+		/* if ( str == null )
 			return null;
 		for ( String s : new String[] {"\\", "+", ".", "?", "*", "[", "]", "^", "$", "(", ")", "{", "}", "=", "!", "<", ">", "|", ":", "-"} )
 			str = str.replace( s, "\\" + s );
-		return str;
+		return str; */
 	}
 
 	public static String removeInvalidChars( String ref )
@@ -625,7 +628,7 @@ public class Strs
 		return input.replaceAll( "\\s", "" );
 	}
 
-	public static String repeat( @Nonnull String string, int count )
+	public static String repeat( @Nonnull String string, @Nonnegative int count )
 	{
 		if ( count <= 1 )
 			return count == 0 ? "" : string;
@@ -645,27 +648,27 @@ public class Strs
 		return new String( array );
 	}
 
-	public static List<String> repeatToList( @Nonnull String chr, int length )
+	public static List<String> repeatToList( @Nonnull String str, @Nonnegative int length )
 	{
 		List<String> list = new ArrayList<>();
 		for ( int i = 0; i < length; i++ )
-			list.add( chr );
+			list.add( str );
 		return list;
 	}
 
-	public static String replaceAt( String par, int at, String rep )
+	public static String replaceAt( @Nonnull String str, @Nonnegative int at, char replacement )
 	{
-		StringBuilder sb = new StringBuilder( par );
-		sb.setCharAt( at, rep.toCharArray()[0] );
+		StringBuilder sb = new StringBuilder( str );
+		sb.setCharAt( at, replacement );
 		return sb.toString();
 	}
 
-	public static String slugify( String str )
+	public static String slugify( @Nonnull String str )
 	{
 		return slugify( str, "-" );
 	}
 
-	public static String slugify( String str, String glue )
+	public static String slugify( @Nonnull String str, @Nonnull String glue )
 	{
 		str = toAscii( str );
 
@@ -682,7 +685,7 @@ public class Strs
 		return trimAll( str, glue.charAt( 0 ) );
 	}
 
-	public static Stream<String> split( @Nonnull String str, @Nonnull String delimiter, int limit )
+	public static Stream<String> split( @Nonnull String str, @Nonnull String delimiter, @Nonnegative int limit )
 	{
 		if ( Objs.isEmpty( str ) )
 			return Stream.empty();
@@ -712,29 +715,23 @@ public class Strs
 	 * This method uses a substring to check case-insensitive equality. This means the internal array does not need to be
 	 * copied like a toLowerCase() call would.
 	 *
-	 * @param string   String to check
+	 * @param str      String to check
 	 * @param prefixes Prefix of string to compare
 	 *
 	 * @return true if provided string starts with, ignoring case, the prefix provided
 	 *
 	 * @throws NullPointerException if prefix is null
 	 */
-	public static boolean startsWithIgnoreCase( @Nonnull final String string, @Nonnull final String... prefixes ) throws NullPointerException
+	public static boolean startsWithIgnoreCase( @Nonnull final String str, @Nonnull final String... prefixes ) throws NullPointerException
 	{
-		Objs.notNull( string, "Cannot check a null string for a match" );
 		for ( String prefix : prefixes )
-		{
-			if ( string.length() < prefix.length() )
-				return false;
-			if ( string.substring( 0, prefix.length() ).equalsIgnoreCase( prefix ) )
+			if ( str.length() >= prefix.length() && str.substring( 0, prefix.length() ).equalsIgnoreCase( prefix ) )
 				return true;
-		}
 		return false;
 	}
 
 	public static StringChain stringChain( @Nonnull String str )
 	{
-		Objs.notNull( str );
 		return new StringChain( str );
 	}
 
@@ -935,10 +932,7 @@ public class Strs
 
 	public static String trimAll( @Nullable String text )
 	{
-		// TODO Add more trimable characters
-		char[] chars = new char[] {' ', '\n', '\t'};
-		String normalizedText = trimStart( text, chars );
-		return trimEnd( normalizedText, chars );
+		return trimAllRegex( text, "\\s|\\n|\\t|\\r" );
 	}
 
 	/**
@@ -991,21 +985,6 @@ public class Strs
 		return text;
 	}
 
-	private static String trimRegex( @Nullable String text, String regex )
-	{
-		if ( Objs.isEmpty( text ) )
-			return text;
-
-		String normalizedText = text.trim();
-		int index = -1;
-
-		do
-			index++;
-		while ( index < normalizedText.length() && Pattern.matches( regex, normalizedText.substring( index, 1 ) ) );
-
-		return normalizedText.substring( index ).trim();
-	}
-
 	/**
 	 * Trim specified character from front of string
 	 *
@@ -1040,100 +1019,96 @@ public class Strs
 		return text;
 	}
 
-	public static Map<String, String> wrap( Map<String, String> map )
+	@Nonnegative
+	public static int length( @Nullable String str )
 	{
-		return wrap( map, '`', '\'' );
+		return str == null ? 0 : str.length();
 	}
 
-	public static Collection<String> wrap( Collection<String> col )
+	public static int lengthOrNeg( @Nullable String str )
 	{
-		return wrap( col, '`' );
+		return str == null ? -1 : str.length();
 	}
 
-	public static Collection<String> wrap( final Collection<String> col, char wrap )
+	public static String trimStartRegex( @Nullable String text, String regex )
 	{
-		synchronized ( col )
+		if ( length( text ) < 1 )
+			return "";
+
+		if ( !SIMPLE_REGEX_PATTERN_CHARS.matcher( text ).matches() )
+			throw new IllegalArgumentException( "Regex contains disallowed characters." );
+
+		Pattern sweeper = Pattern.compile( "^(" + regex + ")(.*)$" );
+		Matcher matcher = sweeper.matcher( text );
+
+		while ( matcher.find() )
 		{
-			String[] strings = col.toArray( new String[0] );
-			col.clear();
-			for ( int i = 0; i < strings.length; i++ )
-				col.add( wrap( strings[i], wrap ) );
+			text = matcher.replaceFirst( "$2" );
+			matcher = sweeper.matcher( text );
 		}
 
-		return col;
+		return text;
 	}
 
-	public static List<String> wrap( List<String> list )
+	public static String trimEndRegex( @Nullable String text, String regex )
+	{
+		if ( length( text ) < 1 )
+			return "";
+
+		if ( !SIMPLE_REGEX_PATTERN_CHARS.matcher( text ).matches() )
+			throw new IllegalArgumentException( "Regex contains disallowed characters." );
+
+		Pattern sweeper = Pattern.compile( "^(.*)(" + regex + ")$" );
+		Matcher matcher = sweeper.matcher( text );
+
+		while ( matcher.find() )
+		{
+			text = matcher.replaceFirst( "$1" );
+			matcher = sweeper.matcher( text );
+		}
+
+		return text;
+	}
+
+	public static String trimAllRegex( @Nullable String text, String regex )
+	{
+		text = trimStartRegex( text, regex );
+		return trimEndRegex( text, regex );
+	}
+
+	public static <T extends Collection<String>> T wrap( T list )
 	{
 		return wrap( list, '`' );
 	}
 
-	public static List<String> wrap( final List<String> list, char wrap )
+	public static <T extends Collection<String>> T wrap( T list, char wrapChar )
 	{
-		List<String> newList;
-		if ( list instanceof ArrayList )
-			newList = new ArrayList<>();
-		else if ( list instanceof CopyOnWriteArrayList )
-			newList = new CopyOnWriteArrayList<>();
-		else if ( list instanceof LinkedList )
-			newList = new LinkedList<>();
-		else
-			newList = new LinkedList<>();
+		synchronized ( list )
+		{
+			String[] strings = list.toArray( new String[0] );
+			list.clear();
+			for ( int i = 0; i < strings.length; i++ )
+				list.add( wrap( strings[i], wrapChar ) );
+		}
 
-		for ( String str : list )
-			newList.add( wrap( str, wrap ) );
-
-		return newList;
+		return list;
 	}
 
-	public static Map<String, String> wrap( final Map<String, String> map, char keyWrap, char valueWrap )
+	public static <T extends Map<String, String>> T wrap( T map )
 	{
-		Map<String, String> newMap;
-		if ( map instanceof HashMap )
-			newMap = new HashMap<>();
-		if ( map instanceof ConcurrentMap )
-			newMap = new ConcurrentHashMap<>();
-		if ( map instanceof IdentityHashMap )
-			newMap = new IdentityHashMap<>();
-		if ( map instanceof LinkedHashMap )
-			newMap = new LinkedHashMap<>();
-		if ( map instanceof TreeMap )
-			newMap = new TreeMap<>();
-		else
-			newMap = new LinkedHashMap<>();
-
-		for ( Map.Entry<String, String> e : map.entrySet() )
-			if ( e.getKey() != null && !e.getKey().isEmpty() )
-				newMap.put( keyWrap + e.getKey() + keyWrap, valueWrap + ( e.getValue() == null ? "" : e.getValue() ) + valueWrap );
-
-		return newMap;
+		return wrap( map, '`', '\'' );
 	}
 
-	public static Set<String> wrap( Set<String> set )
+	public static <T extends Map<String, String>> T wrap( T map, char keyChar, char valueChar )
 	{
-		return wrap( set, '`' );
-	}
+		Map<String, String> tmpMap = new HashMap<>( map );
+		map.clear();
 
-	public static Set<String> wrap( final Set<String> set, char wrap )
-	{
-		Set<String> newSet;
-		if ( set instanceof LinkedHashSet )
-			newSet = new LinkedHashSet<>();
-		else if ( set instanceof HashSet )
-			newSet = new HashSet<>();
-		else if ( set instanceof TreeSet )
-			newSet = new TreeSet<>();
-		else if ( set instanceof CopyOnWriteArraySet )
-			newSet = new CopyOnWriteArraySet<>();
-		else if ( set.getClass() == new HashMap<>().keySet().getClass() ) // Really nasty way of comparing it to a private class
-			newSet = new LinkedHashSet<>();
-		else
-			newSet = new LinkedHashSet<>();
+		for ( Map.Entry<String, String> entry : tmpMap.entrySet() )
+			if ( !Strs.isEmpty( entry.getKey() ) )
+				map.put( keyChar + entry.getKey() + keyChar, valueChar + ( entry.getValue() == null ? "" : entry.getValue() ) + valueChar );
 
-		for ( String str : set )
-			newSet.add( wrap( str, wrap ) );
-
-		return newSet;
+		return map;
 	}
 
 	public static String wrap( String str, char wrap )
@@ -1386,7 +1361,7 @@ public class Strs
 
 		public StringChain trimRegex( String regex )
 		{
-			str = Strs.trimRegex( str, regex );
+			str = Strs.trimAllRegex( str, regex );
 			return this;
 		}
 

@@ -2,7 +2,7 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
@@ -10,16 +10,15 @@
 package io.amelia.data;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.EnumSet;
+import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -30,6 +29,7 @@ import io.amelia.foundation.Kernel;
 import io.amelia.lang.ApplicationException;
 import io.amelia.lang.ContainerException;
 import io.amelia.support.BiFunctionWithException;
+import io.amelia.support.ConsumerWithException;
 import io.amelia.support.Maps;
 import io.amelia.support.Namespace;
 import io.amelia.support.Objs;
@@ -39,15 +39,47 @@ import io.amelia.support.Voluntary;
 @SuppressWarnings( "unchecked" )
 public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, ExceptionClass>, ExceptionClass extends ApplicationException.Error>
 {
-	public static final int LISTENER_CHILD_ADD = 0x00;
-	public static final int LISTENER_CHILD_REMOVE = 0x01;
+	public static final int LISTENER_CHILD_ADD_BEFORE = 0x00;
+	public static final int LISTENER_CHILD_ADD_AFTER = 0x01;
+	public static final int LISTENER_CHILD_REMOVE_BEFORE = 0x02;
+	public static final int LISTENER_CHILD_REMOVE_AFTER = 0x03;
 	protected final List<BaseClass> children = new ArrayList<>();
 	private final BiFunctionWithException<BaseClass, String, BaseClass, ExceptionClass> creator;
 	private final Map<Integer, ContainerListener.Container> listeners = new ConcurrentHashMap<>();
-	protected EnumSet<ContainerWithValue.Flag> flags = EnumSet.noneOf( ContainerWithValue.Flag.class );
+	protected BitSet flags = new BitSet(); // We use BitSet so extending classes can implement their own special flags.
 	protected BaseClass parent;
 	protected ContainerOptions containerOptions = null;
 	private String localName;
+
+	public void destroyChildren() throws ExceptionClass
+	{
+		Streams.forEachWithException( getChildren(), ContainerBase::destroy );
+	}
+
+	/**
+	 * Makes a clone of this container with the exception of skipping the parent, you'll manually add the parent if this was recursive.
+	 */
+	public BaseClass duplicate()
+	{
+		try
+		{
+			BaseClass clone = creator.apply( null, localName );
+
+			listeners.values().forEach( clone::addListener );
+			clone.flags = flags;
+			clone.parent = null;
+			clone.containerOptions = containerOptions;
+
+			for ( BaseClass child : children )
+				clone.setChild( child.duplicate() );
+
+			return clone;
+		}
+		catch ( Exception e )
+		{
+			throw new RuntimeException( e );
+		}
+	}
 
 	protected ContainerBase( @Nonnull BiFunctionWithException<BaseClass, String, BaseClass, ExceptionClass> creator, @Nonnull String localName ) throws ExceptionClass
 	{
@@ -67,9 +99,9 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 		this.localName = localName;
 	}
 
-	public final int addChildAddListener( ContainerListener.OnChildAdd<BaseClass> function, ContainerListener.Flags... flags )
+	public final int addChildAddBeforeListener( ContainerListener.OnChildAdd<BaseClass> function, ContainerListener.Flags... flags )
 	{
-		return addListener( new ContainerListener.Container( LISTENER_CHILD_ADD, flags )
+		return addListener( new ContainerListener.Container( LISTENER_CHILD_ADD_BEFORE, flags )
 		{
 			@Override
 			public void call( Object[] objs )
@@ -79,9 +111,21 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 		} );
 	}
 
-	public final int addChildRemoveListener( ContainerListener.OnChildRemove<BaseClass> function, ContainerListener.Flags... flags )
+	public final int addChildAddAfterListener( ContainerListener.OnChildAdd<BaseClass> function, ContainerListener.Flags... flags )
 	{
-		return addListener( new ContainerListener.Container( LISTENER_CHILD_REMOVE, flags )
+		return addListener( new ContainerListener.Container( LISTENER_CHILD_ADD_AFTER, flags )
+		{
+			@Override
+			public void call( Object[] objs )
+			{
+				function.listen( ( BaseClass ) objs[0] );
+			}
+		} );
+	}
+
+	public final int addChildRemoveBeforeListener( ContainerListener.OnChildRemove<BaseClass> function, ContainerListener.Flags... flags )
+	{
+		return addListener( new ContainerListener.Container( LISTENER_CHILD_REMOVE_BEFORE, flags )
 		{
 			@Override
 			public void call( Object[] objs )
@@ -91,14 +135,26 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 		} );
 	}
 
-	public final BaseClass addFlag( Flag... flags )
+	public final int addChildRemoveAfterListener( ContainerListener.OnChildRemove<BaseClass> function, ContainerListener.Flags... flags )
+	{
+		return addListener( new ContainerListener.Container( LISTENER_CHILD_REMOVE_AFTER, flags )
+		{
+			@Override
+			public void call( Object[] objs )
+			{
+				function.listen( ( BaseClass ) objs[0], ( BaseClass ) objs[1] );
+			}
+		} );
+	}
+
+	public final BaseClass addFlag( int... flags )
 	{
 		disposalCheck();
-		for ( Flag flag : flags )
+		for ( int flag : flags )
 		{
-			if ( flag.equals( Flag.DISPOSED ) )
+			if ( flag == Flags.DISPOSED )
 				throw new ContainerException( "The DISPOSED flag is reserved for internal use only." );
-			this.flags.add( flag );
+			this.flags.set( flag );
 		}
 		return ( BaseClass ) this;
 	}
@@ -115,16 +171,18 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 	}
 
 	@Nonnull
-	private Voluntary<BaseClass, ExceptionClass> createChild( String key )
+	protected Voluntary<BaseClass, ExceptionClass> createChild( @Nonnull String key )
 	{
 		disposalCheck();
-		if ( hasFlag( Flag.READ_ONLY ) )
-			return Voluntary.withException( getException( getCurrentPath() + " is read only." ) );
+		if ( hasFlag( Flags.READ_ONLY ) )
+			return Voluntary.withException( getException( getCurrentPath() + " is read only.", null ) );
 		try
 		{
 			BaseClass child = creator.apply( ( BaseClass ) this, key );
+			callParentRecursive( container -> container.canCreateChild( ( BaseClass ) this, key ) );
+			fireListenerWithException( LISTENER_CHILD_ADD_BEFORE, child );
 			children.add( child );
-			fireListener( LISTENER_CHILD_ADD, child );
+			fireListener( LISTENER_CHILD_ADD_AFTER, child );
 			return Voluntary.of( child );
 		}
 		catch ( Exception e )
@@ -133,34 +191,53 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 		}
 	}
 
+	protected void callParentRecursive( ConsumerWithException<BaseClass, ExceptionClass> callback ) throws ExceptionClass
+	{
+		callback.accept( ( BaseClass ) this );
+		if ( parent != null )
+			parent.callParentRecursive( callback );
+	}
+
+	protected void callRecursive( ConsumerWithException<BaseClass, ExceptionClass> callback ) throws ExceptionClass
+	{
+		callback.accept( ( BaseClass ) this );
+		Streams.forEachWithException( getChildren(), child -> child.callRecursive( callback ) );
+	}
+
+	protected void canCreateChild( BaseClass node, String key ) throws ExceptionClass
+	{
+		// Always Permitted
+	}
+
 	protected void destroy() throws ExceptionClass
 	{
 		disposalCheck();
-		notFlag( Flag.READ_ONLY );
+		notFlag( Flags.READ_ONLY );
 		removeFromParent();
 		for ( BaseClass child : children )
 			child.destroy();
 		children.clear();
-		flags = EnumSet.of( Flag.DISPOSED );
+		flags.clear();
+		flags.set( Flags.DISPOSED );
 	}
 
 	public void destroyChild( String key ) throws ExceptionClass
 	{
-		if ( hasFlag( Flag.READ_ONLY ) )
+		if ( hasFlag( Flags.READ_ONLY ) )
 			throwException( getCurrentPath() + " is read only." );
 		getChildVoluntary( key ).ifPresent( ContainerBase::destroy );
 	}
 
 	public Voluntary<BaseClass, ExceptionClass> destroyChildAndCreate( String key )
 	{
-		if ( hasFlag( Flag.READ_ONLY ) )
-			return Voluntary.withException( getException( getCurrentPath() + " is read only." ) );
+		if ( hasFlag( Flags.READ_ONLY ) )
+			return Voluntary.withException( getException( getCurrentPath() + " is read only.", null ) );
 		return getChildVoluntary( key ).ifPresentCatchException( ContainerBase::destroy ).hasNotErroredFlat( value -> createChild( key ) );
 	}
 
 	protected final void disposalCheck() throws ContainerException
 	{
-		if ( hasFlag( Flag.DISPOSED ) )
+		if ( hasFlag( Flags.DISPOSED ) )
 			throw new ContainerException( getCurrentPath() + " has been disposed." );
 	}
 
@@ -169,14 +246,14 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 		disposalCheck();
 		Objs.notNull( key );
 
-		if ( create && hasFlag( Flag.READ_ONLY ) )
-			return Voluntary.withException( getException( getCurrentPath() + " is read only." ) );
+		if ( create && hasFlag( Flags.READ_ONLY ) )
+			return Voluntary.withException( getException( getCurrentPath() + " is read only.", null ) );
 
 		Namespace ns = Namespace.parseString( key, getOptions().getSeparator() );
 		if ( ns.getNodeCount() == 0 )
 			return Voluntary.of( ( BaseClass ) this );
 
-		String first = ns.getFirst();
+		String first = ns.getStringFirst();
 		Voluntary<BaseClass, ExceptionClass> found = null;
 
 		for ( BaseClass child : children )
@@ -199,28 +276,61 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 			return found.flatMap( child -> child.findChild( ns.subString( 1 ), create ) );
 	}
 
-	final BaseClass findFlag( Flag flag )
+	final BaseClass findFlag( int flag )
 	{
 		disposalCheck();
-		return ( BaseClass ) ( flags.contains( flag ) ? this : parent == null ? null : parent.findFlag( flag ) );
+		return ( BaseClass ) ( flags.get( flag ) ? this : parent == null ? null : parent.findFlag( flag ) );
 	}
 
 	void fireListener( int type, Object... objs )
 	{
-		fireListener( true, type, objs );
+		try
+		{
+			fireListenerWithException( true, type, objs );
+		}
+		catch ( Exception e )
+		{
+			e.printStackTrace();
+		}
 	}
 
-	void fireListener( boolean local, int type, Object... objs )
+	void fireListenerWithException( int type, Object... objs ) throws ExceptionClass
+	{
+		fireListenerWithException( true, type, objs );
+	}
+
+	void fireListenerWithException( boolean local, int type, Object... objs ) throws ExceptionClass
 	{
 		if ( hasParent() )
-			parent.fireListener( false, type, objs );
+			parent.fireListenerWithException( false, type, objs );
 		for ( Map.Entry<Integer, ContainerListener.Container> entry : listeners.entrySet() )
 			if ( entry.getValue().type == type )
 			{
 				if ( entry.getValue().flags.contains( ContainerListener.Flags.FIRE_ONCE ) )
 					listeners.remove( entry.getKey() );
 				if ( local || !entry.getValue().flags.contains( ContainerListener.Flags.NO_RECURSIVE ) )
-					Kernel.getExecutorParallel().execute( () -> entry.getValue().call( objs ) );
+					if ( entry.getValue().flags.contains( ContainerListener.Flags.SYNCHRONIZED ) )
+					{
+						try
+						{
+							entry.getValue().call( objs );
+						}
+						catch ( Exception e )
+						{
+							throw getException( "Exception thrown by listener", e );
+						}
+					}
+					else
+						Kernel.getExecutorParallel().execute( () -> {
+							try
+							{
+								entry.getValue().call( objs );
+							}
+							catch ( Exception e )
+							{
+								e.printStackTrace();
+							}
+						} );
 			}
 	}
 
@@ -278,9 +388,9 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 		return Namespace.parseDomain( getCurrentPath() ).getTld().getString();
 	}
 
-	public Flag[] getFlags()
+	public BitSet getFlags()
 	{
-		return flags.toArray( new Flag[0] );
+		return flags;
 	}
 
 	public final Set<String> getKeys()
@@ -330,7 +440,10 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 		return parent == null ? ( BaseClass ) this : parent.getRoot();
 	}
 
-	protected ContainerOptions getOptions()
+	/**
+	 * Protected or public?
+	 */
+	public ContainerOptions getOptions()
 	{
 		if ( parent != null )
 			return parent.getOptions();
@@ -349,9 +462,9 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 		return children.size() > 0;
 	}
 
-	protected final boolean hasFlag( Flag flag )
+	protected final boolean hasFlag( int flag )
 	{
-		return flags.contains( flag ) || ( parent != null && !parent.hasFlag( Flag.NO_FLAG_RECURSION ) && parent.hasFlag( flag ) );
+		return flags.get( flag ) || ( parent != null && !parent.hasFlag( Flags.NO_FLAG_RECURSION ) && parent.hasFlag( flag ) );
 	}
 
 	public final boolean hasParent()
@@ -361,7 +474,7 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 
 	public final boolean isDisposed()
 	{
-		return hasFlag( Flag.DISPOSED );
+		return hasFlag( Flags.DISPOSED );
 	}
 
 	/**
@@ -386,7 +499,7 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 	public void copyChild( @Nonnull BaseClass child ) throws ExceptionClass
 	{
 		disposalCheck();
-		notFlag( Flag.READ_ONLY );
+		notFlag( Flags.READ_ONLY );
 
 		for ( BaseClass oldChild : child.children )
 		{
@@ -395,13 +508,13 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 				setChild( oldChild );
 			else
 			{
-				notFlag( Flag.NO_OVERRIDE );
-				newChild.notFlag( Flag.READ_ONLY );
+				notFlag( Flags.NO_OVERRIDE );
+				newChild.notFlag( Flags.READ_ONLY );
 				newChild.copyChild( oldChild );
 			}
 		}
 
-		flags.addAll( child.flags );
+		flags = ( BitSet ) child.flags.clone();
 	}
 
 	public final BaseClass move( @Nonnull String targetPath ) throws ExceptionClass
@@ -414,7 +527,7 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 
 		for ( int i = 0; i < ns.getNodeCount(); i++ )
 		{
-			String node = ns.getNode( i );
+			String node = ns.getStringNode( i );
 
 			if ( Objs.isEmpty( node ) )
 			{
@@ -446,10 +559,10 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 		return ( BaseClass ) this;
 	}
 
-	public void notFlag( Flag flag ) throws ExceptionClass
+	public void notFlag( int flag ) throws ExceptionClass
 	{
 		if ( hasFlag( flag ) )
-			throwException( getCurrentPath() + " has " + flag.name() + " flag." );
+			throwException( getCurrentPath() + " has " + flag + " flag." );
 	}
 
 	/**
@@ -469,14 +582,15 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 		listeners.clear();
 	}
 
-	public final BaseClass removeFlag( Flag... flags )
+	public final BaseClass removeFlag( int... flags )
 	{
 		disposalCheck();
-		this.flags.removeAll( Arrays.asList( flags ) );
+		for ( int flag : flags )
+			this.flags.set( flag, false );
 		return ( BaseClass ) this;
 	}
 
-	public final BaseClass removeFlagRecursive( Flag... flags )
+	public final BaseClass removeFlagRecursive( int... flags )
 	{
 		disposalCheck();
 		if ( parent != null )
@@ -488,9 +602,10 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 	{
 		if ( hasParent() )
 		{
-			parent.notFlag( Flag.READ_ONLY );
+			parent.notFlag( Flags.READ_ONLY );
+			fireListenerWithException( LISTENER_CHILD_REMOVE_BEFORE, parent, this );
 			parent.children.remove( this );
-			fireListener( LISTENER_CHILD_REMOVE, parent, this );
+			fireListener( LISTENER_CHILD_REMOVE_AFTER, parent, this );
 			parent = null;
 		}
 		return ( BaseClass ) this;
@@ -506,10 +621,15 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 		setChild( child, false );
 	}
 
+	public void setName( String localName )
+	{
+		this.localName = localName;
+	}
+
 	public final void setChild( @Nonnull BaseClass child, boolean mergeIfExists ) throws ExceptionClass
 	{
 		disposalCheck();
-		notFlag( Flag.READ_ONLY );
+		notFlag( Flags.READ_ONLY );
 
 		if ( children.contains( child ) )
 			return;
@@ -517,7 +637,7 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 		BaseClass current = findChild( child.getName(), false ).orElse( null );
 		if ( current != null )
 		{
-			notFlag( Flag.NO_OVERRIDE );
+			notFlag( Flags.NO_OVERRIDE );
 			if ( mergeIfExists )
 			{
 				current.copyChild( child );
@@ -542,7 +662,7 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 	public final void moveChild( @Nonnull BaseClass child, @Nonnull String targetKey, boolean mergeIfExists ) throws ExceptionClass
 	{
 		disposalCheck();
-		notFlag( Flag.READ_ONLY );
+		notFlag( Flags.READ_ONLY );
 
 		BaseClass current = findChild( targetKey, false ).orElse( null );
 		if ( current != null )
@@ -551,7 +671,7 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 			if ( current == child )
 				return;
 
-			notFlag( Flag.NO_OVERRIDE );
+			notFlag( Flags.NO_OVERRIDE );
 			if ( mergeIfExists )
 			{
 				current.copyChild( child );
@@ -575,11 +695,11 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 		return getChildVoluntary( key ).map( ContainerBase::getChildCount ).orElse( -1 );
 	}
 
-	protected abstract ExceptionClass getException( String message );
+	protected abstract ExceptionClass getException( @Nonnull String message, @Nullable Exception exception );
 
 	protected final void throwException( String message ) throws ExceptionClass
 	{
-		throw getException( message );
+		throw getException( message, null );
 	}
 
 	/**
@@ -594,18 +714,36 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 				child.trimChildren();
 	}
 
-	public enum Flag
+	public static class Flags
 	{
-		/* Values and children can never be written to this object */
-		READ_ONLY,
-		/* This object will be ignored, if there is an attempt to write it to persistent disk */
-		NO_SAVE,
-		/* Prevents the overwriting of existing children and values */
-		NO_OVERRIDE,
-		/* Prevents flags from recurring to children */
-		NO_FLAG_RECURSION,
-		/* SPECIAL FLAG */
-		DISPOSED
+		// Helps guarantee there will be no flag collisions.
+		private static volatile AtomicInteger nextFlag = new AtomicInteger( 0 );
+
+		protected static int getNextFlag()
+		{
+			return nextFlag.incrementAndGet();
+		}
+
+		protected static int getLastFlag()
+		{
+			return nextFlag.get();
+		}
+
+		// Values and children can never be written to this object
+		public static final int READ_ONLY = getNextFlag();
+		// This object will be ignored if there is an attempt to write it to persistent disk
+		public static final int NO_SAVE = getNextFlag();
+		// Prevents the overwriting of existing children and values
+		public static final int NO_OVERRIDE = getNextFlag();
+		// Prevents flags from recurring to children
+		public static final int NO_FLAG_RECURSION = getNextFlag();
+		// SPECIAL FLAG - DO NOT USE
+		public static final int DISPOSED = getNextFlag();
+
+		Flags()
+		{
+			// Static Access
+		}
 	}
 
 	public class ContainerOptions
@@ -620,6 +758,11 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 		public void setSeparator( String separator )
 		{
 			this.separator = separator;
+		}
+
+		public String getSeparatorReplacement()
+		{
+			return "_".equals( separator ) ? "-" : "_";
 		}
 	}
 }

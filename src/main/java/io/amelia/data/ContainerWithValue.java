@@ -2,7 +2,7 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
@@ -11,6 +11,9 @@ package io.amelia.data;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -40,20 +43,48 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 	public static final int LISTENER_VALUE_REMOVE = 0x04;
 	protected volatile ValueType value;
 
-	protected ContainerWithValue( @Nonnull BiFunctionWithException<BaseClass, String, BaseClass, ExceptionClass> creator, @Nonnull String key ) throws ExceptionClass
+	protected ContainerWithValue( @Nonnull BiFunctionWithException<BaseClass, String, BaseClass, ExceptionClass> creator, @Nonnull String localName ) throws ExceptionClass
 	{
-		this( creator, null, key, null );
+		this( creator, null, localName, null );
 	}
 
-	protected ContainerWithValue( @Nonnull BiFunctionWithException<BaseClass, String, BaseClass, ExceptionClass> creator, @Nullable BaseClass parent, @Nonnull String key ) throws ExceptionClass
+	protected ContainerWithValue( @Nonnull BiFunctionWithException<BaseClass, String, BaseClass, ExceptionClass> creator, @Nullable BaseClass parent, @Nonnull String localName ) throws ExceptionClass
 	{
-		this( creator, parent, key, null );
+		this( creator, parent, localName, null );
 	}
 
-	protected ContainerWithValue( @Nonnull BiFunctionWithException<BaseClass, String, BaseClass, ExceptionClass> creator, @Nullable BaseClass parent, @Nonnull String key, @Nullable ValueType value ) throws ExceptionClass
+	protected ContainerWithValue( @Nonnull BiFunctionWithException<BaseClass, String, BaseClass, ExceptionClass> creator, @Nullable BaseClass parent, @Nonnull String localName, @Nullable ValueType value ) throws ExceptionClass
 	{
-		super( creator, parent, key );
+		super( creator, parent, localName );
 		this.value = value;
+	}
+
+	@Override
+	public BaseClass duplicate()
+	{
+		BaseClass clone = super.duplicate();
+
+		try
+		{
+			Method method = value.getClass().getMethod( "clone" );
+			if ( Modifier.isPublic( method.getModifiers() ) ) // One sign that it was implemented.
+				clone.value = ( ValueType ) method.invoke( value );
+			else
+				clone.value = value;
+		}
+		catch ( NoSuchMethodException | IllegalAccessException | InvocationTargetException e )
+		{
+			clone.value = value;
+		}
+
+		return clone;
+	}
+
+	@Override
+	protected void canCreateChild( BaseClass node, String key ) throws ExceptionClass
+	{
+		if ( node.getParent() == this && hasFlag( Flags.VALUES_ONLY ) )
+			throw getException( "This node has the VALUES_ONLY flag set.", null );
 	}
 
 	public final int addValueChangeListener( ContainerListener.OnValueChange<BaseClass, ValueType> function, ContainerListener.Flags... flags )
@@ -251,7 +282,7 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 		return getValue();
 	}
 
-	public Voluntary<ValueType, ExceptionClass> getValue( String key )
+	public Voluntary<ValueType, ExceptionClass> getValue( @Nonnull String key )
 	{
 		return findChild( key, false ).flatMap( ContainerWithValue::getValue );
 	}
@@ -265,10 +296,10 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 	public void setValue( ValueType value ) throws ExceptionClass
 	{
 		disposalCheck();
-		notFlag( Flag.READ_ONLY );
-		if ( hasFlag( Flag.NO_OVERRIDE ) && hasValue() )
+		notFlag( Flags.READ_ONLY );
+		if ( hasFlag( Flags.NO_OVERRIDE ) && hasValue() )
 			throwException( getCurrentPath() + " has NO_OVERRIDE flag" );
-		if ( value instanceof ContainerBase )
+		if ( value != null && ContainerBase.class.isAssignableFrom( value.getClass() ) )
 			throwException( "The value can't be of class ContainerBase, please use the appropriate methods instead, e.g. SetChild(), MoveChild(), CopyChild(), etc." );
 		updateValue( value );
 	}
@@ -311,6 +342,11 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 		getChildOrCreate( key ).setValue( value );
 	}
 
+	public void setValue( TypeBase type, ValueType value ) throws ExceptionClass
+	{
+		getChildOrCreate( type ).setValue( value );
+	}
+
 	public void setValueIfAbsent( ValueType value ) throws ExceptionClass
 	{
 		if ( !hasValue() )
@@ -319,7 +355,7 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 
 	public void setValueIfAbsent( TypeBase.TypeWithDefault type ) throws ExceptionClass
 	{
-		getChildOrCreate( type.getPath() ).setValueIfAbsent( ( ValueType ) type.getDefault() );
+		getChildOrCreate( type ).setValueIfAbsent( ( ValueType ) type.getDefault() );
 	}
 
 	public void setValueIfAbsent( String key, ValueType value ) throws ExceptionClass
@@ -336,9 +372,9 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 	}
 
 	/**
-	 * Used privately to update the value and call the proper value listener.
+	 * Used privately to update the value and call the proper listeners.
 	 */
-	protected ValueType updateValue( ValueType value )
+	protected <T extends ValueType> T updateValue( ValueType value )
 	{
 		if ( this.value == null && value != null )
 			fireListener( LISTENER_VALUE_STORE, value );
@@ -347,12 +383,23 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 		fireListener( LISTENER_VALUE_CHANGE, this.value, value );
 		ValueType oldValue = this.value;
 		this.value = value;
-		return oldValue;
+		return ( T ) oldValue;
 	}
 
 	public Map<String, ValueType> values()
 	{
 		disposalCheck();
 		return children.stream().filter( ContainerWithValue::hasValue ).collect( Collectors.toMap( ContainerWithValue::getName, c -> c.getValue().orElse( null ) ) );
+	}
+
+	public static class Flags extends ContainerBase.Flags
+	{
+		// Limits this container to containing on values
+		public static final int VALUES_ONLY = getNextFlag();
+
+		Flags()
+		{
+			// Static Access
+		}
 	}
 }

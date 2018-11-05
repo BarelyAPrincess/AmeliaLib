@@ -2,53 +2,53 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
 package io.amelia.lang;
 
-import io.amelia.foundation.ConfigMap;
+import io.amelia.foundation.ConfigData;
 
 public class ConfigException
 {
-	public static ConfigException.Error error( ConfigMap node )
+	public static ConfigException.Error error( ConfigData node )
 	{
 		return new ConfigException.Error( node );
 	}
 
-	public static ConfigException.Error error( ConfigMap node, String message )
+	public static ConfigException.Error error( ConfigData node, String message )
 	{
 		return new ConfigException.Error( node, message );
 	}
 
-	public static ConfigException.Error error( ConfigMap node, String message, Throwable cause )
+	public static ConfigException.Error error( ConfigData node, String message, Throwable cause )
 	{
 		return new ConfigException.Error( node, message, cause );
 	}
 
-	public static ConfigException.Error error( ConfigMap node, Throwable cause )
+	public static ConfigException.Error error( ConfigData node, Throwable cause )
 	{
 		return new ConfigException.Error( node, cause );
 	}
 
-	public static ConfigException.Ignorable ignorable( ConfigMap node )
+	public static ConfigException.Ignorable ignorable( ConfigData node )
 	{
 		return new ConfigException.Ignorable( node );
 	}
 
-	public static ConfigException.Ignorable ignorable( ConfigMap node, String message )
+	public static ConfigException.Ignorable ignorable( ConfigData node, String message )
 	{
 		return new ConfigException.Ignorable( node, message );
 	}
 
-	public static ConfigException.Ignorable ignorable( ConfigMap node, String message, Throwable cause )
+	public static ConfigException.Ignorable ignorable( ConfigData node, String message, Throwable cause )
 	{
 		return new ConfigException.Ignorable( node, message, cause );
 	}
 
-	public static ConfigException.Ignorable ignorable( ConfigMap node, Throwable cause )
+	public static ConfigException.Ignorable ignorable( ConfigData node, Throwable cause )
 	{
 		return new ConfigException.Ignorable( node, cause );
 	}
@@ -60,57 +60,57 @@ public class ConfigException
 
 	public static class Error extends ParcelableException.Error
 	{
-		public Error( ConfigMap node )
+		public Error( ConfigData node )
 		{
 			super( node );
 		}
 
-		public Error( ConfigMap node, String message )
+		public Error( ConfigData node, String message )
 		{
 			super( node, message );
 		}
 
-		public Error( ConfigMap node, String message, Throwable cause )
+		public Error( ConfigData node, String message, Throwable cause )
 		{
 			super( node, message, cause );
 		}
 
-		public Error( ConfigMap node, Throwable cause )
+		public Error( ConfigData node, Throwable cause )
 		{
 			super( node, cause );
 		}
 
-		public ConfigMap getConfigNode()
+		public ConfigData getConfigNode()
 		{
-			return ( ConfigMap ) node;
+			return ( ConfigData ) node;
 		}
 	}
 
 	public static class Ignorable extends ParcelableException.Ignorable
 	{
-		public Ignorable( ConfigMap node )
+		public Ignorable( ConfigData node )
 		{
 			super( node );
 		}
 
-		public Ignorable( ConfigMap node, String message )
+		public Ignorable( ConfigData node, String message )
 		{
 			super( node, message );
 		}
 
-		public Ignorable( ConfigMap node, String message, Throwable cause )
+		public Ignorable( ConfigData node, String message, Throwable cause )
 		{
 			super( node, message, cause );
 		}
 
-		public Ignorable( ConfigMap node, Throwable cause )
+		public Ignorable( ConfigData node, Throwable cause )
 		{
 			super( node, cause );
 		}
 
-		public ConfigMap getConfigNode()
+		public ConfigData getConfigNode()
 		{
-			return ( ConfigMap ) node;
+			return ( ConfigData ) node;
 		}
 	}
 }

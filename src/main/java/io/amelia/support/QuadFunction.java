@@ -9,10 +9,10 @@
  */
 package io.amelia.support;
 
-import java.util.Objects;
+import java.util.function.Function;
 
 @FunctionalInterface
-public interface QuadFunctionWithException<T, Y, U, W, R, E extends Exception>
+public interface QuadFunction<T, Y, U, W, R>
 {
 	/**
 	 * Returns a composed function that first applies this function to
@@ -29,7 +29,7 @@ public interface QuadFunctionWithException<T, Y, U, W, R, E extends Exception>
 	 *
 	 * @throws NullPointerException if after is null
 	 */
-	default <V> QuadFunctionWithException<T, Y, U, W, V, E> andThen( FunctionWithException<? super R, ? extends V, E> after ) throws E
+	default <V> QuadFunction<T, Y, U, W, V> andThen( Function<? super R, ? extends V> after )
 	{
 		Objs.isNotNull( after );
 		return ( T t, Y y, U u, W w ) -> after.apply( apply( t, y, u, w ) );
@@ -45,5 +45,5 @@ public interface QuadFunctionWithException<T, Y, U, W, R, E extends Exception>
 	 *
 	 * @return the function result
 	 */
-	R apply( T t, Y y, U u, W w ) throws E;
+	R apply( T t, Y y, U u, W w );
 }

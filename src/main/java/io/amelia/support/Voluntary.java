@@ -1,3 +1,12 @@
+/**
+ * This software may be modified and distributed under the terms
+ * of the MIT license.  See the LICENSE file for details.
+ * <p>
+ * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * <p>
+ * All Rights Reserved.
+ */
 package io.amelia.support;
 
 import java.util.NoSuchElementException;
@@ -23,8 +32,7 @@ import javax.annotation.Nullable;
  * {@link #ifPresent(io.amelia.support.ConsumerWithException) ifPresent()} (execute a block
  * of code if the value is present).
  *
- * <p>Additional methods for interfacing with Java 8 features are also present,
- * such as {@link #of(Optional)}, {@link #findFirst(Stream)}, and {@link #findAny(Stream)}.
+ * <p>Additional methods for interfacing with Java 8 features are also present, such as {@link #of(Optional)}.
  * Methods ending with "compatible" are intended in mimic the logic of similar methods found in {@link Optional}, e.g., {@link #flatMapCompatible(Function)}
  *
  * @apiNote This api feature is still in incubating status. Major changes to the API could happen at anytime.
@@ -159,16 +167,6 @@ public final class Voluntary<Type, Cause extends Exception>
 		return of( value );
 	}
 
-	public static <T, C extends Exception> Voluntary<T, C> findFirst( @Nonnull Stream<T> value )
-	{
-		return of( value.findFirst() );
-	}
-
-	public static <T, C extends Exception> Voluntary<T, C> findAny( @Nonnull Stream<T> value )
-	{
-		return of( value.findAny() );
-	}
-
 	/**
 	 * Returns an {@code Voluntary} describing the specified value, if non-null,
 	 * otherwise returns an empty {@code Voluntary}.
@@ -229,6 +227,31 @@ public final class Voluntary<Type, Cause extends Exception>
 		if ( cause == null )
 			return mapper.apply( value );
 		return ( Voluntary<T, X> ) this;
+	}
+
+	/**
+	 * If Voluntary has no value, the value will be retrieved from the supplied voluntary.
+	 * If the supplied Voluntary has not errored, this Voluntary's cause will be copied.
+	 */
+	public <T extends Type, X extends Exception> Voluntary<T, X> ifAbsentGet( Supplier<Voluntary<T, X>> supplier )
+	{
+		if ( !isPresent() )
+			return supplier.get().hasNotErrored( () -> ( X ) cause );
+		return ( Voluntary<T, X> ) this;
+	}
+
+	public <X extends Exception> Voluntary<Type, X> hasNotErrored( Supplier<X> causeSupplier )
+	{
+		if ( !hasErrored() )
+			return ofNullable( value, causeSupplier.get() );
+		return ( Voluntary<Type, X> ) this;
+	}
+
+	public <X extends Exception> Voluntary<Type, X> hasErroredMap( Function<Cause, X> causeMapFunction )
+	{
+		if ( hasErrored() )
+			return ofNullable( value, causeMapFunction.apply( cause ) );
+		return ( Voluntary<Type, X> ) this;
 	}
 
 	/**

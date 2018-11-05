@@ -2,7 +2,7 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
@@ -45,17 +45,32 @@ public class Maths
 		return String.format( "%f", value );
 	}
 
-	public static boolean isNumber( String value )
+	public static boolean isNumber( Object value )
 	{
+		if ( value instanceof Number )
+			return true;
+
 		try
 		{
-			Integer.parseInt( value );
+			Long.parseLong( Objs.castToString( value ) );
 			return true;
 		}
 		catch ( NumberFormatException e )
 		{
-			return false; // String is not a number, auto disqualified
+			// Nothing
 		}
+
+		try
+		{
+			Float.parseFloat( Objs.castToString( value ) );
+			return true;
+		}
+		catch ( NumberFormatException ee )
+		{
+			// Nothing
+		}
+
+		return false;
 	}
 
 	public static <NumberType extends Number> Optional<NumberType> nonNegative( NumberType... numbers )

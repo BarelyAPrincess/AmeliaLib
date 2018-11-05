@@ -2,7 +2,7 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
@@ -28,8 +28,8 @@ import io.netty.buffer.Unpooled;
 
 public class FileContext
 {
-	private static final Charset DEFAULT_BINARY_CHARSET = Charset.forName( ConfigRegistry.config.getString( ConfigRegistry.Config.DEFAULT_BINARY_CHARSET ) );
-	private static final Charset DEFAULT_TEXT_CHARSET = Charset.forName( ConfigRegistry.config.getString( ConfigRegistry.Config.DEFAULT_TEXT_CHARSET ) );
+	private static final Charset DEFAULT_BINARY_CHARSET = Charset.forName( ConfigRegistry.config.getValue( ConfigRegistry.Config.DEFAULT_BINARY_CHARSET ) );
+	private static final Charset DEFAULT_TEXT_CHARSET = Charset.forName( ConfigRegistry.config.getValue( ConfigRegistry.Config.DEFAULT_TEXT_CHARSET ) );
 
 	private final Map<String, String> values = new TreeMap<>();
 	private Charset charset = null;

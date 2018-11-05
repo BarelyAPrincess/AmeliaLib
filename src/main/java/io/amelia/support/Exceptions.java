@@ -2,16 +2,22 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
 package io.amelia.support;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.util.function.Function;
 
+import javax.annotation.Nonnull;
+
 import io.amelia.lang.ApplicationException;
+import io.netty.util.CharsetUtil;
 
 public class Exceptions
 {
@@ -52,5 +58,12 @@ public class Exceptions
 		{
 			throw mapper.apply( e );
 		}
+	}
+
+	public static String getStackTrace( @Nonnull Throwable throwable )
+	{
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		throwable.printStackTrace( new PrintStream( out ) );
+		return Strs.encodeDefault( out.toByteArray() );
 	}
 }

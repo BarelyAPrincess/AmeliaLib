@@ -2,7 +2,7 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
@@ -21,8 +21,19 @@ public class ContainerListener
 
 	public enum Flags
 	{
+		/**
+		 * The listener will be removed once triggered.
+		 */
 		FIRE_ONCE,
-		NO_RECURSIVE
+		/**
+		 * The listener will only trigger for events on the same node.
+		 */
+		NO_RECURSIVE,
+		/**
+		 * The listener will be called from the same thread that triggered the event.
+		 * Keep in mind that this will block until returned and it's the only way to throw exceptions to prevent a change.
+		 */
+		SYNCHRONIZED
 	}
 
 	@FunctionalInterface
@@ -66,6 +77,6 @@ public class ContainerListener
 			this.flags = EnumSet.copyOf( Arrays.asList( flags ) );
 		}
 
-		abstract void call( Object[] objs );
+		abstract void call( Object[] objs ) throws Exception;
 	}
 }

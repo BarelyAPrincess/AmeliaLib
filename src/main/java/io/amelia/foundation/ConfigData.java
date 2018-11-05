@@ -2,7 +2,7 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
@@ -20,36 +20,36 @@ import io.amelia.data.parcel.ParcelLoader;
 import io.amelia.lang.ConfigException;
 import io.amelia.support.Voluntary;
 
-public final class ConfigMap extends ContainerWithValue<ConfigMap, Object, ConfigException.Error> implements KeyValueTypesTrait<ConfigException.Error>
+public final class ConfigData extends ContainerWithValue<ConfigData, Object, ConfigException.Error> implements KeyValueTypesTrait<ConfigException.Error>
 {
 	private String loadedValueHash = null;
 
-	private ConfigMap() throws ConfigException.Error
+	private ConfigData() throws ConfigException.Error
 	{
-		super( ConfigMap::new, "" );
+		super( ConfigData::new, "" );
 	}
 
-	public ConfigMap( @Nonnull String key ) throws ConfigException.Error
+	public ConfigData( @Nonnull String key ) throws ConfigException.Error
 	{
-		super( ConfigMap::new, key );
+		super( ConfigData::new, key );
 	}
 
-	public ConfigMap( @Nullable ConfigMap parent, @Nonnull String key ) throws ConfigException.Error
+	public ConfigData( @Nullable ConfigData parent, @Nonnull String key ) throws ConfigException.Error
 	{
-		super( ConfigMap::new, parent, key );
+		super( ConfigData::new, parent, key );
 	}
 
-	public ConfigMap( @Nullable ConfigMap parent, @Nonnull String key, @Nullable Object value ) throws ConfigException.Error
+	public ConfigData( @Nullable ConfigData parent, @Nonnull String key, @Nullable Object value ) throws ConfigException.Error
 	{
-		super( ConfigMap::new, parent, key, value );
+		super( ConfigData::new, parent, key, value );
 	}
 
 	@Nonnull
-	public static ConfigMap empty()
+	public static ConfigData empty()
 	{
 		try
 		{
-			return new ConfigMap( null, "" );
+			return new ConfigData( null, "" );
 		}
 		catch ( ConfigException.Error error )
 		{
@@ -59,29 +59,30 @@ public final class ConfigMap extends ContainerWithValue<ConfigMap, Object, Confi
 	}
 
 	@Override
-	protected ConfigException.Error getException( String message )
+	protected ConfigException.Error getException( @Nonnull String message, Exception exception )
 	{
-		return new ConfigException.Error( this, message );
+		return new ConfigException.Error( this, message, exception );
 	}
 
-	void loadNewValue( Object obj )
+	<T> T setValueWithHash( Object obj )
 	{
 		disposalCheck();
 		// A loaded value is only set if the current value is null, was never set, or the new value hash doesn't match the loaded one.
 		if ( loadedValueHash == null || value == null || !ParcelLoader.hashObject( obj ).equals( loadedValueHash ) )
 		{
 			loadedValueHash = ParcelLoader.hashObject( obj );
-			updateValue( obj );
+			return updateValue( obj );
 		}
+		return null;
 	}
 
-	void loadNewValue( String key, Object obj )
+	<T> T setValueWithHash( String key, Object obj )
 	{
-		getChildOrCreate( key ).loadNewValue( obj );
+		return getChildOrCreate( key ).setValueWithHash( obj );
 	}
 
 	@Override
-	public Voluntary<Object, ConfigException.Error> getValue( String key )
+	public Voluntary<Object, ConfigException.Error> getValue( @Nonnull String key )
 	{
 		return super.getValue( key );
 	}
@@ -92,11 +93,10 @@ public final class ConfigMap extends ContainerWithValue<ConfigMap, Object, Confi
 	}
 
 	@Override
-	protected Object updateValue( Object value )
+	protected <T> T updateValue( Object value )
 	{
 		if ( getNamespace().getNodeCount() < 2 )
 			throw new ConfigException.Ignorable( this, "You can't set configuration values on the top-level config node. Minimum depth is two!" );
 		return super.updateValue( value );
 	}
-
 }

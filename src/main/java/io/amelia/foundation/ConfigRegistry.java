@@ -2,7 +2,7 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
@@ -13,22 +13,21 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
-import java.util.Optional;
 
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 
+import io.amelia.data.ContainerBase;
 import io.amelia.data.TypeBase;
 import io.amelia.lang.ConfigException;
 import io.amelia.support.IO;
 import io.amelia.support.Objs;
 import io.amelia.support.Streams;
 import io.amelia.support.Strs;
-import io.amelia.support.Voluntary;
 
 public class ConfigRegistry
 {
-	public static final ConfigMap config = ConfigMap.empty();
+	public static final ConfigData config = ConfigData.empty();
 	private static boolean isConfigLoaded;
 
 	/*
@@ -75,34 +74,21 @@ public class ConfigRegistry
 		clearCache( Kernel.getPath( Kernel.PATH_CACHE ), keepHistory );
 	}
 
-	public static ConfigMap getChild( String key )
+	public static ConfigData getChild( String key )
 	{
 		return config.getChild( key );
 	}
 
-	public static ConfigMap getChildOrCreate( String key )
+	public static ConfigData getChildOrCreate( String key )
 	{
 		return config.getChildOrCreate( key );
 	}
 
-	public static void init( Env env, ConfigRegistryLoader loader ) throws ConfigException.Error
+	public static void init( ConfigRegistryLoader loader ) throws ConfigException.Error
 	{
-		Kernel.setAppPath( IO.buildPath( false, env.getString( "app-dir" ).orElse( null ) ) );
-
-		env.getStringsMap().filter( e -> e.getKey().startsWith( "dir-" ) ).forEach( e -> Kernel.setPath( e.getKey().substring( 4 ), Strs.split( e.getValue(), "/" ).toArray( String[]::new ) ) );
-
+		ConfigRegistry.loader = loader;
 		loader.loadConfig( config );
 		isConfigLoaded = true;
-
-		config.setEnvironmentVariables( env.map() );
-
-		ConfigMap envNode = config.getChildOrCreate( "env" );
-		for ( Map.Entry<String, Object> entry : env.map().entrySet() )
-			envNode.setValue( entry.getKey().replace( '-', '_' ), entry.getValue() );
-		envNode.addFlag( ConfigMap.Flag.READ_ONLY, ConfigMap.Flag.NO_SAVE );
-
-		// TODO Call loader.loadConfigAdditional() after network, database, and/or additional filesystems are initialized.
-		// loader.loadConfigAdditional( config );
 	}
 
 	public static boolean isConfigLoaded()
@@ -117,8 +103,8 @@ public class ConfigRegistry
 
 	public static void setObject( String key, Object value ) throws ConfigException.Error
 	{
-		if ( value instanceof ConfigMap )
-			config.getChildOrCreate( key ).setChild( ( ConfigMap ) value, false );
+		if ( value instanceof ConfigData )
+			config.getChildOrCreate( key ).setChild( ( ConfigData ) value, false );
 		else
 			config.getChildOrCreate( key ).setValue( value );
 	}

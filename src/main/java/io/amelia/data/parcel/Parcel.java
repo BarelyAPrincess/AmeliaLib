@@ -2,7 +2,7 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
@@ -36,7 +36,7 @@ public class Parcel extends ContainerWithValue<Parcel, Object, ParcelableExcepti
 		}
 	}
 
-	public Parcel() throws ParcelableException.Error
+	private Parcel() throws ParcelableException.Error
 	{
 		super( Parcel::new, "" );
 	}
@@ -74,9 +74,9 @@ public class Parcel extends ContainerWithValue<Parcel, Object, ParcelableExcepti
 	}
 
 	@Override
-	protected ParcelableException.Error getException( String message )
+	protected ParcelableException.Error getException( @Nonnull String message, Exception exception )
 	{
-		return new ParcelableException.Error( this, message );
+		return new ParcelableException.Error( this, message, exception );
 	}
 
 	/**
@@ -87,9 +87,30 @@ public class Parcel extends ContainerWithValue<Parcel, Object, ParcelableExcepti
 	{
 		private static final Map<Class<?>, ParcelSerializer<?>> serializers = new HashMap<>();
 
-		public static <T> T deserialize( Parcel src, Class<T> objClass ) throws ParcelableException.Error
+		public static <T> T deserialize( @Nonnull Parcel src, @Nonnull Class<? extends ParcelSerializer> serializer ) throws ParcelableException.Error
 		{
-			ParcelSerializer<T> serializer = getClassSerializer( objClass );
+
+
+			return serializer.readFromParcel( src );
+		}
+
+		public static <T> T deserialize( @Nonnull Parcel src, @Nonnull Class<?> objClass ) throws ParcelableException.Error
+		{
+			ParcelSerializer<T> serializer = null;
+			if ( ParcelSerializer.class.isAssignableFrom( objClass ) )
+			{
+				try
+				{
+					serializer = ( ( Class<ParcelSerializer<T>> ) objClass ).newInstance();
+					registerClassSerializer( objClass, serializer );
+				}
+				catch ( InstantiationException | IllegalAccessException ignore )
+				{
+					// Ignore
+				}
+			}
+			else
+				serializer = getClassSerializer( ( Class<T> ) objClass );
 
 			if ( serializer == null )
 			{
@@ -109,7 +130,7 @@ public class Parcel extends ContainerWithValue<Parcel, Object, ParcelableExcepti
 			{
 				try
 				{
-					return objClass.getConstructor( Parcel.class ).newInstance( src );
+					return ( T ) objClass.getConstructor( Parcel.class ).newInstance( src );
 				}
 				catch ( NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException ignore )
 				{
@@ -117,11 +138,14 @@ public class Parcel extends ContainerWithValue<Parcel, Object, ParcelableExcepti
 				}
 			}
 
-			return serializer == null ? null : serializer.readFromParcel( src );
+			if ( serializer == null )
+				throw new ParcelableException.Error( src, "The parcel could not be deserialized. The serializer is missing." );
+
+			return serializer.readFromParcel( src );
 		}
 
 		@SuppressWarnings( "unchecked" )
-		public static <T> T deserialize( Parcel src ) throws ClassNotFoundException, ParcelableException.Error
+		public static <T> T deserialize( @Nonnull Parcel src ) throws ClassNotFoundException, ParcelableException.Error
 		{
 			if ( !src.hasChild( "$class" ) )
 				throw new ParcelableException.Ignorable( null, "Something went wrong! The Parcel doesn't contain reference to which class we're to deserialize to." );
@@ -129,7 +153,7 @@ public class Parcel extends ContainerWithValue<Parcel, Object, ParcelableExcepti
 		}
 
 		@SuppressWarnings( "unchecked" )
-		public static <T> ParcelSerializer<T> getClassSerializer( Class<T> objClass )
+		public static <T> ParcelSerializer<T> getClassSerializer( @Nonnull Class<T> objClass )
 		{
 			synchronized ( serializers )
 			{
@@ -137,12 +161,12 @@ public class Parcel extends ContainerWithValue<Parcel, Object, ParcelableExcepti
 			}
 		}
 
-		public static boolean isSerializable( Object obj )
+		public static boolean isSerializable( @Nonnull Object obj )
 		{
 			return !( obj instanceof Parcel ) && ( serializers.containsKey( obj.getClass() ) || Reflection.hasAnnotation( obj.getClass(), Parcelable.class ) );
 		}
 
-		public static void registerClassSerializer( Class<?> objClass, ParcelSerializer<?> parcelable )
+		public static void registerClassSerializer( @Nonnull Class<?> objClass, @Nonnull ParcelSerializer<?> parcelable )
 		{
 			synchronized ( serializers )
 			{
