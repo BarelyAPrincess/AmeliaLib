@@ -2,7 +2,7 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
@@ -19,6 +19,7 @@ import io.amelia.foundation.Kernel;
 import io.amelia.lang.ExceptionContext;
 import io.amelia.logcompat.LogBuilder;
 import io.amelia.support.EnumColor;
+import io.amelia.support.Exceptions;
 import io.amelia.support.Strs;
 
 class LogRecord implements ILogEvent
@@ -45,7 +46,7 @@ class LogRecord implements ILogEvent
 				log( Level.SEVERE, EnumColor.NEGATIVE + "" + EnumColor.RED + t.getClass().getSimpleName() + ": " + t.getMessage() );
 
 			if ( Kernel.isDevelopment() )
-				log( Level.SEVERE, EnumColor.NEGATIVE + "" + EnumColor.RED + Strs.getStackTrace( t ) );
+				log( Level.SEVERE, EnumColor.NEGATIVE + "" + EnumColor.RED + Exceptions.getStackTrace( t ) );
 		}
 	}
 
