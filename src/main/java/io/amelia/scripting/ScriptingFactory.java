@@ -2,7 +2,7 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
@@ -57,18 +57,18 @@ public class ScriptingFactory
 		 */
 		// register( new PreLinksParserWrapper() );
 		// register( new PreIncludesParserWrapper() );
-		if ( ConfigRegistry.config.getBoolean( Config.PROCESSORS_COFFEE ) )
+		if ( ConfigRegistry.config.getValue( Config.PROCESSORS_COFFEE ) )
 			register( new CoffeeProcessor() );
-		if ( ConfigRegistry.config.getBoolean( Config.PROCESSORS_LESS ) )
+		if ( ConfigRegistry.config.getValue( Config.PROCESSORS_LESS ) )
 			register( new LessProcessor() );
 		// register( new SassPreProcessor() );
 
 		/*
 		 * Register Post-Processors
 		 */
-		if ( ConfigRegistry.config.getBoolean( Config.PROCESSORS_MINIFY_JS ) )
+		if ( ConfigRegistry.config.getValue( Config.PROCESSORS_MINIFY_JS ) )
 			register( new JSMinProcessor() );
-		if ( ConfigRegistry.config.getBoolean( Config.PROCESSORS_IMAGES ) )
+		if ( ConfigRegistry.config.getValue( Config.PROCESSORS_IMAGES ) )
 			register( new ImageProcessor() );
 	}
 

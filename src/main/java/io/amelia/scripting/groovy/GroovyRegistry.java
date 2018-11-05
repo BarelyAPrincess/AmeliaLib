@@ -2,7 +2,7 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
@@ -78,7 +78,7 @@ public class GroovyRegistry implements ScriptingRegistry
 		imports.addStaticStars( staticImports );
 
 		// Transforms scripts to limit their execution to 30 seconds.
-		long timeout = ConfigRegistry.config.getLong( Config.DEFAULT_SCRIPT_TIMEOUT );
+		long timeout = ConfigRegistry.config.getValue( Config.DEFAULT_SCRIPT_TIMEOUT );
 		if ( timeout > 0 )
 		{
 			Map<String, Object> timedInterruptParams = Maps.newHashMap();

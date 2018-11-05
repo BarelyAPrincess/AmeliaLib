@@ -2,7 +2,7 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
@@ -80,7 +80,7 @@ public abstract class ScriptingContext
 	{
 		ScriptingContext context = new ScriptingContext();
 		context.isVirtual = true;
-		context.filename = filename;
+		context.fileName = filename;
 		context.write( source );
 		context.setBaseSource( new String( source, context.charset ) );
 		return context;
@@ -105,7 +105,7 @@ public abstract class ScriptingContext
 
 	public static List<String> getPreferredExtensions()
 	{
-		return ConfigRegistry.config.getStringList( ScriptingFactory.Config.PREFERRED_EXTENSIONS );
+		return ConfigRegistry.config.getValue( ScriptingFactory.Config.PREFERRED_EXTENSIONS );
 	}
 
 	private final List<DefinedOption> options = new ArrayList<>();
@@ -113,7 +113,7 @@ public abstract class ScriptingContext
 	private Charset charset = Charset.defaultCharset();
 	private ByteBuf content = Unpooled.buffer();
 	private String contentType = null;
-	private String filename = null;
+	private String fileName = null;
 	private boolean isVirtual = true;
 	private ScriptingResult result = null;
 	private String scriptBaseClass = null;
@@ -233,7 +233,7 @@ public abstract class ScriptingContext
 
 	public String getFileName()
 	{
-		return filename;
+		return fileName;
 	}
 
 	public Path getPath()
@@ -251,6 +251,11 @@ public abstract class ScriptingContext
 	public String getScriptBaseClass()
 	{
 		return scriptBaseClass;
+	}
+
+	public void setFileName( String fileName )
+	{
+		this.fileName = fileName;
 	}
 
 	public void setScriptBaseClass( String scriptBaseClass )
@@ -488,7 +493,7 @@ public abstract class ScriptingContext
 	@Override
 	public String toString()
 	{
-		return String.format( "EvalExecutionContext {package=%s,name=%s,filename=%s,shell=%s,sourceSize=%s,contentType=%s}", scriptPackage, scriptName, filename, shell, content.readableBytes(), contentType );
+		return String.format( "EvalExecutionContext {package=%s,name=%s,fileName=%s,shell=%s,sourceSize=%s,contentType=%s}", scriptPackage, scriptName, fileName, shell, content.readableBytes(), contentType );
 	}
 
 	public void write( byte... bytes )

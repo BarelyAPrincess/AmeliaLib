@@ -2,7 +2,7 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia DeWitt <me@ameliadewitt.com>
+ * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
  * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
@@ -60,7 +60,7 @@ public class ImageProcessor implements ScriptingProcessor
 			float x = -1;
 			float y = -1;
 
-			boolean cacheEnabled = ConfigRegistry.config.getBoolean( ScriptingFactory.Config.PROCESSORS_IMAGES_CACHE );
+			boolean cacheEnabled = ConfigRegistry.config.getValue( ScriptingFactory.Config.PROCESSORS_IMAGES_CACHE );
 			boolean grayscale = false;
 
 			x = request.getArgumentInt( "width" ).orElse( x );
