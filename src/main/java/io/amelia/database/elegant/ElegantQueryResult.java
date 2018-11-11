@@ -13,8 +13,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import io.amelia.database.drivers.DatabaseDriver;
+import io.amelia.support.Lists;
 import io.amelia.support.NotImplemented;
 
 /**
@@ -38,14 +40,10 @@ public abstract class ElegantQueryResult<T extends ElegantQuery> extends Elegant
 		return 0;
 	}
 
-	public final Map<String, Object> first()
+	public final Optional<Map<String, Object>> first()
 	{
 		exceptionCheck();
-
-		Map<String, Map<String, Object>> map = map();
-		if ( map.size() == 0 )
-			return null;
-		return map.get( map.keySet().toArray( new String[0] )[0] );
+		return map().values().stream().findFirst();
 	}
 
 	public int getInt( String key )
@@ -63,14 +61,10 @@ public abstract class ElegantQueryResult<T extends ElegantQuery> extends Elegant
 		return null;
 	}
 
-	public final Map<String, Object> last()
+	public final Optional<Map<String, Object>> last()
 	{
 		exceptionCheck();
-
-		Map<String, Map<String, Object>> map = map();
-		if ( map.size() == 0 )
-			return null;
-		return map.get( map.keySet().toArray( new String[0] )[map.keySet().size() - 1] );
+		return Lists.last( map().values() );
 	}
 
 	public List<Map<String, Object>> list()

@@ -28,29 +28,27 @@ import java.util.Iterator;
 import javax.annotation.Nonnull;
 
 import io.amelia.lang.ApplicationException;
+import io.amelia.storage.types.StorageType;
 import io.amelia.support.IO;
 import io.amelia.support.Namespace;
 import io.amelia.support.NodePath;
 import io.amelia.support.Objs;
 import io.amelia.support.StorageUtils;
-import sun.nio.fs.AbstractWatchService;
 
-public class StoragePath implements Path
+public class HoneyPath implements Path
 {
 	private final StorageFileSystem fileSystem;
 	private final NodePath path;
-	private final boolean absolute;
 
-	private StoragePath( StorageFileSystem fileSystem, NodePath path, boolean absolute )
+	private HoneyPath( StorageFileSystem fileSystem, NodePath path )
 	{
 		this.fileSystem = fileSystem;
 		this.path = path;
-		this.absolute = absolute;
 	}
 
-	public StoragePath( StorageFileSystem fileSystem, String path )
+	public HoneyPath( StorageFileSystem fileSystem, String path )
 	{
-		this( fileSystem, NodePath.parseString( path, NodePath.Separator.FORWARDSLASH ), path.startsWith( "/" ) );
+		this( fileSystem, NodePath.of( path, NodePath.Separator.FORWARDSLASH ) );
 	}
 
 	void checkAccess( AccessMode... accessModes ) throws IOException
@@ -70,31 +68,15 @@ public class StoragePath implements Path
 	public int compareTo( Path other )
 	{
 		Objs.notNull( other );
-		if ( !( other instanceof StoragePath ) || getFileSystem() != other.getFileSystem() )
+		if ( !( other instanceof HoneyPath ) || getFileSystem() != other.getFileSystem() )
 			throw new ProviderMismatchException();
 
-		return Namespace.parseString( getStringPath(), getFileSystem().getSeparator() ).compareTo( ( ( StoragePath ) other ).getStringPath() );
+		return Namespace.of( getStringPath(), getFileSystem().getSeparator() ).compareTo( ( ( HoneyPath ) other ).getStringPath() );
 	}
 
-	private String getResolvedPath()
+	private HoneyPath create( NodePath path )
 	{
-		return path.getString();
-	}
-
-	public String getSeparator()
-	{
-		return fileSystem.getSeparator();
-	}
-
-	@Override
-	public StorageFileSystem getFileSystem()
-	{
-		return fileSystem;
-	}
-
-	public String getStringPath()
-	{
-		return path.toString();
+		return new HoneyPath( fileSystem, path );
 	}
 
 	@Override
@@ -112,13 +94,19 @@ public class StoragePath implements Path
 	@Override
 	public Path getFileName()
 	{
-		return create( path.getLast() );
+		return create( path.getLast().setAbsolute( false ) );
+	}
+
+	@Override
+	public StorageFileSystem getFileSystem()
+	{
+		return fileSystem;
 	}
 
 	@Override
 	public Path getName( int index )
 	{
-		return create( path.getNode( index ) );
+		return create( path.getNode( index ).setAbsolute( false ) );
 	}
 
 	@Override
@@ -127,15 +115,15 @@ public class StoragePath implements Path
 		return path.getNodeCount();
 	}
 
-	private StoragePath create( NodePath path )
-	{
-		return new StoragePath( fileSystem, path, true );
-	}
-
 	@Override
 	public Path getParent()
 	{
 		return create( path.getParent() );
+	}
+
+	private String getResolvedPath()
+	{
+		return path.getString();
 	}
 
 	@Override
@@ -144,10 +132,25 @@ public class StoragePath implements Path
 		return create( path.getFirst() );
 	}
 
+	public String getSeparator()
+	{
+		return fileSystem.getSeparator();
+	}
+
+	public <Type extends StorageType> Type getStorageType( Class<Type> typeClass )
+	{
+		// TODO
+	}
+
+	public String getStringPath()
+	{
+		return path.toString();
+	}
+
 	@Override
 	public boolean isAbsolute()
 	{
-		return absolute;
+		return path.isAbsolute();
 	}
 
 	@Override
@@ -166,7 +169,7 @@ public class StoragePath implements Path
 			@Override
 			public Path next()
 			{
-				return create( path.getNode( inx++ ) );
+				return create( path.getNode( inx++ ).setAbsolute( false ) );
 			}
 		};
 	}
@@ -174,7 +177,7 @@ public class StoragePath implements Path
 	@Override
 	public Path normalize()
 	{
-		return create( path );
+		return create( path.normalizeAscii() );
 	}
 
 	@Override
@@ -182,53 +185,53 @@ public class StoragePath implements Path
 	{
 		if ( watcher == null )
 			throw new NullPointerException();
-		else if ( !( watcher instanceof AbstractWatchService ) )
+		else if ( !( watcher instanceof StorageWatchService ) )
 			throw new ProviderMismatchException();
 		else
 		{
-			this.checkRead();
-			return ( ( AbstractWatchService ) watcher ).register( this, events, modifiers );
+			checkRead();
+			return ( ( StorageWatchService ) watcher ).register( this, events, modifiers );
 		}
 	}
 
 	@Override
 	public WatchKey register( WatchService watcher, WatchEvent.Kind<?>... events ) throws IOException
 	{
-		return null;
-	}
-
-	public StoragePath create( String path )
-	{
-		return create( NodePath.parseString( path ) );
+		return this.register( watcher, events, new WatchEvent.Modifier[0] );
 	}
 
 	@Override
-	public Path relativize( Path other )
+	public HoneyPath relativize( Path other )
 	{
-		return create( IO.relPath( this, other ) );
+		return create( NodePath.of( IO.relPath( this, other ) ) );
 	}
 
 	@Nonnull
 	@Override
-	public Path resolve( String other )
+	public HoneyPath resolve( String other )
 	{
 		return this.resolve( getFileSystem().getPath( other ) );
 	}
 
 	@Override
-	public Path resolve( Path other )
+	public HoneyPath resolve( Path other )
+	{
+		return create( path.append( IO.toString( other, getSeparator() ) ) );
+	}
+
+	public HoneyPath resolve( NodePath other )
+	{
+		return create( path.append( other ) );
+	}
+
+	@Override
+	public HoneyPath resolveSibling( Path other )
 	{
 		return null;
 	}
 
 	@Override
-	public Path resolveSibling( Path other )
-	{
-		return null;
-	}
-
-	@Override
-	public Path resolveSibling( String other )
+	public HoneyPath resolveSibling( String other )
 	{
 		return null;
 	}
@@ -248,11 +251,11 @@ public class StoragePath implements Path
 	@Override
 	public Path subpath( int beginIndex, int endIndex )
 	{
-		return create( path.subNodes( beginIndex, endIndex ) );
+		return create( path.subNodes( beginIndex, endIndex ).setAbsolute( false ) );
 	}
 
 	@Override
-	public StoragePath toAbsolutePath()
+	public HoneyPath toAbsolutePath()
 	{
 		return this;
 	}
@@ -266,20 +269,20 @@ public class StoragePath implements Path
 	@Override
 	public Path toRealPath( LinkOption... options ) throws IOException
 	{
-		StoragePath var2 = new StoragePath( fileSystem, getResolvedPath() ).toAbsolutePath();
+		HoneyPath var2 = new HoneyPath( fileSystem, getResolvedPath() ).toAbsolutePath();
 		var2.checkAccess();
 		return var2;
-	}
-
-	@Override
-	public URI toUri()
-	{
-		return StorageUtils.toUri( this );
 	}
 
 	@Override
 	public String toString()
 	{
 		return path.getString();
+	}
+
+	@Override
+	public URI toUri()
+	{
+		return StorageUtils.toUri( this );
 	}
 }

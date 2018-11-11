@@ -1,20 +1,19 @@
 package io.amelia.storage;
 
-import java.nio.file.Path;
-
 import io.amelia.storage.backend.StorageBackend;
+import io.amelia.support.NodePath;
 
 public class MountPoint
 {
 	private final StorageBackend backend;
-	private final Path mount;
-	private final Path subPath;
+	private final NodePath mountPath;
+	private final NodePath path;
 
-	MountPoint( StorageBackend backend, Path mount, Path subPath )
+	public MountPoint( StorageBackend backend, NodePath mountPath, NodePath path )
 	{
 		this.backend = backend;
-		this.mount = mount;
-		this.subPath = subPath;
+		this.mountPath = mountPath;
+		this.path = path;
 	}
 
 	public StorageBackend getBackend()
@@ -22,13 +21,13 @@ public class MountPoint
 		return backend;
 	}
 
-	public Path getMount()
+	public NodePath getMountPath()
 	{
-		return mount;
+		return mountPath;
 	}
 
-	public Path getSubPath()
+	public NodePath getPath()
 	{
-		return subPath;
+		return path;
 	}
 }

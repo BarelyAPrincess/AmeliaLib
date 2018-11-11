@@ -1,36 +1,23 @@
 package io.amelia.storage.backend;
 
+import javax.annotation.Nonnull;
+
 import io.amelia.lang.StorageException;
-import io.amelia.storage.StorageRegistry;
-import io.amelia.support.LocalBoolean;
+import io.amelia.storage.HoneyStorage;
+import io.amelia.storage.MountPoint;
+import io.amelia.storage.HoneyPath;
+import io.amelia.support.NodePath;
 
-public class StorageBackend implements Comparable<StorageBackend>
+public abstract class StorageBackend
 {
-	private final LocalBoolean DEBUG_ENABLED = new LocalBoolean( false );
 	private final SQLStorageBackend.Builder builder;
-	private StorageRegistry.BackendType type;
+	private boolean debugEnabled = false;
+	private HoneyStorage.BackendType type;
 
-	public StorageBackend( SQLStorageBackend.Builder builder, StorageRegistry.BackendType type ) throws StorageException.Error
+	public StorageBackend( SQLStorageBackend.Builder builder, HoneyStorage.BackendType type ) throws StorageException.Error
 	{
 		this.builder = builder;
 		this.type = type;
-	}
-
-	@Override
-	public boolean equals( Object obj )
-	{
-		return obj instanceof StorageBackend ? compareTo( ( StorageBackend ) obj ) == 0 : super.equals( obj );
-	}
-
-	@Override
-	public int compareTo( StorageBackend other )
-	{
-		return getPrefix().compareTo( other.getPrefix() );
-	}
-
-	public String getPrefix()
-	{
-		return builder.mountPoint;
 	}
 
 	SQLStorageBackend.Builder getBuilder()
@@ -38,37 +25,40 @@ public class StorageBackend implements Comparable<StorageBackend>
 		return builder;
 	}
 
-	public StorageRegistry.BackendType getType()
+	public NodePath getMountPath()
+	{
+		return builder.mountPath;
+	}
+
+	public MountPoint getMountPoint( @Nonnull NodePath subPath )
+	{
+		return new MountPoint( this, getMountPath(), subPath );
+	}
+
+	public HoneyPath getRootPath()
+	{
+
+	}
+
+	public HoneyStorage.BackendType getType()
 	{
 		return type;
 	}
 
 	public boolean isDebugEnabled()
 	{
-		return DEBUG_ENABLED.get( this );
+		return debugEnabled;
+	}
+
+	public MountPoint matches( @Nonnull NodePath origFullPath )
+	{
+		if ( !origFullPath.startsWith( getMountPath() ) )
+			return null;
+		return new MountPoint( this, getMountPath(), origFullPath.subNodes( getMountPath().getNodeCount() ) );
 	}
 
 	public void setDebugEnabled( boolean debugEnabled )
 	{
-		DEBUG_ENABLED.set( this, debugEnabled );
-	}
-
-	abstract class Builder<Extended extends Builder>
-	{
-		String mountPoint;
-
-		public Extended setMountPoint( String mountPoint ) throws StorageException.Error
-		{
-			this.mountPoint = mountPoint;
-			return ( Extended ) this;
-		}
-
-		abstract <T extends StorageBackend> T connect() throws StorageException.Error;
-
-		public void validate() throws StorageException.Error
-		{
-			if ( !mountPoint.matches( "[a-z0-9]+" ) )
-				throw new StorageException.Error( "Backend prefix must only contain lowercase letters and numbers." );
-		}
+		this.debugEnabled = debugEnabled;
 	}
 }

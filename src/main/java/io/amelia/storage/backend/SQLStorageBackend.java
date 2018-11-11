@@ -14,7 +14,7 @@ public class SQLStorageBackend extends StorageBackend
 		super( builder );
 	}
 
-	abstract class AbstractBuilder<Extended extends AbstractBuilder> extends StorageBackend.Builder<Extended>
+	abstract class AbstractBuilder<Extended extends AbstractBuilder> extends io.amelia.storage.backend.AbstractBuilder<Extended>
 	{
 		Connection connection;
 		String pass = null;
@@ -57,16 +57,16 @@ public class SQLStorageBackend extends StorageBackend
 
 	}
 
-	public final class Builder extends AbstractBuilder<Builder>
+	public final class Builder extends AbstractBuilder
 	{
 		String connectionString;
 
 		@Override
-		public SQLStorageBackend connect() throws StorageException.Error
+		public SQLStorageBackend init() throws StorageException.Error
 		{
 			validate();
 			abstractConnect();
-			return new SQLStorageBackend( mountPoint, this );
+			return new SQLStorageBackend( mountPath, this );
 		}
 
 		@Override

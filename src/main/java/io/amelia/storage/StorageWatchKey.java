@@ -1,0 +1,193 @@
+package io.amelia.storage;
+
+import java.nio.file.Path;
+import java.nio.file.StandardWatchEventKinds;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+public abstract class StorageWatchKey implements WatchKey
+{
+	static final int MAX_EVENT_LIST_SIZE = 512;
+	static final StorageWatchKey.Event<Object> OVERFLOW_EVENT;
+
+	static
+	{
+		OVERFLOW_EVENT = new StorageWatchKey.Event( StandardWatchEventKinds.OVERFLOW, ( Object ) null );
+	}
+
+	private final Path dir;
+	private final StorageWatchService watcher;
+	private List<WatchEvent<?>> events;
+	private Map<Object, WatchEvent<?>> lastModifyEvents;
+	private StorageWatchKey.State state;
+
+	protected StorageWatchKey( Path var1, StorageWatchService var2 )
+	{
+		this.watcher = var2;
+		this.dir = var1;
+		this.state = StorageWatchKey.State.READY;
+		this.events = new ArrayList();
+		this.lastModifyEvents = new HashMap();
+	}
+
+	public final List<WatchEvent<?>> pollEvents()
+	{
+		synchronized ( this )
+		{
+			List var2 = this.events;
+			this.events = new ArrayList();
+			this.lastModifyEvents.clear();
+			return var2;
+		}
+	}
+
+	public final boolean reset()
+	{
+		synchronized ( this )
+		{
+			if ( this.state == StorageWatchKey.State.SIGNALLED && this.isValid() )
+			{
+				if ( this.events.isEmpty() )
+				{
+					this.state = StorageWatchKey.State.READY;
+				}
+				else
+				{
+					this.watcher.enqueueKey( this );
+				}
+			}
+
+			return this.isValid();
+		}
+	}
+
+	final void signal()
+	{
+		synchronized ( this )
+		{
+			if ( this.state == StorageWatchKey.State.READY )
+			{
+				this.state = StorageWatchKey.State.SIGNALLED;
+				this.watcher.enqueueKey( this );
+			}
+
+		}
+	}
+
+	final void signalEvent( WatchEvent.Kind<?> var1, Object var2 )
+	{
+		boolean var3 = var1 == StandardWatchEventKinds.ENTRY_MODIFY;
+		synchronized ( this )
+		{
+			int var5 = this.events.size();
+			if ( var5 > 0 )
+			{
+				WatchEvent var6 = ( WatchEvent ) this.events.get( var5 - 1 );
+				if ( var6.kind() == StandardWatchEventKinds.OVERFLOW || var1 == var6.kind() && Objects.equals( var2, var6.context() ) )
+				{
+					( ( StorageWatchKey.Event ) var6 ).increment();
+					return;
+				}
+
+				if ( !this.lastModifyEvents.isEmpty() )
+				{
+					if ( var3 )
+					{
+						WatchEvent var7 = ( WatchEvent ) this.lastModifyEvents.get( var2 );
+						if ( var7 != null )
+						{
+							assert var7.kind() == StandardWatchEventKinds.ENTRY_MODIFY;
+
+							( ( StorageWatchKey.Event ) var7 ).increment();
+							return;
+						}
+					}
+					else
+					{
+						this.lastModifyEvents.remove( var2 );
+					}
+				}
+
+				if ( var5 >= 512 )
+				{
+					var1 = StandardWatchEventKinds.OVERFLOW;
+					var3 = false;
+					var2 = null;
+				}
+			}
+
+			StorageWatchKey.Event var10 = new StorageWatchKey.Event( var1, var2 );
+			if ( var3 )
+			{
+				this.lastModifyEvents.put( var2, var10 );
+			}
+			else if ( var1 == StandardWatchEventKinds.OVERFLOW )
+			{
+				this.events.clear();
+				this.lastModifyEvents.clear();
+			}
+
+			this.events.add( var10 );
+			this.signal();
+		}
+	}
+
+	public Path watchable()
+	{
+		return this.dir;
+	}
+
+	final StorageWatchService watcher()
+	{
+		return this.watcher;
+	}
+
+	private static enum State
+	{
+		READY,
+		SIGNALLED;
+
+		private State()
+		{
+		}
+	}
+
+	private static class Event<T> implements WatchEvent<T>
+	{
+		private final T context;
+		private final Kind<T> kind;
+		private int count;
+
+		Event( Kind<T> var1, T var2 )
+		{
+			this.kind = var1;
+			this.context = var2;
+			this.count = 1;
+		}
+
+		public T context()
+		{
+			return this.context;
+		}
+
+		public int count()
+		{
+			return this.count;
+		}
+
+		void increment()
+		{
+			++this.count;
+		}
+
+		public Kind<T> kind()
+		{
+			return this.kind;
+		}
+	}
+}

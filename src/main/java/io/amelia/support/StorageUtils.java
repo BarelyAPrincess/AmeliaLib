@@ -9,8 +9,8 @@ import java.util.Arrays;
 import io.amelia.lang.StorageException;
 import io.amelia.storage.StorageFileAttributes;
 import io.amelia.storage.StorageFileSystem;
-import io.amelia.storage.StoragePath;
-import io.amelia.storage.StorageProvider;
+import io.amelia.storage.HoneyPath;
+import io.amelia.storage.HoneyStorageProvider;
 
 public class StorageUtils
 {
@@ -71,7 +71,7 @@ public class StorageUtils
 		else
 		{
 			String var2 = var1.getScheme();
-			if ( var2 != null && var2.equalsIgnoreCase( StorageProvider.SCHEME ) )
+			if ( var2 != null && var2.equalsIgnoreCase( HoneyStorageProvider.SCHEME ) )
 			{
 				if ( var1.getAuthority() != null )
 					throw new IllegalArgumentException( "URI has an authority component" );
@@ -120,7 +120,7 @@ public class StorageUtils
 						if ( var6 != var5.length )
 							var5 = Arrays.copyOf( var5, var6 );
 
-						return new StoragePath( var0, new String( var5 ) );
+						return new HoneyPath( var0, new String( var5 ) );
 					}
 				}
 			}
@@ -193,10 +193,10 @@ public class StorageUtils
 			return false;
 	}
 
-	public static URI toUri( StoragePath var0 )
+	public static URI toUri( HoneyPath var0 )
 	{
 		byte[] var1 = var0.toAbsolutePath().getStringPath().getBytes();
-		StringBuilder var2 = new StringBuilder( StorageProvider.SCHEME + ":///" );
+		StringBuilder var2 = new StringBuilder( HoneyStorageProvider.SCHEME + ":///" );
 
 		assert var1[0] == 47;
 

@@ -28,7 +28,7 @@ public class MySQLStorageBackend extends SQLStorageBackend
 
 	protected MySQLStorageBackend reconnect() throws StorageException.Error
 	{
-		return lastBuilder.connect();
+		return lastBuilder.init();
 	}
 
 	public class Builder extends SQLStorageBackend.AbstractBuilder<Builder>
@@ -38,7 +38,7 @@ public class MySQLStorageBackend extends SQLStorageBackend
 		private String port = "3306";
 
 		@Override
-		public MySQLStorageBackend connect() throws StorageException.Error
+		public MySQLStorageBackend init() throws StorageException.Error
 		{
 			validate();
 			abstractConnect();

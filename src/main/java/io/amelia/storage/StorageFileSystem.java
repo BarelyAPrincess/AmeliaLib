@@ -15,24 +15,45 @@ import java.nio.file.FileSystem;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.WatchService;
+import java.nio.file.attribute.GroupPrincipal;
+import java.nio.file.attribute.UserPrincipal;
 import java.nio.file.attribute.UserPrincipalLookupService;
 import java.nio.file.spi.FileSystemProvider;
 import java.util.Set;
+import java.util.stream.Collectors;
 
+import io.amelia.storage.backend.StorageBackend;
 import io.amelia.support.Arrs;
 import io.amelia.support.Strs;
 
 public class StorageFileSystem extends FileSystem
 {
-	public StorageFileAttributes getFileAttributes( String path )
+	public static final UserPrincipalLookupService USER_LOOKUP_SERVICE = new UserPrincipalLookupService()
 	{
-		return null;
-	}
+		// TODO This is only temporary but ultimately we'd implement an internal file permission checker
+
+		@Override
+		public GroupPrincipal lookupPrincipalByGroupName( String group ) throws IOException
+		{
+			return () -> group;
+		}
+
+		@Override
+		public UserPrincipal lookupPrincipalByName( String name ) throws IOException
+		{
+			return () -> name;
+		}
+	};
 
 	@Override
 	public void close() throws IOException
 	{
+		throw new UnsupportedOperationException();
+	}
 
+	public StorageFileAttributes getFileAttributes( String path )
+	{
+		return null;
 	}
 
 	@Override
@@ -44,7 +65,7 @@ public class StorageFileSystem extends FileSystem
 	@Override
 	public Path getPath( String first, String... more )
 	{
-		return new SQLPath( this, Strs.join( Arrs.prepend( more, first ), getSeparator() ) );
+		return new HoneyPath( this, Strs.join( Arrs.prepend( more, first ), getSeparator() ) );
 	}
 
 	@Override
@@ -56,7 +77,7 @@ public class StorageFileSystem extends FileSystem
 	@Override
 	public Iterable<Path> getRootDirectories()
 	{
-		return null;
+		return HoneyStorage.getBackends().map( StorageBackend::getRootPath ).collect( Collectors.toList() );
 	}
 
 	@Override
@@ -68,7 +89,7 @@ public class StorageFileSystem extends FileSystem
 	@Override
 	public UserPrincipalLookupService getUserPrincipalLookupService()
 	{
-		return null;
+		return USER_LOOKUP_SERVICE;
 	}
 
 	@Override
