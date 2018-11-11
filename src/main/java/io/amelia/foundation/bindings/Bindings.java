@@ -24,7 +24,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import io.amelia.foundation.Kernel;
-import io.amelia.lang.ApplicationException;
 import io.amelia.support.BiFunctionWithException;
 import io.amelia.support.FunctionWithException;
 import io.amelia.support.Namespace;
@@ -207,7 +206,7 @@ public class Bindings
 		Objs.notEmpty( namespace );
 		Objs.notNull( bindingResolver );
 
-		Namespace ns = Namespace.parseString( namespace ).fixInvalidChars().normalizeAscii();
+		Namespace ns = Namespace.of( namespace ).fixInvalidChars().normalizeAscii();
 		if ( ns.startsWith( "io.amelia" ) )
 			throw new BindingException.Error( "Namespace \"io.amelia\" is reserved for internal use only." );
 		if ( ns.getNodeCount() < 3 )

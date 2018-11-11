@@ -9,16 +9,19 @@
  */
 package io.amelia.foundation;
 
+import javax.annotation.Nonnull;
+
 import io.amelia.lang.ConfigException;
 
-public interface ConfigRegistryLoader
+public interface ConfigLoader
 {
-	/**
-	 * Seeks to load configuration from ideally the default storage.
-	 *
-	 * @param config The instance to load the config into.
-	 *
-	 * @throws ConfigException.Error Optional
-	 */
-	void loadConfig( ConfigData config ) throws ConfigException.Error;
+	void commitConfig( @Nonnull CommitType type ) throws ConfigException.Error;
+
+	ConfigData beginConfig() throws ConfigException.Error;
+
+	enum CommitType
+	{
+		AMENDED,
+		INITIAL,
+	}
 }

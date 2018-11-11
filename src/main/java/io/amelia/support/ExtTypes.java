@@ -35,7 +35,7 @@ public class ExtTypes
 
 	private static ConfigData getConfigMap()
 	{
-		return ConfigRegistry.config.getChildOrCreate( ConfigRegistry.Config.EXT_TYPES );
+		return ConfigRegistry.config.getChildOrCreate( ConfigRegistry.ConfigKeys.EXT_TYPES );
 	}
 
 	@Nonnull

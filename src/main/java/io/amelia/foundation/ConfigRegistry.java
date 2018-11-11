@@ -12,23 +12,43 @@ package io.amelia.foundation;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Map;
 
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 
-import io.amelia.data.ContainerBase;
 import io.amelia.data.TypeBase;
 import io.amelia.lang.ConfigException;
 import io.amelia.support.IO;
 import io.amelia.support.Objs;
 import io.amelia.support.Streams;
-import io.amelia.support.Strs;
 
 public class ConfigRegistry
 {
 	public static final ConfigData config = ConfigData.empty();
-	private static boolean isConfigLoaded;
+	private static boolean loaded = false;
+
+	// TODO This LOADER is not thread-safe but if the application initialization works as intended, this shouldn't be an issue.
+	public static final ConfigLoader LOADER = new ConfigLoader()
+	{
+		private ConfigData tempConfig;
+
+		@Override
+		public void commitConfig( @Nonnull ConfigLoader.CommitType type ) throws ConfigException.Error
+		{
+			Streams.forEachWithException( tempConfig.getChildren(), child -> config.setChild( child, true ) );
+			tempConfig = null;
+			loaded = true;
+		}
+
+		@Override
+		public ConfigData beginConfig() throws ConfigException.Error
+		{
+			if ( tempConfig != null )
+				throw new ConfigException.Error( tempConfig, "Configuration must be first be committed!" );
+			tempConfig = ConfigData.empty();
+			return tempConfig;
+		}
+	};
 
 	/*
 	 * We set default config values here for end-user reference, they're then saved to the config file upon load (if unset).
@@ -37,10 +57,10 @@ public class ConfigRegistry
 	{
 		try
 		{
-			config.setValueIfAbsent( Config.WARN_ON_OVERLOAD );
-			config.setValueIfAbsent( Config.DEVELOPMENT_MODE );
-			config.setValueIfAbsent( Config.DEFAULT_BINARY_CHARSET );
-			config.setValueIfAbsent( Config.DEFAULT_TEXT_CHARSET );
+			config.setValueIfAbsent( ConfigKeys.WARN_ON_OVERLOAD );
+			config.setValueIfAbsent( ConfigKeys.DEVELOPMENT_MODE );
+			config.setValueIfAbsent( ConfigKeys.DEFAULT_BINARY_CHARSET );
+			config.setValueIfAbsent( ConfigKeys.DEFAULT_TEXT_CHARSET );
 		}
 		catch ( ConfigException.Error e )
 		{
@@ -52,6 +72,7 @@ public class ConfigRegistry
 	{
 		Objs.notNull( path );
 		Objs.notNull( keepHistory );
+		Objs.notNegative( keepHistory );
 
 		try
 		{
@@ -84,16 +105,9 @@ public class ConfigRegistry
 		return config.getChildOrCreate( key );
 	}
 
-	public static void init( ConfigRegistryLoader loader ) throws ConfigException.Error
+	public static boolean isLoaded()
 	{
-		ConfigRegistry.loader = loader;
-		loader.loadConfig( config );
-		isConfigLoaded = true;
-	}
-
-	public static boolean isConfigLoaded()
-	{
-		return isConfigLoaded;
+		return loaded;
 	}
 
 	public static void save()
@@ -123,7 +137,7 @@ public class ConfigRegistry
 		// Static Access
 	}
 
-	public static class Config
+	public static class ConfigKeys
 	{
 		public static final TypeBase APPLICATION_BASE = new TypeBase( "app" );
 		public static final TypeBase.TypeBoolean WARN_ON_OVERLOAD = new TypeBase.TypeBoolean( APPLICATION_BASE, "warnOnOverload", false );
@@ -134,7 +148,7 @@ public class ConfigRegistry
 		public static final TypeBase.TypeString DEFAULT_BINARY_CHARSET = new TypeBase.TypeString( CONFIGURATION_BASE, "defaultBinaryCharset", "ISO-8859-1" );
 		public static final TypeBase.TypeString DEFAULT_TEXT_CHARSET = new TypeBase.TypeString( CONFIGURATION_BASE, "defaultBinaryCharset", "UTF-8" );
 
-		private Config()
+		private ConfigKeys()
 		{
 			// Static Access
 		}

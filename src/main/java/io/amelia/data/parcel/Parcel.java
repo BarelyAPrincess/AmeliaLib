@@ -87,11 +87,9 @@ public class Parcel extends ContainerWithValue<Parcel, Object, ParcelableExcepti
 	{
 		private static final Map<Class<?>, ParcelSerializer<?>> serializers = new HashMap<>();
 
-		public static <T> T deserialize( @Nonnull Parcel src, @Nonnull Class<? extends ParcelSerializer> serializer ) throws ParcelableException.Error
+		public static <T> T deserialize( @Nonnull Parcel src, @Nonnull ParcelSerializer serializer ) throws ParcelableException.Error
 		{
-
-
-			return serializer.readFromParcel( src );
+			return ( T ) serializer.readFromParcel( src );
 		}
 
 		public static <T> T deserialize( @Nonnull Parcel src, @Nonnull Class<?> objClass ) throws ParcelableException.Error
@@ -149,7 +147,7 @@ public class Parcel extends ContainerWithValue<Parcel, Object, ParcelableExcepti
 		{
 			if ( !src.hasChild( "$class" ) )
 				throw new ParcelableException.Ignorable( null, "Something went wrong! The Parcel doesn't contain reference to which class we're to deserialize to." );
-			return deserialize( src, ( Class<T> ) Class.forName( src.getString( "$class" ).get() ) );
+			return deserialize( src, Class.forName( src.getString( "$class" ).get() ) );
 		}
 
 		@SuppressWarnings( "unchecked" )

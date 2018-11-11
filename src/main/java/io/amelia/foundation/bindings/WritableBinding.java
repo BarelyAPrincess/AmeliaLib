@@ -14,7 +14,6 @@ import java.util.function.Supplier;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import io.amelia.lang.ApplicationException;
 import io.amelia.support.Objs;
 import io.amelia.support.Strs;
 
@@ -69,22 +68,22 @@ public class WritableBinding extends ReadableBinding
 		Bindings.bindings.getChildOrCreate( baseNamespace ).privatize( this );
 	}
 
-	public <T extends FacadeBinding> void registerFacadeBinding( @Nonnull Class<T> facadeService, @Nonnull Supplier<T> facadeSupplier ) throws ApplicationException.Error
+	public <T extends FacadeBinding> void registerFacadeBinding( @Nonnull Class<T> facadeService, @Nonnull Supplier<T> facadeSupplier ) throws BindingException.Error
 	{
 		registerFacadeBinding( facadeService, facadeSupplier, FacadePriority.NORMAL );
 	}
 
-	public <T extends FacadeBinding> void registerFacadeBinding( @Nonnull Class<T> facadeService, @Nonnull Supplier<T> facadeSupplier, @Nonnull FacadePriority facadePriority ) throws ApplicationException.Error
+	public <T extends FacadeBinding> void registerFacadeBinding( @Nonnull Class<T> facadeService, @Nonnull Supplier<T> facadeSupplier, @Nonnull FacadePriority facadePriority ) throws BindingException.Error
 	{
 		registerFacadeBinding( null, facadeService, facadeSupplier, facadePriority );
 	}
 
-	public <T extends FacadeBinding> void registerFacadeBinding( @Nullable String namespace, @Nonnull Class<T> facadeService, @Nonnull Supplier<T> facadeSupplier ) throws ApplicationException.Error
+	public <T extends FacadeBinding> void registerFacadeBinding( @Nullable String namespace, @Nonnull Class<T> facadeService, @Nonnull Supplier<T> facadeSupplier ) throws BindingException.Error
 	{
 		registerFacadeBinding( namespace, facadeService, facadeSupplier, FacadePriority.NORMAL );
 	}
 
-	public <T extends FacadeBinding> FacadeRegistration.Entry<T> registerFacadeBinding( @Nullable String namespace, @Nonnull Class<T> facadeService, @Nonnull Supplier<T> facadeSupplier, @Nonnull FacadePriority facadePriority ) throws ApplicationException.Error
+	public <T extends FacadeBinding> FacadeRegistration.Entry<T> registerFacadeBinding( @Nullable String namespace, @Nonnull Class<T> facadeService, @Nonnull Supplier<T> facadeSupplier, @Nonnull FacadePriority facadePriority ) throws BindingException.Error
 	{
 		return Bindings.Lock.callWithWriteLock( ( namespace0, facadeService0, facadeSupplier0, facadePriority0 ) -> {
 			namespace0 = Bindings.normalizeNamespace( namespace0 );
@@ -110,7 +109,7 @@ public class WritableBinding extends ReadableBinding
 		}, namespace, facadeService, facadeSupplier, facadePriority );
 	}
 
-	public void set( String namespace, Object obj ) throws ApplicationException.Error
+	public void set( String namespace, Object obj ) throws BindingException.Error
 	{
 		namespace = Bindings.normalizeNamespace( namespace );
 

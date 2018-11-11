@@ -10,6 +10,7 @@
 package io.amelia.support;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -26,9 +27,9 @@ import io.amelia.lang.ApplicationException;
 /**
  * Advanced class for handling namespaces with virtually any separator character.
  *
- * @param <T> Subclass of this class
+ * @param <Self> Self of this class
  */
-public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneable, Comparable<T>
+public abstract class NodeStack<Self extends NodeStack> implements Cloneable, Comparable<Self>
 {
 	// TODO Implement a flag setup that does things such as forces nodes to lowercase, normalizes, or converts to ASCII
 
@@ -39,25 +40,25 @@ public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneabl
 		return namespace.contains( "*" ) || namespace.matches( ".*[0-9]+-[0-9]+.*" );
 	}
 
-	private final NonnullFunction<String[], T> creator;
+	private final NonnullBiFunction<Self, String[], Self> creator;
 	protected String glue;
 	protected String[] nodes;
 
-	protected NamespaceBase( NonnullFunction<String[], T> creator, String glue, String[] nodes )
+	protected NodeStack( NonnullBiFunction<Self, String[], Self> creator, String glue, String[] nodes )
 	{
 		this.creator = creator;
 		this.glue = glue;
 		this.nodes = nodes; // Strs.toLowerCase()?
 	}
 
-	protected NamespaceBase( NonnullFunction<String[], T> creator, String glue, List<String> nodes )
+	protected NodeStack( NonnullBiFunction<Self, String[], Self> creator, String glue, Collection<String> nodes )
 	{
 		this.creator = creator;
 		this.glue = glue;
 		this.nodes = nodes.toArray( new String[0] );// Strs.toLowerCase()?
 	}
 
-	protected NamespaceBase( NonnullFunction<String[], T> creator, String glue )
+	protected NodeStack( NonnullBiFunction<Self, String[], Self> creator, String glue )
 	{
 		this.creator = creator;
 		this.glue = glue;
@@ -65,29 +66,30 @@ public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneabl
 	}
 
 	@SuppressWarnings( "unchecked" )
-	public T append( @Nonnull String node )
+	public Self append( @Nonnull String node )
 	{
 		if ( Strs.isEmpty( node ) )
-			return ( T ) this;
+			return ( Self ) this;
 		if ( node.contains( glue ) )
 			throw new IllegalArgumentException( "Appended string MUST NOT contain the glue character." );
 		this.nodes = Arrs.concat( this.nodes, new String[] {node} );
-		return ( T ) this;
+		return ( Self ) this;
 	}
 
-	public T appendAndCreate( @Nonnull String node )
+	public Self appendAndCreate( @Nonnull String node )
 	{
 		if ( Strs.isEmpty( node ) )
 			return clone();
 		if ( node.contains( glue ) )
 			throw new IllegalArgumentException( "Appended string MUST NOT contain the glue character." );
-		return creator.apply( Arrs.concat( this.nodes, new String[] {node} ) );
+		return create( Arrs.concat( this.nodes, new String[] {node} ) );
 	}
 
+	@SuppressWarnings( "unchecked" )
 	@Override
-	public T clone()
+	public Self clone()
 	{
-		return creator.apply( nodes );
+		return creator.apply( ( Self ) this, nodes );
 	}
 
 	public int compareTo( @Nonnull String other, String glue )
@@ -101,7 +103,7 @@ public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneabl
 	}
 
 	@Override
-	public int compareTo( @Nonnull T other )
+	public int compareTo( @Nonnull Self other )
 	{
 		return Maths.normalizeCompare( matchPercentage( other ), 100 );
 	}
@@ -127,14 +129,15 @@ public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneabl
 		return false;
 	}
 
-	private T create( String... nodes )
+	@SuppressWarnings( "unchecked" )
+	protected Self create( String... nodes )
 	{
-		T node = creator.apply( nodes );
+		Self node = creator.apply( ( Self ) this, nodes );
 		node.glue = glue;
 		return node;
 	}
 
-	public T dropFirst()
+	public Self dropFirst()
 	{
 		return subNodes( 1 );
 	}
@@ -147,10 +150,10 @@ public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneabl
 	@Override
 	public boolean equals( Object obj )
 	{
-		if ( !( obj instanceof NamespaceBase ) )
+		if ( obj == null || !NodeStack.class.isAssignableFrom( obj.getClass() ) )
 			return false;
 
-		NamespaceBase ns = ( NamespaceBase ) obj;
+		NodeStack ns = ( NodeStack ) obj;
 
 		if ( nodes.length != ns.nodes.length )
 			return false;
@@ -177,22 +180,22 @@ public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneabl
 	/**
 	 * Filters out invalid characters from namespace.
 	 *
-	 * @return The fixed {@link T}
+	 * @return The fixed {@link Self}
 	 */
-	public T fixInvalidChars()
+	public Self fixInvalidChars()
 	{
 		String[] result = new String[nodes.length];
 		for ( int i = 0; i < nodes.length; i++ )
 			result[i] = nodes[i].replaceAll( "[^a-z0-9_]", "" );
-		return creator.apply( result );
+		return create( result );
 	}
 
-	public T getFirst()
+	public Self getFirst()
 	{
 		return create( getStringFirst() );
 	}
 
-	public T getLast()
+	public Self getLast()
 	{
 		return create( getStringLast() );
 	}
@@ -202,7 +205,7 @@ public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneabl
 		return nodes[nodes.length - 1];
 	}
 
-	public T getNode( int inx )
+	public Self getNode( int inx )
 	{
 		return create( getStringNode( inx ) );
 	}
@@ -217,12 +220,12 @@ public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneabl
 		return nodes;
 	}
 
-	public T getParent()
+	public Self getParent()
 	{
 		return create( getStringParent() );
 	}
 
-	public T getParent( int depth )
+	public Self getParent( int depth )
 	{
 		return create( getStringParent( depth ) );
 	}
@@ -331,46 +334,58 @@ public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneabl
 		return matchPercentage( namespace, this.glue );
 	}
 
-	public int matchPercentage( @Nonnull T namespace )
+	public int matchPercentage( @Nonnull Self namespace )
 	{
 		return matchPercentage( namespace.nodes );
 	}
 
-	public T merge( Namespace ns )
+	/**
+	 * Same as calling String.matches() on each node of this Namespace.
+	 * There is no need to include the separator in the regex pattern.
+	 */
+	public boolean matches( String regex )
 	{
-		return creator.apply( Stream.of( nodes, ns.nodes ).flatMap( Stream::of ).toArray( String[]::new ) );
+		for ( String node : nodes )
+			if ( !node.matches( regex ) )
+				return false;
+		return true;
+	}
+
+	public Self merge( Namespace ns )
+	{
+		return create( Stream.of( nodes, ns.nodes ).flatMap( Stream::of ).toArray( String[]::new ) );
 	}
 
 	/**
 	 * Normalizes each node to ASCII and to lowercase using Locale US.
 	 *
-	 * @return The new normalized {@link T}
+	 * @return The new normalized {@link Self}
 	 */
-	public T normalizeAscii()
+	public Self normalizeAscii()
 	{
 		String[] result = new String[nodes.length];
 		for ( int i = 0; i < nodes.length; i++ )
 			result[i] = Strs.toAscii( nodes[i] ).toLowerCase( Locale.US );
-		return creator.apply( result );
+		return create( result );
 	}
 
 	/**
 	 * Normalizes each node to Unicode and to lowercase using Locale US.
 	 *
-	 * @return The new normalized {@link T}
+	 * @return The new normalized {@link Self}
 	 */
-	public T normalizeUnicode()
+	public Self normalizeUnicode()
 	{
 		String[] result = new String[nodes.length];
 		for ( int i = 0; i < nodes.length; i++ )
 			result[i] = Strs.toUnicode( nodes[i] ).toLowerCase( Locale.US );
-		return creator.apply( result );
+		return create( result );
 	}
 
 	/**
 	 * Pops the last node
 	 */
-	public T pop()
+	public Self pop()
 	{
 		return subNodes( 0, getNodeCount() - 1 );
 	}
@@ -423,7 +438,7 @@ public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneabl
 		}
 	}
 
-	public T prepend( String... nodes )
+	public Self prepend( String... nodes )
 	{
 		return create( prependString( nodes ) );
 	}
@@ -438,7 +453,7 @@ public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneabl
 		return Arrs.concat( nodes, this.nodes );
 	}
 
-	public T replace( String literal, String replacement )
+	public Self replace( String literal, String replacement )
 	{
 		return create( replaceString( literal, replacement ) );
 	}
@@ -449,7 +464,7 @@ public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneabl
 		return Arrays.stream( nodes ).map( s -> s.replace( literal, replacement ) ).collect( Collectors.toList() ).toArray( new String[0] );
 	}
 
-	public T reverseOrder()
+	public Self reverseOrder()
 	{
 		List<String> tmpNodes = Arrays.asList( nodes );
 		Collections.reverse( tmpNodes );
@@ -467,7 +482,7 @@ public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneabl
 		return splitString( str, null );
 	}
 
-	public boolean startsWith( @Nonnull T namespace )
+	public boolean startsWith( @Nonnull Self namespace )
 	{
 		return startsWith( namespace, true );
 	}
@@ -481,15 +496,13 @@ public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneabl
 	 *   False: "com.google.exampleSite.home" == "com.google.example"
 	 * </pre>
 	 *
-	 * @param namespace        The namespace this namespace might start with.
+	 * @param namespace        The namespace to compare this namespace to.
 	 * @param matchAtSeparator Should we only match each node or can the last node partially match? Setting this to FALSE would result in both examples above being TRUE.
 	 *
-	 * @return Does this namespace start with the provided namespace. True if so, false otherwise.
+	 * @return True if this namespace starts with the provided namespace, false otherwise.
 	 */
-	public boolean startsWith( @Nonnull T namespace, boolean matchAtSeparator )
+	public boolean startsWith( @Nonnull Self namespace, boolean matchAtSeparator )
 	{
-		Objs.notNull( namespace );
-
 		if ( namespace.getNodeCount() == 0 )
 			return true;
 
@@ -510,7 +523,7 @@ public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneabl
 
 	public boolean startsWith( @Nonnull String namespace, String separator )
 	{
-		return startsWith( creator.apply( splitString( namespace, separator ) ), true );
+		return startsWith( create( splitString( namespace, separator ) ), true );
 	}
 
 	public boolean startsWith( @Nonnull String namespace, boolean matchAtSeparator )
@@ -520,7 +533,7 @@ public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneabl
 
 	public boolean startsWith( @Nonnull String namespace, String separator, boolean matchAtSeparator )
 	{
-		return startsWith( creator.apply( splitString( namespace, separator ) ), matchAtSeparator );
+		return startsWith( create( splitString( namespace, separator ) ), matchAtSeparator );
 	}
 
 	public String[] subArray( int start, int end )
@@ -540,12 +553,12 @@ public abstract class NamespaceBase<T extends NamespaceBase> implements Cloneabl
 		return subArray( start, getNodeCount() );
 	}
 
-	public T subNodes( int start )
+	public Self subNodes( int start )
 	{
 		return subNodes( start, getNodeCount() );
 	}
 
-	public T subNodes( int start, int end )
+	public Self subNodes( int start, int end )
 	{
 		return create( subArray( start, end ) );
 	}

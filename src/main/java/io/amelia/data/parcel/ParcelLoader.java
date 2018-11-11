@@ -68,7 +68,7 @@ public class ParcelLoader
 		if ( name.endsWith( ".yaml" ) || name.endsWith( ".yml" ) )
 			return Type.YAML;
 
-		// TODO Add support for scripting factory scripts, e.g., Groovy
+		// TODO Add support for scripting factory scripts but without adding a library reliance on the AmeliaScriptingLib. Via registration maybe?
 
 		throw new ParcelableException.Ignorable( null, "AUTO_DETECT couldn't determine the file type based on the file extension." );
 	}

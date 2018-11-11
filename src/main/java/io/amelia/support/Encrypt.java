@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 /**
  * Provides basic encryption and randomizing functions
@@ -57,7 +58,7 @@ public class Encrypt
 	 * The SHA-512 hash algorithm defined in the FIPS PUB 180-2.
 	 */
 	public static final String SHA_512 = "SHA-512";
-
+	private static final Pattern UUID_PATTERN = Pattern.compile( "/^\\{?[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\u200C\u200B\\}?$/" );
 	private static final char[] allowedCharMap;
 	private static final Random random = new Random();
 	private static final char[] randomCharMap;
@@ -159,34 +160,6 @@ public class Encrypt
 	public static String hash( byte[] seed )
 	{
 		return md5Hex( uuid( seed ) );
-	}
-
-	public static byte[] sha1( byte[] bytes )
-	{
-		MessageDigest digest = getDigest( SHA_1 );
-		digest.reset();
-		return digest.digest( bytes );
-	}
-
-	public static byte[] sha256( byte[] bytes )
-	{
-		MessageDigest digest = getDigest( SHA_256 );
-		digest.reset();
-		return digest.digest( bytes );
-	}
-
-	public static byte[] sha384( byte[] bytes )
-	{
-		MessageDigest digest = getDigest( SHA_384 );
-		digest.reset();
-		return digest.digest( bytes );
-	}
-
-	public static byte[] sha512( byte[] bytes )
-	{
-		MessageDigest digest = getDigest( SHA_512 );
-		digest.reset();
-		return digest.digest( bytes );
 	}
 
 	public static byte[] md5( byte[] bytes )
@@ -385,6 +358,34 @@ public class Encrypt
 		}
 	}
 
+	public static byte[] sha1( byte[] bytes )
+	{
+		MessageDigest digest = getDigest( SHA_1 );
+		digest.reset();
+		return digest.digest( bytes );
+	}
+
+	public static byte[] sha256( byte[] bytes )
+	{
+		MessageDigest digest = getDigest( SHA_256 );
+		digest.reset();
+		return digest.digest( bytes );
+	}
+
+	public static byte[] sha384( byte[] bytes )
+	{
+		MessageDigest digest = getDigest( SHA_384 );
+		digest.reset();
+		return digest.digest( bytes );
+	}
+
+	public static byte[] sha512( byte[] bytes )
+	{
+		MessageDigest digest = getDigest( SHA_512 );
+		digest.reset();
+		return digest.digest( bytes );
+	}
+
 	public static String uuid()
 	{
 		return uuid( seed( 16 ) );
@@ -413,6 +414,11 @@ public class Encrypt
 		}
 
 		return UUID.nameUUIDFromBytes( bytes.toByteArray() ).toString();
+	}
+
+	public static boolean isUuidValid( String uuid )
+	{
+		return UUID_PATTERN.matcher( uuid ).matches();
 	}
 
 	private Encrypt()

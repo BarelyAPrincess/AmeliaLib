@@ -36,7 +36,7 @@ import io.amelia.support.Pair;
 import io.amelia.support.Voluntary;
 
 @SuppressWarnings( "unchecked" )
-public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<BaseClass, ValueType, ExceptionClass>, ValueType, ExceptionClass extends ApplicationException.Error> extends ContainerBase<BaseClass, ExceptionClass>
+public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<BaseClass, ValueType, ExceptionClass>, ValueType, ExceptionClass extends ApplicationException.Error> extends ContainerBase<BaseClass, ExceptionClass> implements KeyValueSetterTrait<ValueType, ExceptionClass>, ValueSetterTrait<ValueType, ExceptionClass>, KeyValueGetterTrait<ValueType>, ValueGetterTrait<ValueType>
 {
 	public static final int LISTENER_VALUE_CHANGE = 0x02;
 	public static final int LISTENER_VALUE_STORE = 0x03;
@@ -57,34 +57,6 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 	{
 		super( creator, parent, localName );
 		this.value = value;
-	}
-
-	@Override
-	public BaseClass duplicate()
-	{
-		BaseClass clone = super.duplicate();
-
-		try
-		{
-			Method method = value.getClass().getMethod( "clone" );
-			if ( Modifier.isPublic( method.getModifiers() ) ) // One sign that it was implemented.
-				clone.value = ( ValueType ) method.invoke( value );
-			else
-				clone.value = value;
-		}
-		catch ( NoSuchMethodException | IllegalAccessException | InvocationTargetException e )
-		{
-			clone.value = value;
-		}
-
-		return clone;
-	}
-
-	@Override
-	protected void canCreateChild( BaseClass node, String key ) throws ExceptionClass
-	{
-		if ( node.getParent() == this && hasFlag( Flags.VALUES_ONLY ) )
-			throw getException( "This node has the VALUES_ONLY flag set.", null );
 	}
 
 	public final int addValueChangeListener( ContainerListener.OnValueChange<BaseClass, ValueType> function, ContainerListener.Flags... flags )
@@ -199,10 +171,45 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 	}
 
 	@Override
+	protected void canCreateChild( BaseClass node, String key ) throws ExceptionClass
+	{
+		if ( node.getParent() == this && hasFlag( Flags.VALUES_ONLY ) )
+			throw getException( "This node has the VALUES_ONLY flag set.", null );
+	}
+
+	@Override
+	public void copyChild( @Nonnull BaseClass child ) throws ExceptionClass
+	{
+		super.copyChild( child );
+		updateValue( child.value );
+	}
+
+	@Override
 	public void destroy() throws ExceptionClass
 	{
 		super.destroy();
 		updateValue( null );
+	}
+
+	@Override
+	public BaseClass duplicate()
+	{
+		BaseClass clone = super.duplicate();
+
+		try
+		{
+			Method method = value.getClass().getMethod( "clone" );
+			if ( Modifier.isPublic( method.getModifiers() ) ) // One sign that it was implemented.
+				clone.value = ( ValueType ) method.invoke( value );
+			else
+				clone.value = value;
+		}
+		catch ( NoSuchMethodException | IllegalAccessException | InvocationTargetException e )
+		{
+			clone.value = value;
+		}
+
+		return clone;
 	}
 
 	public Stream<ValueType> flatValues()
@@ -242,11 +249,13 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 		return children.stream().map( c -> new Pair( c.getName(), c.value ) );
 	}
 
+	@Override
 	public Voluntary<ValueType, ExceptionClass> getValue( String key, Function<ValueType, ValueType> computeFunction )
 	{
 		return findChild( key, true ).flatMap( child -> child.getValue( computeFunction ) );
 	}
 
+	@Override
 	public Voluntary<ValueType, ExceptionClass> getValue( Function<ValueType, ValueType> computeFunction )
 	{
 		ValueType value = getValue().orElse( null );
@@ -263,11 +272,13 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 		return Voluntary.ofNullable( newValue );
 	}
 
+	@Override
 	public Voluntary<ValueType, ExceptionClass> getValue( String key, Supplier<ValueType> supplier )
 	{
 		return findChild( key, true ).flatMap( child -> child.getValue( supplier ) );
 	}
 
+	@Override
 	public Voluntary<ValueType, ExceptionClass> getValue( Supplier<ValueType> supplier )
 	{
 		if ( !hasValue() )
@@ -282,33 +293,26 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 		return getValue();
 	}
 
+	@Override
 	public Voluntary<ValueType, ExceptionClass> getValue( @Nonnull String key )
 	{
 		return findChild( key, false ).flatMap( ContainerWithValue::getValue );
 	}
 
+	@Override
 	public Voluntary<ValueType, ExceptionClass> getValue()
 	{
 		disposalCheck();
 		return Voluntary.ofNullable( value );
 	}
 
-	public void setValue( ValueType value ) throws ExceptionClass
-	{
-		disposalCheck();
-		notFlag( Flags.READ_ONLY );
-		if ( hasFlag( Flags.NO_OVERRIDE ) && hasValue() )
-			throwException( getCurrentPath() + " has NO_OVERRIDE flag" );
-		if ( value != null && ContainerBase.class.isAssignableFrom( value.getClass() ) )
-			throwException( "The value can't be of class ContainerBase, please use the appropriate methods instead, e.g. SetChild(), MoveChild(), CopyChild(), etc." );
-		updateValue( value );
-	}
-
+	@Override
 	public final boolean hasValue( String key )
 	{
 		return findChild( key, false ).map( ContainerWithValue::hasValue ).orElse( false );
 	}
 
+	@Override
 	public boolean hasValue()
 	{
 		return value != null;
@@ -318,13 +322,6 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 	protected boolean isTrimmable0()
 	{
 		return !hasValue();
-	}
-
-	@Override
-	public void copyChild( @Nonnull BaseClass child ) throws ExceptionClass
-	{
-		super.copyChild( child );
-		updateValue( child.value );
 	}
 
 	public Voluntary<ValueType, ExceptionClass> pollValue()
@@ -337,27 +334,44 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 		return findChild( key, false ).flatMap( ContainerWithValue::pollValue );
 	}
 
+	@Override
+	public void setValue( ValueType value ) throws ExceptionClass
+	{
+		disposalCheck();
+		notFlag( Flags.READ_ONLY );
+		if ( hasFlag( Flags.NO_OVERRIDE ) && hasValue() )
+			throwException( getCurrentPath() + " has NO_OVERRIDE flag" );
+		if ( value != null && ContainerBase.class.isAssignableFrom( value.getClass() ) )
+			throwException( "The value can't be of class ContainerBase, please use the appropriate methods instead, e.g. SetChild(), MoveChild(), CopyChild(), etc." );
+		updateValue( value );
+	}
+
+	@Override
 	public void setValue( String key, ValueType value ) throws ExceptionClass
 	{
 		getChildOrCreate( key ).setValue( value );
 	}
 
+	@Override
 	public void setValue( TypeBase type, ValueType value ) throws ExceptionClass
 	{
 		getChildOrCreate( type ).setValue( value );
 	}
 
+	@Override
 	public void setValueIfAbsent( ValueType value ) throws ExceptionClass
 	{
 		if ( !hasValue() )
 			setValue( value );
 	}
 
+	@Override
 	public void setValueIfAbsent( TypeBase.TypeWithDefault type ) throws ExceptionClass
 	{
 		getChildOrCreate( type ).setValueIfAbsent( ( ValueType ) type.getDefault() );
 	}
 
+	@Override
 	public void setValueIfAbsent( String key, ValueType value ) throws ExceptionClass
 	{
 		getChildOrCreate( key ).setValueIfAbsent( value );
@@ -394,7 +408,7 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 
 	public static class Flags extends ContainerBase.Flags
 	{
-		// Limits this container to containing on values
+		// Limits this container to containing only values
 		public static final int VALUES_ONLY = getNextFlag();
 
 		Flags()

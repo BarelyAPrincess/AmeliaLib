@@ -38,7 +38,7 @@ public class ContentTypes
 
 	private static ConfigData getConfigMap()
 	{
-		return ConfigRegistry.config.getChildOrCreate( ConfigRegistry.Config.CONTENT_TYPES );
+		return ConfigRegistry.config.getChildOrCreate( ConfigRegistry.ConfigKeys.CONTENT_TYPES );
 	}
 
 	@Nonnull

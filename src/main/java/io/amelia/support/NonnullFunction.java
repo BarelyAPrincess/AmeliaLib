@@ -9,8 +9,6 @@
  */
 package io.amelia.support;
 
-import java.util.Objects;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -59,7 +57,7 @@ public interface NonnullFunction<InputType, ResultType>
 	 */
 	default <V> NonnullFunction<InputType, V> andThen( NonnullFunction<? super ResultType, ? extends V> after )
 	{
-		Objects.requireNonNull( after );
+		Objs.notNull( after );
 		return ( InputType t ) -> after.apply( apply( t ) );
 	}
 
@@ -98,7 +96,7 @@ public interface NonnullFunction<InputType, ResultType>
 	 */
 	default <V> NonnullFunction<V, ResultType> compose( NonnullFunction<? super V, ? extends InputType> before )
 	{
-		Objects.requireNonNull( before );
+		Objs.notNull( before );
 		return ( V v ) -> apply( before.apply( v ) );
 	}
 }

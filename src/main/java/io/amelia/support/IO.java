@@ -1575,6 +1575,22 @@ public class IO
 		Files.setPosixFilePermissions( path, Lists.newHashSet( PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE ) );
 	}
 
+	public static String toString( Path path )
+	{
+		return toString( path, PATH_SEPERATOR );
+	}
+
+	/**
+	 * Provides a backdoor around any implementation specific path toString() method.
+	 */
+	public static String toString( Path path, String separator )
+	{
+		List<String> nodes = new ArrayList<>();
+		for ( int i = 0; i < path.getNameCount(); i++ )
+			nodes.add( path.getName( i ).toString() );
+		return Strs.join( nodes, separator );
+	}
+
 	public static void writeStringToFile( String data, File file ) throws IOException
 	{
 		writeStringToFile( data, file, false );

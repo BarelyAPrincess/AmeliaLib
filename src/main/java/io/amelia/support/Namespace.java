@@ -10,6 +10,7 @@
 package io.amelia.support;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -17,7 +18,7 @@ import java.util.stream.Collectors;
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.foundation.Kernel;
 
-public class Namespace extends NamespaceBase<Namespace>
+public class Namespace extends NodeStack<Namespace>
 {
 	private static final List<String> tldMaps = new ArrayList<>();
 
@@ -34,14 +35,42 @@ public class Namespace extends NamespaceBase<Namespace>
 		}
 	}
 
-	public static NodePath empty( String separator )
+	public static Namespace empty( String separator )
 	{
-		return new NodePath( new String[0], separator );
+		return new Namespace( new String[0], separator );
 	}
 
-	public static NodePath empty()
+	public static Namespace empty()
 	{
-		return new NodePath( new String[0], "." );
+		return new Namespace( new String[0], "." );
+	}
+
+	public static boolean isTld( String domain )
+	{
+		domain = Http.hostnameNormalize( domain );
+		for ( String tld : tldMaps )
+			if ( domain.matches( tld ) )
+				return true;
+		return false;
+	}
+
+	public static Namespace of( String namespace )
+	{
+		return of( namespace, null );
+	}
+
+	public static Namespace of( String namespace, String glue )
+	{
+		namespace = Objs.notNullOrDef( namespace, "" );
+		glue = Objs.notEmptyOrDef( glue, "." );
+		return new Namespace( Strs.split( namespace, Pattern.compile( glue, Pattern.LITERAL ) ).collect( Collectors.toList() ), glue );
+	}
+
+	public static Namespace ofRegex( String namespace, String regex )
+	{
+		namespace = Objs.notNullOrDef( namespace, "" );
+		regex = Objs.notEmptyOrDef( regex, "\\." );
+		return new Namespace( Strs.split( namespace, Pattern.compile( regex ) ).collect( Collectors.toList() ) );
 	}
 
 	public static Domain parseDomain( String namespace )
@@ -51,7 +80,7 @@ public class Namespace extends NamespaceBase<Namespace>
 		if ( Objs.isEmpty( namespace ) )
 			return new Domain( new Namespace(), new Namespace() );
 
-		Namespace ns = Namespace.parseString( namespace );
+		Namespace ns = Namespace.of( namespace );
 		int parentNodePos = -1;
 
 		for ( int n = 0; n < ns.getNodeCount(); n++ )
@@ -67,40 +96,12 @@ public class Namespace extends NamespaceBase<Namespace>
 		return parentNodePos > 0 ? new Domain( ns.subNodes( parentNodePos ), ns.subNodes( 0, parentNodePos ) ) : new Domain( new Namespace(), ns );
 	}
 
-	public static Namespace parseString( String namespace )
-	{
-		return parseString( namespace, null );
-	}
-
-	public static boolean isTld( String domain )
-	{
-		domain = Http.hostnameNormalize( domain );
-		for ( String tld : tldMaps )
-			if ( domain.matches( tld ) )
-				return true;
-		return false;
-	}
-
-	public static Namespace parseString( String namespace, String glue )
-	{
-		namespace = Objs.notNullOrDef( namespace, "" );
-		glue = Objs.notEmptyOrDef( glue, "." );
-		return new Namespace( Strs.split( namespace, Pattern.compile( glue, Pattern.LITERAL ) ).collect( Collectors.toList() ), glue );
-	}
-
-	public static Namespace parseStringRegex( String namespace, String regex )
-	{
-		namespace = Objs.notNullOrDef( namespace, "" );
-		regex = Objs.notEmptyOrDef( regex, "\\." );
-		return new Namespace( Strs.split( namespace, Pattern.compile( regex ) ).collect( Collectors.toList() ) );
-	}
-
 	public Namespace( String[] nodes, String glue )
 	{
 		super( Namespace::new, glue, nodes );
 	}
 
-	public Namespace( List<String> nodes, String glue )
+	public Namespace( Collection<String> nodes, String glue )
 	{
 		super( Namespace::new, glue, nodes );
 	}
@@ -110,19 +111,35 @@ public class Namespace extends NamespaceBase<Namespace>
 		super( Namespace::new, glue );
 	}
 
-	public Namespace( String[] nodes )
+	private Namespace( Namespace from, String[] nodes )
 	{
-		super( Namespace::new, ".", nodes );
+		this( nodes );
 	}
 
-	public Namespace( List<String> nodes )
+	public Namespace( String[] nodes )
 	{
-		super( Namespace::new, ".", nodes );
+		this( nodes, "." );
+	}
+
+	public Namespace( Collection<String> nodes )
+	{
+		this( nodes, "." );
 	}
 
 	public Namespace()
 	{
-		super( Namespace::new, "." );
+		this( "." );
+	}
+
+	public String getGlue()
+	{
+		return glue;
+	}
+
+	public Namespace setGlue( String glue )
+	{
+		this.glue = glue;
+		return this;
 	}
 
 	public static class Domain
@@ -153,23 +170,12 @@ public class Namespace extends NamespaceBase<Namespace>
 
 		public Namespace getRootDomain()
 		{
-			return Namespace.parseString( child.getStringLast() + "." + tld.getString() );
+			return Namespace.of( child.getStringLast() + "." + tld.getString() );
 		}
 
 		public Namespace getTld()
 		{
 			return tld;
 		}
-	}
-
-	public Namespace setGlue( String glue )
-	{
-		this.glue = glue;
-		return this;
-	}
-
-	public String getGlue()
-	{
-		return glue;
 	}
 }

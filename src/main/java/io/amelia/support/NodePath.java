@@ -9,66 +9,106 @@
  */
 package io.amelia.support;
 
-import java.util.List;
+import java.util.Collection;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import io.amelia.lang.ApplicationException;
-
-public class NodePath extends NamespaceBase<NodePath>
+public class NodePath extends NodeStack<NodePath>
 {
+	public static final Separator DEFAULT_SEPARATOR = Separator.FORWARDSLASH;
+
 	public static NodePath empty()
 	{
-		return empty( Separator.FORWARDSLASH );
+		return empty( DEFAULT_SEPARATOR );
 	}
 
 	public static NodePath empty( Separator separator )
 	{
-		return new NodePath( new String[0], separator.getSeparator() );
+		return new NodePath( new String[0], separator );
 	}
 
-	public static NodePath parseString( String path )
+	public static NodePath of( String path )
 	{
-		return parseString( path, Separator.FORWARDSLASH );
+		return of( path, DEFAULT_SEPARATOR );
 	}
 
-	public static NodePath parseString( @Nullable String path, @Nonnull Separator separator )
+	public static NodePath of( @Nullable String path, @Nonnull Separator separator )
 	{
 		path = Objs.notNullOrDef( path, "" );
-		return new NodePath( Strs.split( path, Pattern.compile( separator.getSeparator(), Pattern.LITERAL ) ).collect( Collectors.toList() ), separator.getSeparator() );
+		return new NodePath( Strs.split( path, Pattern.compile( separator.getSeparator(), Pattern.LITERAL ) ).collect( Collectors.toList() ), separator ).setAbsolute( path.startsWith( separator.getSeparator() ) );
 	}
 
-	public NodePath( String[] nodes, String glue )
+	private boolean isAbsolute;
+
+	public NodePath( String[] nodes, @Nonnull Separator separator )
 	{
-		super( NodePath::new, glue, nodes );
+		super( NodePath::new, separator.getSeparator(), nodes );
 	}
 
-	public NodePath( List<String> nodes, String glue )
+	public NodePath( Collection<String> nodes, @Nonnull Separator separator )
 	{
-		super( NodePath::new, glue, nodes );
+		super( NodePath::new, separator.getSeparator(), nodes );
 	}
 
-	public NodePath( String glue )
+	public NodePath( @Nonnull Separator separator )
 	{
-		super( NodePath::new, glue );
+		super( NodePath::new, separator.getSeparator() );
+	}
+
+	private NodePath( NodePath from, String[] nodes )
+	{
+		this( nodes );
+		isAbsolute = from.isAbsolute;
 	}
 
 	public NodePath( String[] nodes )
 	{
-		super( NodePath::new, ".", nodes );
+		this( nodes, DEFAULT_SEPARATOR );
 	}
 
-	public NodePath( List<String> nodes )
+	public NodePath( Collection<String> nodes )
 	{
-		super( NodePath::new, ".", nodes );
+		this( nodes, DEFAULT_SEPARATOR );
 	}
 
 	public NodePath()
 	{
-		super( NodePath::new, "." );
+		this( DEFAULT_SEPARATOR );
+	}
+
+	public NodePath append( @Nonnull NodePath node )
+	{
+		if ( node.isEmpty() )
+			return this;
+		this.nodes = Arrs.concat( this.nodes, node.nodes );
+		return this;
+	}
+
+	public NodePath appendAndCreate( @Nonnull NodePath node )
+	{
+		if ( node.isEmpty() )
+			return clone();
+		return create( Arrs.concat( this.nodes, node.nodes ) );
+	}
+
+	@Override
+	public String getString( boolean escape )
+	{
+		return ( isAbsolute ? glue : "" ) + super.getString( escape );
+	}
+
+	public boolean isAbsolute()
+	{
+		return isAbsolute;
+	}
+
+	public NodePath setAbsolute( boolean absolute )
+	{
+		isAbsolute = absolute;
+		return this;
 	}
 
 	public NodePath setSeparator( Separator separator )

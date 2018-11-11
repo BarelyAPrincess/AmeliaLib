@@ -15,6 +15,9 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Supplier;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 /**
  * Outlines a config key along with it's default value.
  */
@@ -280,7 +283,7 @@ public class TypeBase
 		}
 	}
 
-	protected static class TypeWithDefault<DefValue> extends TypeBase
+	public static class TypeWithDefault<DefValue> extends TypeBase
 	{
 		private final Supplier<DefValue> def;
 
@@ -300,7 +303,7 @@ public class TypeBase
 			this.def = def;
 		}
 
-		public TypeWithDefault( TypeBase parent, String path, DefValue def )
+		public TypeWithDefault( @Nonnull TypeBase parent, @Nonnull String path, @Nullable DefValue def )
 		{
 			super( parent, path );
 			this.def = () -> def;

@@ -131,7 +131,7 @@ public class Lists
 	}
 
 	@SuppressWarnings( "unchecked" )
-	public static <Type> Optional<Type> first( Collection<Type> list )
+	public static <Type> Optional<Type> first( @Nonnull Collection<Type> list )
 	{
 		return Optional.ofNullable( list.size() == 0 ? null : ( Type ) list.toArray()[0] );
 	}
@@ -197,22 +197,6 @@ public class Lists
 		return new HashSet<>( Arrays.asList( elements ) );
 	}
 
-	public static <T> List<T> subList( @Nonnull List<T> list, int start, int length )
-	{
-		Objs.notNull( list );
-		Objs.notNegative( start );
-		Objs.notNegative( length );
-
-		return list.stream().skip( start ).limit( length ).collect( Collectors.toList() );
-	}
-
-	public static <T, R> List<R> walk( List<T> list, Function<T, R> function )
-	{
-		if ( list == null )
-			return null;
-		return list.stream().map( function ).filter( Objects::nonNull ).collect( Collectors.toList() );
-	}
-
 	public static <T> boolean removeIf( Set<T> list, Predicate<T> filter )
 	{
 		Objs.notNull( list );
@@ -249,6 +233,22 @@ public class Lists
 			}
 		}
 		return removed;
+	}
+
+	public static <T> List<T> subList( @Nonnull List<T> list, int start, int length )
+	{
+		Objs.notNull( list );
+		Objs.notNegative( start );
+		Objs.notNegative( length );
+
+		return list.stream().skip( start ).limit( length ).collect( Collectors.toList() );
+	}
+
+	public static <T, R> List<R> walk( List<T> list, Function<T, R> function )
+	{
+		if ( list == null )
+			return null;
+		return list.stream().map( function ).filter( Objects::nonNull ).collect( Collectors.toList() );
 	}
 
 	private Lists()
