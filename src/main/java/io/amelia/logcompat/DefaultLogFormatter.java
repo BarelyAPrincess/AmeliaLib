@@ -43,14 +43,14 @@ public class DefaultLogFormatter extends Formatter
 	@Override
 	public String format( LogRecord record )
 	{
-		if ( ConfigRegistry.isConfigLoaded() && !formatConfigLoaded )
+		if ( ConfigRegistry.isLoaded() && !formatConfigLoaded )
 		{
 			dateFormat = new SimpleDateFormat( ConfigRegistry.config.getString( "console.dateFormat" ).orElse( "MM-dd" ) );
 			timeFormat = new SimpleDateFormat( ConfigRegistry.config.getString( "console.timeFormat" ).orElse( "HH:mm:ss.SSS" ) );
 			formatConfigLoaded = true;
 		}
 
-		String style = ConfigRegistry.isConfigLoaded() ? ConfigRegistry.config.getString( "console.style" ).orElse( "&r&7[&d%ct&7] %dt %tm [%lv&7]&f" ) : "&r&7%dt %tm [%lv&7]&f";
+		String style = ConfigRegistry.isLoaded() ? ConfigRegistry.config.getString( "console.style" ).orElse( "&r&7[&d%ct&7] %dt %tm [%lv&7]&f" ) : "&r&7%dt %tm [%lv&7]&f";
 
 		Throwable ex = record.getThrown();
 

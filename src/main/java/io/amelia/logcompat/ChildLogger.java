@@ -24,7 +24,7 @@ public class ChildLogger extends Logger
 	@Override
 	public void log( LogRecord logRecord )
 	{
-		if ( ConfigRegistry.isConfigLoaded() && !ConfigRegistry.config.getBoolean( "console.hideLoggerName" ).orElse( false ) )
+		if ( ConfigRegistry.isLoaded() && !ConfigRegistry.config.getBoolean( "console.hideLoggerName" ).orElse( false ) )
 			logRecord.setMessage( "&7[" + getName() + "]&f " + logRecord.getMessage() );
 
 		super.log( logRecord );
