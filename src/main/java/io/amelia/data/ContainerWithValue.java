@@ -36,7 +36,7 @@ import io.amelia.support.Pair;
 import io.amelia.support.Voluntary;
 
 @SuppressWarnings( "unchecked" )
-public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<BaseClass, ValueType, ExceptionClass>, ValueType, ExceptionClass extends ApplicationException.Error> extends ContainerBase<BaseClass, ExceptionClass> implements KeyValueSetterTrait<ValueType, ExceptionClass>, ValueSetterTrait<ValueType, ExceptionClass>, KeyValueGetterTrait<ValueType>, ValueGetterTrait<ValueType>
+public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<BaseClass, ValueType, ExceptionClass>, ValueType, ExceptionClass extends ApplicationException.Error> extends ContainerBase<BaseClass, ExceptionClass> implements KeyValueSetterTrait<ValueType, ExceptionClass>, ValueSetterTrait<ValueType, ExceptionClass>, KeyValueGetterTrait<ValueType, ExceptionClass>, ValueGetterTrait<ValueType>
 {
 	public static final int LISTENER_VALUE_CHANGE = 0x02;
 	public static final int LISTENER_VALUE_STORE = 0x03;
