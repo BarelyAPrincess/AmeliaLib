@@ -30,7 +30,7 @@ import java.util.logging.Level;
 import java.util.stream.Stream;
 
 import io.amelia.foundation.ConfigRegistry;
-import io.amelia.foundation.ImplDevMeta;
+import io.amelia.foundation.DevMetaProvider;
 import io.amelia.foundation.Kernel;
 import io.amelia.http.mappings.DomainMapping;
 import io.amelia.http.session.Session;
@@ -772,7 +772,7 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 	 */
 	private void initServerVars()
 	{
-		ImplDevMeta meta = Kernel.getDevMeta();
+		DevMetaProvider meta = Kernel.getDevMeta();
 
 		vars.put( HttpServerKey.SERVER_SOFTWARE, meta.getProductName() );
 		vars.put( HttpServerKey.SERVER_VERSION, meta.getVersionString() );
