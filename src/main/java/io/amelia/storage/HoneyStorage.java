@@ -1,3 +1,12 @@
+/**
+ * This software may be modified and distributed under the terms
+ * of the MIT license.  See the LICENSE file for details.
+ * <p>
+ * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * <p>
+ * All Rights Reserved.
+ */
 package io.amelia.storage;
 
 import java.nio.file.spi.FileSystemProvider;
@@ -111,7 +120,7 @@ public class HoneyStorage
 			if ( initialized )
 				throw new StorageException.Error( "Storage registry is already been initialized." );
 
-			rootBackend = new FileStorageBackend( Kernel.getPath( Kernel.PATH_APP ), NodePath.of( "app" ) );
+			rootBackend = new FileStorageBackend( Kernel.getPath( Kernel.PATH_APP ), NodePath.of( "foundation" ) );
 			StorageBackend configBackend = new FileStorageBackend( Kernel.getPath( Kernel.PATH_CONFIG ), NodePath.of( "config" ), BackendType.CONFIG );
 			backends.add( configBackend );
 			backends.add( new FileStorageBackend( Kernel.getPath( Kernel.PATH_CACHE ), NodePath.of( "cache" ) ) );
