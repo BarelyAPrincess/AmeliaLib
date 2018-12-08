@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -216,10 +217,32 @@ public class Bindings
 		resolvers.add( bindingResolver );
 	}
 
-	public static <T> T resolveClass( @Nonnull Class<T> expectedClass )
+	public static <T> T resolveClass( @Nonnull Class<? super T> expectedClass )
 	{
-		Objs.notNull( expectedClass );
+		try
+		{
+			return resolveClassOrFail( expectedClass );
+		}
+		catch ( BindingException.Error e )
+		{
+			return null;
+		}
+	}
 
+	public static <T, E extends Exception> T resolveClassOrFail( @Nonnull Class<? super T> expectedClass, @Nonnull Supplier<E> exceptionSupplier ) throws E
+	{
+		try
+		{
+			return resolveClassOrFail( expectedClass );
+		}
+		catch ( BindingException.Error e )
+		{
+			throw exceptionSupplier.get();
+		}
+	}
+
+	public static <T> T resolveClassOrFail( @Nonnull Class<? super T> expectedClass ) throws BindingException.Error
+	{
 		for ( BindingResolver bindingResolver : getResolvers() )
 		{
 			Object obj = bindingResolver.get( expectedClass );
@@ -227,10 +250,10 @@ public class Bindings
 				return ( T ) obj;
 		}
 
-		return null;
+		throw new BindingException.Error( "Could not resolve class " + expectedClass.getSimpleName() );
 	}
 
-	protected static <T> T resolveNamespace( @Nonnull String namespace, @Nonnull Class<T> expectedClass )
+	protected static <T> T resolveNamespace( @Nonnull String namespace, @Nonnull Class<? super T> expectedClass )
 	{
 		Objs.notEmpty( namespace );
 		Objs.notNull( expectedClass );
