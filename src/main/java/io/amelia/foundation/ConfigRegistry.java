@@ -139,7 +139,7 @@ public class ConfigRegistry
 
 	public static class ConfigKeys
 	{
-		public static final TypeBase APPLICATION_BASE = new TypeBase( "app" );
+		public static final TypeBase APPLICATION_BASE = new TypeBase( "foundation" );
 		public static final TypeBase.TypeBoolean WARN_ON_OVERLOAD = new TypeBase.TypeBoolean( APPLICATION_BASE, "warnOnOverload", false );
 		public static final TypeBase.TypeBoolean DEVELOPMENT_MODE = new TypeBase.TypeBoolean( APPLICATION_BASE, "developmentMode", false );
 		public static final TypeBase CONFIGURATION_BASE = new TypeBase( "conf" );

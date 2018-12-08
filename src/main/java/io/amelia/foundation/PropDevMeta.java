@@ -19,7 +19,7 @@ import java.util.Properties;
 import io.amelia.lang.ApplicationException;
 import io.amelia.support.IO;
 
-public class PropDevMeta implements ImplDevMeta
+public class PropDevMeta implements DevMetaProvider
 {
 	private Properties prop = new Properties();
 

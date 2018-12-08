@@ -11,7 +11,7 @@ package io.amelia.foundation;
 
 import io.amelia.support.Version;
 
-public interface ImplDevMeta
+public interface DevMetaProvider
 {
 	String KEY_PRODUCT_NAME = "productName";
 	String KEY_PRODUCT_DESCRIPTION = "productDescription";
