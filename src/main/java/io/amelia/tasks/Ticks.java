@@ -7,32 +7,32 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.looper;
+package io.amelia.tasks;
 
 /**
- * Provides delay constants for the Looper feature
+ * Provides tick constants
  *
- * Ticks values are only estimates, if the server is running slow or, GOD forbid, fast, the exact delays could vary.
+ * Ticks values are only estimates, if the server is running slow or, GOD forbid, fast then exact times will vary.
  */
-public class Delays
+public class Ticks
 {
 	// Milliseconds
-	public static final long MILLIS_50 = 50;
-	public static final long MILLIS_100 = 100;
-	public static final long MILLIS_150 = 150;
-	public static final long MILLIS_200 = 200;
-	public static final long MILLIS_250 = 250;
-	public static final long MILLIS_300 = 300;
-	public static final long MILLIS_400 = 400;
-	public static final long MILLIS_500 = 500;
-	public static final long MILLIS_600 = 600;
-	public static final long MILLIS_700 = 700;
-	public static final long MILLIS_750 = 750;
-	public static final long MILLIS_800 = 800;
-	public static final long MILLIS_900 = 900;
+	public static final long MILLIS_50 = 1;
+	public static final long MILLIS_100 = 2;
+	public static final long MILLIS_150 = 3;
+	public static final long MILLIS_200 = 4;
+	public static final long MILLIS_250 = 5;
+	public static final long MILLIS_300 = 6;
+	public static final long MILLIS_400 = 8;
+	public static final long MILLIS_500 = 10;
+	public static final long MILLIS_600 = 12;
+	public static final long MILLIS_700 = 14;
+	public static final long MILLIS_750 = 15;
+	public static final long MILLIS_800 = 16;
+	public static final long MILLIS_900 = 18;
 
 	// Seconds
-	public static final long SECOND = 1000;
+	public static final long SECOND = 20;
 	public static final long SECOND_2 = SECOND * 2;
 	public static final long SECOND_2_5 = 50;
 	public static final long SECOND_5 = SECOND * 5;
@@ -58,13 +58,16 @@ public class Delays
 	public static final long HOUR_4 = HOUR * 4;
 	public static final long HOUR_5 = HOUR * 5;
 	public static final long HOUR_6 = HOUR * 6;
-	public static final long HOUR_8 = HOUR * 8;
-	public static final long HOUR_10 = HOUR * 10;
 	public static final long HOUR_12 = HOUR * 12;
-	public static final long HOUR_14 = HOUR * 14;
-	public static final long HOUR_16 = HOUR * 16;
 	public static final long HOUR_18 = HOUR * 18;
-	public static final long HOUR_20 = HOUR * 20;
-	public static final long HOUR_22 = HOUR * 22;
-	public static final long HOUR_24 = HOUR * 24;
+
+	// Days
+	public static final long DAY = HOUR * 24;
+	public static final long DAYS_3 = DAY * 3;
+	public static final long DAYS_7 = DAY * 7;
+	public static final long DAYS_14 = DAY * 14;
+	public static final long DAYS_21 = DAY * 3;
+	public static final long DAYS_28 = DAY * 28;
+	public static final long DAYS_30 = DAY * 30;
+	public static final long DAYS_31 = DAY * 31;
 }

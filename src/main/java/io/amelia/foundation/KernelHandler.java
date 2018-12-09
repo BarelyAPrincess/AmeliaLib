@@ -7,16 +7,9 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.data.parcel;
+package io.amelia.foundation;
 
-public interface ParcelSender
+public interface KernelHandler
 {
-	/**
-	 * Used to reply to a parcel sent from this {@link ParcelSender}
-	 * However, it's common for the ability to receive to not exist.
-	 */
-	default ParcelReceiver getReplyTo()
-	{
-		return null;
-	}
+	boolean isPrimaryThread();
 }

@@ -11,7 +11,7 @@ package io.amelia.foundation;
 
 import java.util.logging.Level;
 
-public interface ImplLogHandler
+public interface LogHandler
 {
 	default void debug( Class<?> source, String message, Object... args )
 	{

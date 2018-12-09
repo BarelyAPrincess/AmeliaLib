@@ -71,7 +71,7 @@ public class Kernel
 	static final int THREAD_POOL_SIZE_CORE = Math.max( 4, Math.min( CPU_COUNT - 1, 1 ) );
 	public static long startTime = System.currentTimeMillis();
 	private static Path appPath;
-	private static ImplDevMeta devMeta;
+	private static DevMetaProvider devMeta;
 	private static ExceptionRegistrar exceptionRegistrar = null;
 	static final ThreadFactory threadFactory = new ThreadFactory()
 	{
@@ -87,8 +87,8 @@ public class Kernel
 		}
 	};
 
-	private static ImplLogHandler log = new BuiltinLogHandler();
-	private static ImplUtils implUtils = new BuiltinImplUtils();
+	private static LogHandler log = new BuiltinLogHandler();
+	private static KernelHandler kernelHandler = new BuiltinKernelHandler();
 
 	static
 	{
@@ -137,30 +137,30 @@ public class Kernel
 		setPath( PATH_STORAGE, PATH_APP, "storage" );
 	}
 
-	public static ImplDevMeta getDevMeta()
+	public static DevMetaProvider getDevMeta()
 	{
 		if ( devMeta == null )
 			devMeta = new NoDevMeta();
 		return devMeta;
 	}
 
-	public static void setDevMeta( ImplDevMeta devMeta )
+	public static void setDevMeta( DevMetaProvider devMeta )
 	{
 		if ( Kernel.devMeta != null && !( Kernel.devMeta instanceof NoDevMeta ) )
 			throw new IllegalStateException( "Improper Implementation: DevMeta has already been set." );
 		Kernel.devMeta = devMeta;
 	}
 
-	public static ImplUtils getImplUtils()
+	public static KernelHandler getKernelHandler()
 	{
-		return implUtils;
+		return kernelHandler;
 	}
 
-	public static void setImplUtils( ImplUtils implUtils )
+	public static void setKernelHandler( KernelHandler kernelHandler )
 	{
-		if ( Kernel.implUtils != null && !( Kernel.implUtils instanceof BuiltinImplUtils ) )
-			throw new IllegalStateException( "Improper Implementation: ImplUtils has already been set." );
-		Kernel.implUtils = implUtils;
+		if ( Kernel.kernelHandler != null && !( Kernel.kernelHandler instanceof BuiltinKernelHandler ) )
+			throw new IllegalStateException( "Improper Implementation: KernelHandler has already been set." );
+		Kernel.kernelHandler = kernelHandler;
 	}
 
 	public static ExceptionRegistrar getExceptionRegistrar()
@@ -246,7 +246,7 @@ public class Kernel
 		if ( slugs[0].startsWith( "__" ) )
 		{
 			String key = slugs[0].substring( 2 );
-			if ( key.equals( "app" ) )
+			if ( key.equals( "foundation" ) )
 				slugs[0] = getPath().toString();
 			else if ( Kernel.APP_PATHS.containsKey( key ) )
 				slugs = Stream.concat( Kernel.APP_PATHS.get( key ).stream(), Arrays.stream( slugs ).skip( 1 ) ).toArray( String[]::new );
@@ -268,7 +268,7 @@ public class Kernel
 			}
 			catch ( IOException e )
 			{
-				throw ApplicationException.ignorable( "The app path \"" + path.toString() + "\" does not exist and we couldn't create it.", e );
+				throw ApplicationException.ignorable( "The foundation path \"" + path.toString() + "\" does not exist and we couldn't create it.", e );
 			}
 		}
 
@@ -277,7 +277,7 @@ public class Kernel
 
 	public static Path getPath()
 	{
-		Objs.notEmpty( appPath, "The app path has not been set." );
+		Objs.notEmpty( appPath, "The foundation path has not been set." );
 		return appPath;
 	}
 
@@ -302,7 +302,7 @@ public class Kernel
 		Kernel.appPath = appPath;
 	}
 
-	public static void setLogHandler( @Nonnull ImplLogHandler log )
+	public static void setLogHandler( @Nonnull LogHandler log )
 	{
 		Kernel.log = log;
 	}
@@ -315,10 +315,10 @@ public class Kernel
 
 		final String key = pathKey.toLowerCase();
 
-		if ( "app".equals( key ) )
+		if ( "foundation".equals( key ) )
 			throw new IllegalArgumentException( "App path is set using the setAppPath() method." );
 		if ( !Paths.get( paths[0] ).isAbsolute() && !paths[0].startsWith( "__" ) )
-			throw new IllegalArgumentException( "App paths must be absolute or reference another app path, i.e., __app. Paths: [" + Strs.join( paths ) + "]" );
+			throw new IllegalArgumentException( "App paths must be absolute or reference another foundation path, i.e., __app. Paths: [" + Strs.join( paths ) + "]" );
 		Kernel.APP_PATHS.put( key, Lists.newArrayList( paths ) );
 	}
 
@@ -332,12 +332,18 @@ public class Kernel
 		return DateAndTime.formatDuration( System.currentTimeMillis() - startTime );
 	}
 
+	// TODO Not Implemented
+	public static boolean useTimings()
+	{
+		return false;
+	}
+
 	private Kernel()
 	{
 		// Static Access
 	}
 
-	private static class BuiltinImplUtils implements ImplUtils
+	private static class BuiltinKernelHandler implements KernelHandler
 	{
 		@Override
 		public boolean isPrimaryThread()
@@ -347,7 +353,7 @@ public class Kernel
 		}
 	}
 
-	private static class BuiltinLogHandler implements ImplLogHandler
+	private static class BuiltinLogHandler implements LogHandler
 	{
 		@Override
 		public void log( Level level, Class<?> source, String message, Object... args )
@@ -427,7 +433,7 @@ public class Kernel
 		}
 	}
 
-	private static class NoDevMeta implements ImplDevMeta
+	private static class NoDevMeta implements DevMetaProvider
 	{
 		@Override
 		public String getProperty( String key )

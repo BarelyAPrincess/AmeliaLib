@@ -7,11 +7,10 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.foundation.bindings;
+package io.amelia.tasks;
 
-import io.amelia.lang.ApplicationException;
-
-public interface FacadeBinding
+@FunctionalInterface
+public interface CallableTask
 {
-	void destroy() throws ApplicationException.Error;
+	void call() throws Exception;
 }

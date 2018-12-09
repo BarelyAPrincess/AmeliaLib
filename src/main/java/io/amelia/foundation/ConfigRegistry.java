@@ -17,6 +17,7 @@ import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 
 import io.amelia.data.TypeBase;
+import io.amelia.data.parcel.ParcelLoader;
 import io.amelia.lang.ConfigException;
 import io.amelia.support.IO;
 import io.amelia.support.Objs;
@@ -33,20 +34,20 @@ public class ConfigRegistry
 		private ConfigData tempConfig;
 
 		@Override
-		public void commitConfig( @Nonnull ConfigLoader.CommitType type ) throws ConfigException.Error
-		{
-			Streams.forEachWithException( tempConfig.getChildren(), child -> config.setChild( child, true ) );
-			tempConfig = null;
-			loaded = true;
-		}
-
-		@Override
 		public ConfigData beginConfig() throws ConfigException.Error
 		{
 			if ( tempConfig != null )
 				throw new ConfigException.Error( tempConfig, "Configuration must be first be committed!" );
 			tempConfig = ConfigData.empty();
 			return tempConfig;
+		}
+
+		@Override
+		public void commitConfig( @Nonnull ConfigLoader.CommitType type ) throws ConfigException.Error
+		{
+			Streams.forEachWithException( tempConfig.getChildren(), child -> config.setChild( child, true ) );
+			tempConfig = null;
+			loaded = true;
 		}
 	};
 
@@ -139,7 +140,7 @@ public class ConfigRegistry
 
 	public static class ConfigKeys
 	{
-		public static final TypeBase APPLICATION_BASE = new TypeBase( "app" );
+		public static final TypeBase APPLICATION_BASE = new TypeBase( "foundation" );
 		public static final TypeBase.TypeBoolean WARN_ON_OVERLOAD = new TypeBase.TypeBoolean( APPLICATION_BASE, "warnOnOverload", false );
 		public static final TypeBase.TypeBoolean DEVELOPMENT_MODE = new TypeBase.TypeBoolean( APPLICATION_BASE, "developmentMode", false );
 		public static final TypeBase CONFIGURATION_BASE = new TypeBase( "conf" );
