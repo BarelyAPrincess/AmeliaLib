@@ -46,7 +46,7 @@ import io.amelia.foundation.ConfigRegistry;
 import io.amelia.foundation.Env;
 import io.amelia.foundation.Foundation;
 import io.amelia.foundation.Kernel;
-import io.amelia.foundation.tasks.Tasks;
+import io.amelia.tasks.Tasks;
 import io.amelia.http.events.WebrootLoadEvent;
 import io.amelia.http.routes.Routes;
 import io.amelia.http.session.SessionRegistry;

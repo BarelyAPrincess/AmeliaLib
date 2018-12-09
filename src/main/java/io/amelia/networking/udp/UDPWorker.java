@@ -34,7 +34,7 @@ import io.amelia.foundation.ConfigData;
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.foundation.Foundation;
 import io.amelia.foundation.Kernel;
-import io.amelia.foundation.tasks.Tasks;
+import io.amelia.tasks.Tasks;
 import io.amelia.lang.NetworkException;
 import io.amelia.lang.StartupException;
 import io.amelia.networking.NetworkLoader;

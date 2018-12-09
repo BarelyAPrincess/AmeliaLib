@@ -19,7 +19,6 @@ import io.amelia.data.apache.ApacheDirectiveException;
 import io.amelia.data.apache.ApacheSection;
 import io.amelia.foundation.Foundation;
 import io.amelia.foundation.Kernel;
-import io.amelia.foundation.plugins.Plugins;
 import io.amelia.http.HttpHandler;
 import io.amelia.http.HttpRequestWrapper;
 import io.amelia.http.webroot.BaseWebroot;
