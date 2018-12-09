@@ -13,7 +13,6 @@ import io.amelia.data.parcel.ParcelCarrier;
 import io.amelia.lang.ApplicationException;
 import io.amelia.lang.ExceptionReport;
 import io.amelia.lang.ParcelException;
-import io.amelia.support.Runlevel;
 
 public class MinimalApplication extends ApplicationInterface
 {

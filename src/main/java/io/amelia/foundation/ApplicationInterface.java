@@ -32,14 +32,12 @@ import io.amelia.lang.ExceptionReport;
 import io.amelia.lang.ReportingLevel;
 import io.amelia.lang.StartupException;
 import io.amelia.lang.StartupInterruptException;
-import io.amelia.logcompat.Logger;
 import io.amelia.looper.LooperRouter;
 import io.amelia.storage.HoneyStorage;
 import io.amelia.support.Encrypt;
 import io.amelia.support.EnumColor;
 import io.amelia.support.IO;
 import io.amelia.support.Objs;
-import io.amelia.support.Runlevel;
 import io.amelia.support.Streams;
 import io.amelia.support.Strs;
 import joptsimple.OptionParser;
@@ -101,7 +99,7 @@ public abstract class ApplicationInterface implements VendorRegistrar, Exception
 	public void fatalError( ExceptionReport report, boolean crashOnError )
 	{
 		if ( crashOnError )
-			Foundation.setRunlevel( Runlevel.CRASHED, "The Application has crashed!" );
+			Kernel.setRunlevel( Runlevel.CRASHED, "The Application has crashed!" );
 	}
 
 	public Env getEnv()
@@ -195,7 +193,7 @@ public abstract class ApplicationInterface implements VendorRegistrar, Exception
 
 		if ( optionSet.has( "version" ) )
 		{
-			Foundation.L.info( Kernel.getDevMeta().getProductDescribed() );
+			Kernel.L.info( Kernel.getDevMeta().getProductDescribed() );
 			throw new StartupInterruptException();
 		}
 
@@ -243,14 +241,14 @@ public abstract class ApplicationInterface implements VendorRegistrar, Exception
 			 *   priority: NORMAL
 			 * }
 			 */
-			Streams.forEachWithException( ConfigRegistry.config.getChild( Foundation.ConfigKeys.BINDINGS_FACADES ).getChildren(), child -> {
+			Streams.forEachWithException( ConfigRegistry.config.getChild( Kernel.ConfigKeys.BINDINGS_FACADES ).getChildren(), child -> {
 				if ( child.hasChild( "class" ) )
 				{
 					Class<FacadeBinding> facadeClass = child.getStringAsClass( "class", FacadeBinding.class ).orElse( null );
 					FacadePriority priority = child.getEnum( "priority", FacadePriority.class ).orElse( FacadePriority.NORMAL );
 
 					if ( facadeClass == null )
-						Foundation.L.warning( "We found malformed arguments in the facade config for key -> " + child.getName() );
+						Kernel.L.warning( "We found malformed arguments in the facade config for key -> " + child.getName() );
 					else
 					{
 						WritableBinding binding;
@@ -265,12 +263,12 @@ public abstract class ApplicationInterface implements VendorRegistrar, Exception
 						}
 						catch ( BindingException.Error e )
 						{
-							Foundation.L.severe( "Failed to register facade from config for key. {facadeKey=" + child.getName() + "}", e );
+							Kernel.L.severe( "Failed to register facade from config for key. {facadeKey=" + child.getName() + "}", e );
 						}
 					}
 				}
 				else
-					Foundation.L.warning( "We found malformed arguments in the facade config. {facadeKey=" + child.getName() + "}" );
+					Kernel.L.warning( "We found malformed arguments in the facade config. {facadeKey=" + child.getName() + "}" );
 			} );
 
 			parse();
@@ -302,7 +300,7 @@ public abstract class ApplicationInterface implements VendorRegistrar, Exception
 		LooperRouter.quitUnsafely();
 	}
 
-	public void showBanner( Logger logger )
+	public void showBanner( Kernel.Logger logger )
 	{
 		logger.info( EnumColor.NEGATIVE + "" + EnumColor.GOLD + "Starting " + Kernel.getDevMeta().getProductName() + " version " + Kernel.getDevMeta().getVersionDescribe() );
 		logger.info( EnumColor.NEGATIVE + "" + EnumColor.GOLD + Kernel.getDevMeta().getProductCopyright() );

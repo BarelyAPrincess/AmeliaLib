@@ -189,8 +189,6 @@ public class Bindings
 
 	public static String normalizeNamespace( @Nonnull String baseNamespace, @Nullable String namespace )
 	{
-		Objs.notNull( baseNamespace );
-
 		baseNamespace = normalizeNamespace( baseNamespace );
 		namespace = namespace == null ? "" : normalizeNamespace( namespace );
 
@@ -200,7 +198,7 @@ public class Bindings
 		return Strs.trimAll( namespace, '.' ).replaceAll( "\\.{2,}", "." );
 	}
 
-	@APINotice( reason = "Some calls to this method might not succeed in future versions due to planned API changes." )
+	@APINotice
 	public static void registerResolver( @Nonnull String namespace, @Nonnull BindingResolver bindingResolver ) throws BindingException.Error
 	{
 		Objs.notEmpty( namespace );
