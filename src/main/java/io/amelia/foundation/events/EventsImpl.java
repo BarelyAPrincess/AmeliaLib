@@ -1,4 +1,4 @@
-package io.amelia.foundation.impl;
+package io.amelia.foundation.events;
 
 import java.lang.reflect.Method;
 

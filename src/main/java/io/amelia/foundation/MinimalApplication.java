@@ -14,7 +14,7 @@ import io.amelia.lang.ApplicationException;
 import io.amelia.lang.ExceptionReport;
 import io.amelia.lang.ParcelException;
 
-public class MinimalApplication extends ApplicationInterface
+public class MinimalApplication extends BaseApplication
 {
 	@Override
 	public void fatalError( ExceptionReport report, boolean crashOnError )

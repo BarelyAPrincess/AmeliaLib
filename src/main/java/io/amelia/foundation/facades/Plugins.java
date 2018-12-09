@@ -1,4 +1,4 @@
-package io.amelia.foundation.facade;
+package io.amelia.foundation.facades;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -8,8 +8,8 @@ import javax.annotation.Nonnull;
 import io.amelia.data.TypeBase;
 import io.amelia.foundation.bindings.BindingException;
 import io.amelia.foundation.bindings.Bindings;
-import io.amelia.foundation.impl.PluginImpl;
-import io.amelia.foundation.impl.PluginsImpl;
+import io.amelia.foundation.plugins.PluginImpl;
+import io.amelia.foundation.plugins.PluginsImpl;
 import io.amelia.lang.APINotice;
 import io.amelia.lang.PluginDependencyUnknownException;
 import io.amelia.lang.PluginException;

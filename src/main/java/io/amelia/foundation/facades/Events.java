@@ -7,7 +7,7 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.foundation.facade;
+package io.amelia.foundation.facades;
 
 import java.lang.reflect.Method;
 
@@ -20,7 +20,7 @@ import io.amelia.events.EventPriority;
 import io.amelia.foundation.RegistrarBase;
 import io.amelia.foundation.bindings.BindingException;
 import io.amelia.foundation.bindings.Bindings;
-import io.amelia.foundation.impl.EventsImpl;
+import io.amelia.foundation.events.EventsImpl;
 import io.amelia.support.ConsumerWithException;
 
 public class Events

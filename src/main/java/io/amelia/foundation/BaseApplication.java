@@ -45,17 +45,17 @@ import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 
 /**
- * When a {@link ApplicationInterface} is instigated, its main thread is dedicated to
- * running a looper that takes care of managing the top-level application tasks and parcels.
+ * When a {@link BaseApplication} is instigated, its main thread is dedicated to
+ * running the Looper that takes care of managing the top-level application tasks and parcels.
  */
-public abstract class ApplicationInterface implements VendorRegistrar, ExceptionRegistrar, ParcelInterface, ParcelReceiver
+public abstract class BaseApplication implements VendorRegistrar, ExceptionRegistrar, ParcelInterface, ParcelReceiver
 {
 	public final Thread primaryThread = Thread.currentThread();
 	private final OptionParser optionParser = new OptionParser();
 	private Env env = null;
 	private OptionSet optionSet = null;
 
-	public ApplicationInterface()
+	public BaseApplication()
 	{
 		optionParser.acceptsAll( Arrays.asList( "?", "h", "help" ), "Show the help" );
 		optionParser.acceptsAll( Arrays.asList( "v", "version" ), "Show the version" );
@@ -99,7 +99,7 @@ public abstract class ApplicationInterface implements VendorRegistrar, Exception
 	public void fatalError( ExceptionReport report, boolean crashOnError )
 	{
 		if ( crashOnError )
-			Kernel.setRunlevel( Runlevel.CRASHED, "The Application has crashed!" );
+			Foundation.setRunlevel( Runlevel.CRASHED, "The Application has crashed!" );
 	}
 
 	public Env getEnv()
@@ -217,7 +217,7 @@ public abstract class ApplicationInterface implements VendorRegistrar, Exception
 			// XXX Use Encrypt::hash as an alternative to Encrypt::uuid
 			env.computeValue( "instance-id", Encrypt::uuid, true );
 
-			Kernel.setAppPath( IO.buildPath( false, env.getString( "foundation-dir" ).orElse( null ) ) );
+			Kernel.setAppPath( IO.buildPath( false, env.getString( "app-dir" ).orElse( null ) ) );
 			env.getStringsMap().filter( e -> e.getKey().endsWith( "-dir" ) ).forEach( e -> Kernel.setPath( e.getKey().substring( 0, e.getKey().length() - 4 ), Strs.split( e.getValue(), "/" ).toArray( String[]::new ) ) );
 
 			ConfigRegistry.config.setEnvironmentVariables( env.map() );

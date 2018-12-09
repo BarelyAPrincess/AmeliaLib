@@ -1,4 +1,4 @@
-package io.amelia.foundation.impl;
+package io.amelia.foundation.plugins;
 
 import java.io.IOException;
 import java.nio.file.Path;

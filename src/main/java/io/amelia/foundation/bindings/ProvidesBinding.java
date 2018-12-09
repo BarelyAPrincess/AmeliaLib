@@ -15,7 +15,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * It's recommended to use this annotation to identify what methods and fields provide for which namespace when possible.
+ * Annotates methods and fields from within binding provider class to indicate the full provided namespace.
+ * This is recommended when possible to save the {@link Bindings} having to calculate the namespace through abstraction.
  */
 @Target( {ElementType.FIELD, ElementType.METHOD} )
 @Retention( RetentionPolicy.RUNTIME )

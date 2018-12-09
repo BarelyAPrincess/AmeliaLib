@@ -17,7 +17,7 @@ import io.amelia.looper.LooperRouter;
 /**
  * Implements a basic application environment with modules Config, Tasks, Events.
  */
-public abstract class DefaultApplication extends ApplicationInterface
+public abstract class DefaultApplication extends BaseApplication
 {
 	private static String stopReason = null;
 
