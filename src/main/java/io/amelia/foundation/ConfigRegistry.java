@@ -31,23 +31,49 @@ public class ConfigRegistry
 	// TODO This LOADER is not thread-safe but if the application initialization works as intended, this shouldn't be an issue.
 	public static final ConfigLoader LOADER = new ConfigLoader()
 	{
-		private ConfigData tempConfig;
+		private ThreadLocal<ConfigData> configs = new ThreadLocal<>();
 
 		@Override
 		public ConfigData beginConfig() throws ConfigException.Error
 		{
-			if ( tempConfig != null )
-				throw new ConfigException.Error( tempConfig, "Configuration must be first be committed!" );
-			tempConfig = ConfigData.empty();
-			return tempConfig;
+			if ( configs.get() != null )
+				throw new ConfigException.Error( configs.get(), "There is existing configuration, it must be first be committed or destroyed!" );
+
+			ConfigData config = ConfigData.empty();
+			configs.set( config );
+			return config;
 		}
 
 		@Override
 		public void commitConfig( @Nonnull ConfigLoader.CommitType type ) throws ConfigException.Error
 		{
-			Streams.forEachWithException( tempConfig.getChildren(), child -> config.setChild( child, true ) );
-			tempConfig = null;
+			ConfigData config = configs.get();
+			if ( config == null )
+				throw new ConfigException.Error( null, "There is no configuration to commit, you must first begin." );
+			Streams.forEachWithException( config.getChildren(), child -> config.setChild( child, true ) );
+			configs.remove();
 			loaded = true;
+		}
+
+		@Override
+		public ConfigData config() throws ConfigException.Error
+		{
+			ConfigData config = configs.get();
+			if ( config == null )
+				throw new ConfigException.Error( null, "There is no configuration to commit, you must first begin." );
+			return config;
+		}
+
+		@Override
+		public void destroy()
+		{
+			configs.remove();
+		}
+
+		@Override
+		public boolean hasBeganConfig()
+		{
+			return configs.get() != null;
 		}
 	};
 

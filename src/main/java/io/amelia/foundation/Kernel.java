@@ -29,7 +29,6 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 
-import io.amelia.data.TypeBase;
 import io.amelia.lang.ApplicationException;
 import io.amelia.lang.ExceptionRegistrar;
 import io.amelia.lang.ExceptionReport;
@@ -369,42 +368,7 @@ public class Kernel
 		@Override
 		public void log( Level level, Class<?> source, Throwable cause )
 		{
-			log( level, source, Exceptions.getStackTrace( cause ) );
-		}
-	}
-
-	public static class ConfigKeys
-	{
-		/**
-		 * Specifies built-in facades which can be registered here or by calling {@link io.amelia.foundation.bindings.FacadeRegistration#add(FacadeRegistration.Entry)} {@see Bindings#bindNamespace(String)}}.
-		 * Benefits of using configuration for facade registration is it adds the ability for end-users to disable select facades, however, this should be used if the facade is used by scripts.
-		 *
-		 * <pre>
-		 * bindings:
-		 *   facades:
-		 *     permissions:
-		 *       class:io.amelia.foundation.facades.PermissionsService
-		 *       priority: NORMAL
-		 *     events:
-		 *       class: io.amelia.foundation.facades.EventService
-		 *       priority: NORMAL
-		 * </pre>
-		 */
-		public static final TypeBase BINDINGS_FACADES = new TypeBase( "bindings.facades" );
-
-		/**
-		 * Specifies a config key for disabling a application metrics.
-		 *
-		 * <pre>
-		 * foundation:
-		 *   disableMetrics: false
-		 * </pre>
-		 */
-		public static final TypeBase.TypeBoolean DISABLE_METRICS = new TypeBase.TypeBoolean( ConfigRegistry.ConfigKeys.APPLICATION_BASE, "disableMetrics", false );
-
-		private ConfigKeys()
-		{
-			// Static Access
+			Strs.split( Exceptions.getStackTrace( cause ), "\n" ).forEach( str -> log( level, source, str ) );
 		}
 	}
 
@@ -435,6 +399,16 @@ public class Kernel
 		public void info( String message, Object... args )
 		{
 			log.info( source, message, args );
+		}
+
+		public void log( Level level, String message, Object... args )
+		{
+			log.log( level, source, message, args );
+		}
+
+		public void log( Level level, Throwable cause )
+		{
+			log.log( level, source, cause );
 		}
 
 		public void severe( Throwable cause )

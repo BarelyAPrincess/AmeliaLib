@@ -19,6 +19,12 @@ public interface ConfigLoader
 
 	ConfigData beginConfig() throws ConfigException.Error;
 
+	ConfigData config() throws ConfigException.Error;
+
+	void destroy();
+
+	boolean hasBeganConfig();
+
 	enum CommitType
 	{
 		AMENDED,
