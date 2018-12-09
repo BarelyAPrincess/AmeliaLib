@@ -9,7 +9,7 @@
  */
 package io.amelia.foundation;
 
-import io.amelia.foundation.tasks.Tasks;
+import io.amelia.tasks.Tasks;
 import io.amelia.lang.ApplicationException;
 import io.amelia.logcompat.LogBuilder;
 import io.amelia.looper.LooperRouter;

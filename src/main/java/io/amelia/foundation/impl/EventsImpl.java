@@ -1,4 +1,4 @@
-package io.amelia.foundation.subsystems;
+package io.amelia.foundation.impl;
 
 import java.lang.reflect.Method;
 
@@ -11,7 +11,7 @@ import io.amelia.events.EventPriority;
 import io.amelia.foundation.RegistrarBase;
 import io.amelia.support.ConsumerWithException;
 
-public interface EventsSubsystem
+public interface EventsImpl
 {
 	<T extends AbstractEvent> T callEvent( @Nonnull T event );
 

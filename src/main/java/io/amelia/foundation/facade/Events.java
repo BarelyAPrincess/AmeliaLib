@@ -17,11 +17,10 @@ import io.amelia.events.AbstractEvent;
 import io.amelia.events.EventException;
 import io.amelia.events.EventHandlers;
 import io.amelia.events.EventPriority;
-import io.amelia.foundation.Kernel;
 import io.amelia.foundation.RegistrarBase;
 import io.amelia.foundation.bindings.BindingException;
 import io.amelia.foundation.bindings.Bindings;
-import io.amelia.foundation.subsystems.EventsSubsystem;
+import io.amelia.foundation.impl.EventsImpl;
 import io.amelia.support.ConsumerWithException;
 
 public class Events
@@ -65,9 +64,9 @@ public class Events
 		return getInstance().getEventListeners( event );
 	}
 
-	public static EventsSubsystem getInstance()
+	public static EventsImpl getInstance()
 	{
-		return Bindings.resolveClassOrFail( EventsSubsystem.class, () -> new BindingException.Ignorable( "The Events Subsystem is not loaded. This is either an application or initialization bug." ) );
+		return Bindings.resolveClassOrFail( EventsImpl.class, () -> new BindingException.Ignorable( "The Events Subsystem is not loaded. This is either an application or initialization bug." ) );
 	}
 
 	private static void listen( final RegistrarBase registrar, final Object listener, final Method method ) throws EventException.Error
