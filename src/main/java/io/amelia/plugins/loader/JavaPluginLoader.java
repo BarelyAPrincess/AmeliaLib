@@ -42,7 +42,7 @@ import io.amelia.events.EventException;
 import io.amelia.events.EventHandler;
 import io.amelia.events.RegisteredListener;
 import io.amelia.foundation.Kernel;
-import io.amelia.foundation.facade.Events;
+import io.amelia.foundation.facades.Events;
 import io.amelia.lang.DeprecatedDetail;
 import io.amelia.lang.PluginDependencyUnknownException;
 import io.amelia.lang.PluginException;
