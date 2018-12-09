@@ -50,7 +50,7 @@ import io.amelia.plugins.loader.PluginClassLoader;
 import io.amelia.plugins.loader.PluginLoader;
 import io.amelia.support.IO;
 import io.amelia.support.Objs;
-import io.amelia.support.Runlevel;
+import io.amelia.foundation.Runlevel;
 import io.amelia.tasks.Tasks;
 
 public class AmeliaPlugins<Subclass extends Plugin> implements PluginsImpl<Subclass>
