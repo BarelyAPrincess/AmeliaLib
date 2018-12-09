@@ -29,6 +29,7 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 
+import io.amelia.data.TypeBase;
 import io.amelia.lang.ApplicationException;
 import io.amelia.lang.ExceptionRegistrar;
 import io.amelia.lang.ExceptionReport;
@@ -86,9 +87,8 @@ public class Kernel
 			return newThread;
 		}
 	};
-
-	private static LogHandler log = new BuiltinLogHandler();
 	private static KernelHandler kernelHandler = new BuiltinKernelHandler();
+	private static LogHandler log = new BuiltinLogHandler();
 
 	static
 	{
@@ -144,33 +144,9 @@ public class Kernel
 		return devMeta;
 	}
 
-	public static void setDevMeta( DevMetaProvider devMeta )
-	{
-		if ( Kernel.devMeta != null && !( Kernel.devMeta instanceof NoDevMeta ) )
-			throw new IllegalStateException( "Improper Implementation: DevMeta has already been set." );
-		Kernel.devMeta = devMeta;
-	}
-
-	public static KernelHandler getKernelHandler()
-	{
-		return kernelHandler;
-	}
-
-	public static void setKernelHandler( KernelHandler kernelHandler )
-	{
-		if ( Kernel.kernelHandler != null && !( Kernel.kernelHandler instanceof BuiltinKernelHandler ) )
-			throw new IllegalStateException( "Improper Implementation: KernelHandler has already been set." );
-		Kernel.kernelHandler = kernelHandler;
-	}
-
 	public static ExceptionRegistrar getExceptionRegistrar()
 	{
 		return exceptionRegistrar;
-	}
-
-	public static void setExceptionRegistrar( ExceptionRegistrar exceptionRegistrar )
-	{
-		Kernel.exceptionRegistrar = exceptionRegistrar;
 	}
 
 	public static Executor getExecutorParallel()
@@ -181,6 +157,11 @@ public class Kernel
 	public static Executor getExecutorSerial()
 	{
 		return EXECUTOR_SERIAL;
+	}
+
+	public static KernelHandler getKernelHandler()
+	{
+		return kernelHandler;
 	}
 
 	public static Logger getLogger( Class<?> source )
@@ -302,6 +283,25 @@ public class Kernel
 		Kernel.appPath = appPath;
 	}
 
+	public static void setDevMeta( DevMetaProvider devMeta )
+	{
+		if ( Kernel.devMeta != null && !( Kernel.devMeta instanceof NoDevMeta ) )
+			throw new IllegalStateException( "Improper Implementation: DevMeta has already been set." );
+		Kernel.devMeta = devMeta;
+	}
+
+	public static void setExceptionRegistrar( ExceptionRegistrar exceptionRegistrar )
+	{
+		Kernel.exceptionRegistrar = exceptionRegistrar;
+	}
+
+	public static void setKernelHandler( KernelHandler kernelHandler )
+	{
+		if ( Kernel.kernelHandler != null && !( Kernel.kernelHandler instanceof BuiltinKernelHandler ) )
+			throw new IllegalStateException( "Improper Implementation: KernelHandler has already been set." );
+		Kernel.kernelHandler = kernelHandler;
+	}
+
 	public static void setLogHandler( @Nonnull LogHandler log )
 	{
 		Kernel.log = log;
@@ -370,6 +370,41 @@ public class Kernel
 		public void log( Level level, Class<?> source, Throwable cause )
 		{
 			log( level, source, Exceptions.getStackTrace( cause ) );
+		}
+	}
+
+	public static class ConfigKeys
+	{
+		/**
+		 * Specifies built-in facades which can be registered here or by calling {@link io.amelia.foundation.bindings.FacadeRegistration#add(FacadeRegistration.Entry)} {@see Bindings#bindNamespace(String)}}.
+		 * Benefits of using configuration for facade registration is it adds the ability for end-users to disable select facades, however, this should be used if the facade is used by scripts.
+		 *
+		 * <pre>
+		 * bindings:
+		 *   facades:
+		 *     permissions:
+		 *       class:io.amelia.foundation.facades.PermissionsService
+		 *       priority: NORMAL
+		 *     events:
+		 *       class: io.amelia.foundation.facades.EventService
+		 *       priority: NORMAL
+		 * </pre>
+		 */
+		public static final TypeBase BINDINGS_FACADES = new TypeBase( "bindings.facades" );
+
+		/**
+		 * Specifies a config key for disabling a application metrics.
+		 *
+		 * <pre>
+		 * foundation:
+		 *   disableMetrics: false
+		 * </pre>
+		 */
+		public static final TypeBase.TypeBoolean DISABLE_METRICS = new TypeBase.TypeBoolean( ConfigRegistry.ConfigKeys.APPLICATION_BASE, "disableMetrics", false );
+
+		private ConfigKeys()
+		{
+			// Static Access
 		}
 	}
 
