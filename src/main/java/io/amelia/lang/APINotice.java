@@ -28,5 +28,5 @@ import static java.lang.annotation.ElementType.TYPE;
 @Target( value = {CONSTRUCTOR, FIELD, LOCAL_VARIABLE, METHOD, PACKAGE, PARAMETER, TYPE} )
 public @interface APINotice
 {
-	String reason();
+	String reason() default "API not final and could change without notice.";
 }

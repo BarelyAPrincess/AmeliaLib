@@ -200,11 +200,11 @@ public class ParcelLoader
 		return decodeListToMap( IO.readFileToLines( file, "#" ) );
 	}
 
-	public static Parcel decodeMap( Map<String, Object> mapEncoded ) throws ParcelableException.Error
+	public static Parcel decodeMap( Map<String, Object> map ) throws ParcelableException.Error
 	{
-		Parcel dataMap = Parcel.empty();
-		decodeMap( mapEncoded, dataMap );
-		return dataMap;
+		Parcel parcel = Parcel.empty();
+		decodeMap( map, parcel );
+		return parcel;
 	}
 
 	@SuppressWarnings( "unchecked" )

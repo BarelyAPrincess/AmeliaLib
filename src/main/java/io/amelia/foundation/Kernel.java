@@ -332,6 +332,12 @@ public class Kernel
 		return DateAndTime.formatDuration( System.currentTimeMillis() - startTime );
 	}
 
+	// TODO Not Implemented
+	public static boolean useTimings()
+	{
+		return false;
+	}
+
 	private Kernel()
 	{
 		// Static Access

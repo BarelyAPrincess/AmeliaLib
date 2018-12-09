@@ -9,6 +9,8 @@
  */
 package io.amelia.foundation;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
@@ -22,6 +24,47 @@ import io.amelia.support.Voluntary;
 
 public final class ConfigData extends ContainerWithValue<ConfigData, Object, ConfigException.Error> implements KeyValueTypesTrait<ConfigException.Error>
 {
+	public static ConfigData decodeJson( Path path ) throws IOException, ConfigException.Error
+	{
+		ConfigData configData = ConfigData.empty();
+		ParcelLoader.decodeMap( ParcelLoader.decodeJsonToMap( path ), configData );
+		return configData;
+	}
+
+	public static ConfigData decodeList( Path path ) throws IOException, ConfigException.Error
+	{
+		ConfigData configData = ConfigData.empty();
+		ParcelLoader.decodeMap( ParcelLoader.decodeListToMap( path ), configData );
+		return configData;
+	}
+
+	public static ConfigData decodeProp( Path path ) throws IOException, ConfigException.Error
+	{
+		ConfigData configData = ConfigData.empty();
+		ParcelLoader.decodeMap( ParcelLoader.decodePropToMap( path ), configData );
+		return configData;
+	}
+
+	public static ConfigData decodeYaml( Path path ) throws IOException, ConfigException.Error
+	{
+		ConfigData configData = ConfigData.empty();
+		ParcelLoader.decodeMap( ParcelLoader.decodeYamlToMap( path ), configData );
+		return configData;
+	}
+
+	@Nonnull
+	public static ConfigData empty()
+	{
+		try
+		{
+			return new ConfigData( null, "" );
+		}
+		catch ( ConfigException.Error error )
+		{
+			// This should never happen!
+			throw new RuntimeException( error );
+		}
+	}
 	private String loadedValueHash = null;
 
 	private ConfigData() throws ConfigException.Error
@@ -44,24 +87,21 @@ public final class ConfigData extends ContainerWithValue<ConfigData, Object, Con
 		super( ConfigData::new, parent, key, value );
 	}
 
-	@Nonnull
-	public static ConfigData empty()
-	{
-		try
-		{
-			return new ConfigData( null, "" );
-		}
-		catch ( ConfigException.Error error )
-		{
-			// This should never happen!
-			throw new RuntimeException( error );
-		}
-	}
-
 	@Override
 	protected ConfigException.Error getException( @Nonnull String message, Exception exception )
 	{
 		return new ConfigException.Error( this, message, exception );
+	}
+
+	@Override
+	public Voluntary<Object, ConfigException.Error> getValue( @Nonnull String key )
+	{
+		return super.getValue( key );
+	}
+
+	public void setEnvironmentVariables( Map<String, Object> map )
+	{
+		// TODO
 	}
 
 	<T> T setValueWithHash( Object obj )
@@ -79,17 +119,6 @@ public final class ConfigData extends ContainerWithValue<ConfigData, Object, Con
 	<T> T setValueWithHash( String key, Object obj )
 	{
 		return getChildOrCreate( key ).setValueWithHash( obj );
-	}
-
-	@Override
-	public Voluntary<Object, ConfigException.Error> getValue( @Nonnull String key )
-	{
-		return super.getValue( key );
-	}
-
-	public void setEnvironmentVariables( Map<String, Object> map )
-	{
-		// TODO
 	}
 
 	@Override
