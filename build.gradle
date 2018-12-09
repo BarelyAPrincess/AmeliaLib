@@ -21,7 +21,6 @@ dependencies {
 
 	compile project( ":AmeliaCommonLib" )
 	compile project( ":AmeliaStorageLib" )
-	compile project( ':AmeliaEventsLib' )
 
 	// Used for Groovy Scripting
 	compile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.4.9'

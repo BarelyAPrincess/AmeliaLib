@@ -24,7 +24,7 @@ import io.amelia.data.TypeBase;
 import io.amelia.events.EventException;
 import io.amelia.events.Events;
 import io.amelia.foundation.events.EventException;
-import io.amelia.foundation.events.Events;
+import io.amelia.foundation.facades.Events;
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.foundation.Kernel;
 import io.amelia.lang.ScriptingException;
