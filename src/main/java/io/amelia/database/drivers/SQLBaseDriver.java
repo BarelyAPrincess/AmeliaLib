@@ -355,7 +355,7 @@ public abstract class SQLBaseDriver implements DatabaseDriver
 							if ( e.getCause() instanceof NotSerializableException )
 								Database.L.severe( "The object " + s.getClass() + " (" + s.toString() + ") is not serializable!" );
 
-							if ( !e.getMessage().startsWith( "Parameter index out of range" ) )
+							if ( !e.getMessage().startsWith( "Parameter getIndex out of range" ) )
 								throw e;
 
 							if ( Kernel.isDevelopment() )
@@ -363,7 +363,7 @@ public abstract class SQLBaseDriver implements DatabaseDriver
 						}
 						catch ( ArrayIndexOutOfBoundsException e )
 						{
-							Database.L.warning( String.format( "SQL Query '%s' is lacking replace points (?) to satisfy the argument '%s', index '%s'", sqlQuery, s, x ) );
+							Database.L.warning( String.format( "SQL Query '%s' is lacking replace points (?) to satisfy the argument '%s', getIndex '%s'", sqlQuery, s, x ) );
 						}
 
 			try

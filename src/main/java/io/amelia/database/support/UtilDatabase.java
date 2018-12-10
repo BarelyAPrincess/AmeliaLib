@@ -524,11 +524,11 @@ public class UtilDatabase
 		 */
 		Default,
 		/**
-		 * Will increment keys to next available index to make room
+		 * Will increment keys to next available getIndex to make room
 		 */
 		MoveNext,
 		/**
-		 * Will decrement keys to last available index to make room
+		 * Will decrement keys to last available getIndex to make room
 		 */
 		MovePrevious
 	}

@@ -21,7 +21,10 @@ import javax.annotation.Nonnull;
 import io.amelia.data.parcel.ParcelChecker;
 import io.amelia.foundation.ConfigData;
 import io.amelia.foundation.ConfigLoader;
+import io.amelia.foundation.ConfigRegistry;
 import io.amelia.foundation.Kernel;
+import io.amelia.hooks.Hook;
+import io.amelia.hooks.Hooks;
 import io.amelia.lang.ConfigException;
 import io.amelia.lang.ParcelException;
 import io.amelia.lang.StorageException;
@@ -68,6 +71,13 @@ public class HoneyStorage
 						Kernel.L.warning( "A ConfigLoader threw an unexpected exception.", e );
 					}
 			}
+	}
+
+	@Hook( ns = "io.amelia.app.parse" )
+	public static void hookFoundationParse() throws StorageException.Error
+	{
+		addConfigLoader( ConfigRegistry.LOADER );
+		init();
 	}
 
 	public static void addConfigLoader( @Nonnull ConfigLoader configLoader ) throws StorageException.Error
