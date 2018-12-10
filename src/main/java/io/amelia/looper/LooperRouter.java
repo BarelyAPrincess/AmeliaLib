@@ -17,7 +17,7 @@ import io.amelia.lang.ApplicationException;
 /**
  * A {@link LooperRouter} allows you to send and receive parcels through the registered {@link ParcelReceiver} on this application.
  * <p>
- * The main use for this class is to enqueue an action to be performed on a different threads or even a different application over network or by IPC.
+ * The main use for this class is to enqueue an action to be performed on a different threads or different application instances via network and inter-process communication.
  * <p>
  * Sending parcels is accomplished with the {@link #sendEmptyParcel}, {@link #sendParcel},
  * {@link #sendParcelAtTime}, and {@link #sendParcelDelayed} methods.
