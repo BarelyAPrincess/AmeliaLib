@@ -55,7 +55,7 @@ import io.amelia.tasks.Tasks;
 
 public class AmeliaPlugins<Subclass extends Plugin> implements PluginsImpl<Subclass>
 {
-	public static final Logger L = LogBuilder.get( AmeliaPlugins.class );
+	public static final Kernel.Logger L = Kernel.getLogger( AmeliaPlugins.class );
 
 	private final Map<Pattern, PluginLoader> fileAssociations = new HashMap<>();
 	private final ReentrantLock lock = new ReentrantLock();

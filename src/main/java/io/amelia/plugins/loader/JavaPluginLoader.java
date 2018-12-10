@@ -38,6 +38,7 @@ import javax.annotation.Nonnull;
 
 import io.amelia.data.parcel.ParcelLoader;
 import io.amelia.events.AbstractEvent;
+import io.amelia.events.AmeliaEvents;
 import io.amelia.events.EventException;
 import io.amelia.events.EventHandler;
 import io.amelia.events.RegisteredListener;
