@@ -71,7 +71,7 @@ public abstract class UserAuthenticator
 	/**
 	 * Used to resume a saved session login
 	 *
-	 * @param user The Account Meta
+	 * @param user The Account HookMeta
 	 * @param permissible An instance of the {@link UserAttachment}
 	 *
 	 * @return The authorized account credentials
@@ -81,7 +81,7 @@ public abstract class UserAuthenticator
 	/**
 	 * Used to check Account Credentials prior to creating the Account Instance
 	 *
-	 * @param user        The Account Meta
+	 * @param user        The Account HookMeta
 	 * @param credentials The Credentials to use for authentication
 	 *
 	 * @return An instance of the Account Credentials
