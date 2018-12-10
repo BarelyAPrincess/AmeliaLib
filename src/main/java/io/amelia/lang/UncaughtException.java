@@ -86,15 +86,17 @@ public class UncaughtException extends RuntimeException implements ExceptionCont
 		this( ReportingLevel.E_ERROR, cause );
 	}
 
+	@Nonnull
+	@Override
+	public ExceptionReport getExceptionReport()
+	{
+		return new ExceptionReport().addException( this );
+	}
+
 	@Override
 	public ReportingLevel getReportingLevel()
 	{
 		return level;
-	}
-
-	public void setReportingLevel( ReportingLevel level )
-	{
-		this.level = level;
 	}
 
 	@Nonnull
@@ -114,6 +116,11 @@ public class UncaughtException extends RuntimeException implements ExceptionCont
 	public boolean isIgnorable()
 	{
 		return level.isIgnorable();
+	}
+
+	public void setReportingLevel( ReportingLevel level )
+	{
+		this.level = level;
 	}
 
 	private void throwCauseException()

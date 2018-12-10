@@ -142,6 +142,17 @@ public class ConfigRegistry
 		// TODO Save
 	}
 
+	/**
+	 * Use with caution!
+	 * ConfigRegistry will by default be marked as loaded once the ConfigLoader is committed for the first time.
+	 *
+	 * @param loaded the explicit value to set
+	 */
+	public static void setLoadedOverride( boolean loaded )
+	{
+		ConfigRegistry.loaded = loaded;
+	}
+
 	public static void setObject( String key, Object value ) throws ConfigException.Error
 	{
 		if ( value instanceof ConfigData )

@@ -10,10 +10,6 @@
 package io.amelia.lang;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
-import io.amelia.support.Callback;
-import io.amelia.support.SupplierWithException;
 
 public final class ApplicationException
 {
@@ -133,6 +129,12 @@ public final class ApplicationException
 
 			if ( cause.getClass().isAssignableFrom( getClass() ) )
 				throw new IllegalArgumentException( "The cause argument can't be same class. {cause: " + cause.getClass() + ", this: " + getClass() + "}" );
+		}
+
+		@Nonnull
+		public ExceptionReport getExceptionReport()
+		{
+			return new ExceptionReport().addException( this );
 		}
 
 		@Override
@@ -264,6 +266,12 @@ public final class ApplicationException
 		{
 			super( cause );
 			this.level = level;
+		}
+
+		@Nonnull
+		public ExceptionReport getExceptionReport()
+		{
+			return new ExceptionReport().addException( this );
 		}
 
 		@Override

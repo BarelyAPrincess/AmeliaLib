@@ -47,6 +47,9 @@ public interface ExceptionContext
 	@Nonnull
 	Throwable getThrowable();
 
+	@Nonnull
+	ExceptionReport getExceptionReport();
+
 	/**
 	 * Called to properly add exception information to the ExceptionReport which is then used to generate a script trace or {@link ApplicationCrashReport}
 	 * <p/>
