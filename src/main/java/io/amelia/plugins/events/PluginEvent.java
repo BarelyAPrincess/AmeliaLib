@@ -9,6 +9,7 @@
  */
 package io.amelia.plugins.events;
 
+import io.amelia.events.ApplicationEvent;
 import io.amelia.plugins.Plugin;
 
 /**

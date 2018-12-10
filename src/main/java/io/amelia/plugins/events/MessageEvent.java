@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 
 import io.amelia.data.parcel.ParcelReceiver;
 import io.amelia.data.parcel.ParcelSender;
+import io.amelia.events.ApplicationEvent;
 import io.amelia.events.Cancellable;
 import io.amelia.support.Lists;
 
