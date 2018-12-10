@@ -25,7 +25,7 @@ import io.amelia.foundation.VendorMeta;
 import io.amelia.injection.MavenReference;
 import io.amelia.lang.PluginMetaException;
 import io.amelia.support.Lists;
-import io.amelia.support.Runlevel;
+import io.amelia.foundation.Runlevel;
 
 /**
  * This type is the runtime-container for the information in the plugin.yaml. All plugins must have a respective

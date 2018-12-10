@@ -22,10 +22,9 @@ import javax.annotation.Nonnull;
 
 import io.amelia.data.parcel.Parcel;
 import io.amelia.data.parcel.ParcelLoader;
-import io.amelia.foundation.ConfigData;
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.foundation.VendorMeta;
-import io.amelia.foundation.facade.Plugins;
+import io.amelia.foundation.facades.Plugins;
 import io.amelia.lang.ParcelableException;
 import io.amelia.lang.PluginException;
 import io.amelia.logcompat.LogBuilder;

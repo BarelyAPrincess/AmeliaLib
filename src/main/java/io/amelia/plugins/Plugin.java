@@ -16,7 +16,7 @@ import java.nio.file.Path;
 import javax.annotation.Nonnull;
 
 import io.amelia.data.parcel.Parcel;
-import io.amelia.foundation.impl.PluginImpl;
+import io.amelia.foundation.plugins.PluginImpl;
 import io.amelia.lang.ParcelableException;
 import io.amelia.lang.PluginException;
 import io.amelia.plugins.loader.PluginLoader;

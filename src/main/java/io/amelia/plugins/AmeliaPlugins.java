@@ -32,12 +32,11 @@ import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 
 import io.amelia.events.EventHandlers;
-import io.amelia.events.EventPriority;
+import io.amelia.events.RunlevelEvent;
 import io.amelia.foundation.Foundation;
 import io.amelia.foundation.Kernel;
-import io.amelia.foundation.events.RunlevelEvent;
-import io.amelia.foundation.facade.Events;
-import io.amelia.foundation.impl.PluginsImpl;
+import io.amelia.foundation.Runlevel;
+import io.amelia.foundation.plugins.PluginsImpl;
 import io.amelia.injection.Libraries;
 import io.amelia.injection.MavenReference;
 import io.amelia.lang.PluginDependencyUnknownException;
@@ -50,7 +49,7 @@ import io.amelia.plugins.loader.PluginClassLoader;
 import io.amelia.plugins.loader.PluginLoader;
 import io.amelia.support.IO;
 import io.amelia.support.Objs;
-import io.amelia.support.Runlevel;
+import io.amelia.support.Priority;
 import io.amelia.tasks.Tasks;
 
 public class AmeliaPlugins<Subclass extends Plugin> implements PluginsImpl<Subclass>
@@ -66,7 +65,7 @@ public class AmeliaPlugins<Subclass extends Plugin> implements PluginsImpl<Subcl
 	public AmeliaPlugins()
 	{
 		// Loads plugins in order as PluginManager receives the notices from the Events
-		Events.listen( Foundation.getApplication(), EventPriority.NORMAL, RunlevelEvent.class, event -> {
+		Foundation.getApplication().events().listen( Foundation.getApplication(), Priority.NORMAL, RunlevelEvent.class, event -> {
 			Runlevel level = event.getRunLevel();
 			getPlugins().filter( plugin -> !plugin.isEnabled() && plugin.getMeta().getLoad() == level ).forEach( this::enablePlugin );
 		} );
