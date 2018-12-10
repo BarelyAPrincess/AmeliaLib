@@ -7,7 +7,7 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.foundation.bindings;
+package io.amelia.bindings;
 
 import java.util.stream.Stream;
 
@@ -111,7 +111,7 @@ public class ReadableBinding
 		{
 			return getObjectWithException( namespace, objectClass );
 		}
-		catch ( BindingException.Error error )
+		catch ( BindingsException.Error error )
 		{
 			return null;
 		}
@@ -125,7 +125,7 @@ public class ReadableBinding
 	}
 
 	@SuppressWarnings( "unchecked" )
-	public <T> T getObjectWithException( @Nonnull String namespace, @Nonnull Class<T> objectClass ) throws BindingException.Error
+	public <T> T getObjectWithException( @Nonnull String namespace, @Nonnull Class<T> objectClass ) throws BindingsException.Error
 	{
 		return Bindings.Lock.callWithReadLock( ( namespace0, objectClass0 ) -> {
 			namespace0 = Bindings.normalizeNamespace( baseNamespace, namespace0 );
@@ -135,7 +135,7 @@ public class ReadableBinding
 			Object obj = ref == null ? Bindings.resolveNamespace( namespace0, objectClass0 ) : ref.getValue();
 
 			if ( obj != null && !objectClass0.isAssignableFrom( obj.getClass() ) )
-				throw new BindingException.Error( "The object returned for namespace `" + namespace0 + "` wasn't assigned to class `" + objectClass0.getSimpleName() + "`." );
+				throw new BindingsException.Error( "The object returned for namespace `" + namespace0 + "` wasn't assigned to class `" + objectClass0.getSimpleName() + "`." );
 
 			return ( T ) obj;
 		}, namespace, objectClass );

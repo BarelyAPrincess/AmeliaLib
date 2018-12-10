@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.ListIterator;
 
 import io.amelia.foundation.RegistrarBase;
+import io.amelia.support.Priority;
 
 /**
  * A list of event handlers, stored per-event.
@@ -79,11 +80,11 @@ public class EventHandlers extends AbstractList<RegisteredListener>
 		}
 	}
 
-	private final EnumMap<EventPriority, List<RegisteredListener>> listeners = new EnumMap<>( EventPriority.class );
+	private final EnumMap<Priority, List<RegisteredListener>> listeners = new EnumMap<>( Priority.class );
 
 	public EventHandlers()
 	{
-		for ( EventPriority o : EventPriority.values() )
+		for ( Priority o : Priority.values() )
 			listeners.put( o, new ArrayList<>() );
 	}
 

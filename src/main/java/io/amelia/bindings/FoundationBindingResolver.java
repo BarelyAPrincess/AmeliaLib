@@ -7,7 +7,7 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.foundation.bindings;
+package io.amelia.bindings;
 
 import io.amelia.foundation.BaseApplication;
 import io.amelia.foundation.Foundation;

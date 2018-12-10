@@ -9,10 +9,10 @@
  */
 package io.amelia.foundation;
 
-import io.amelia.tasks.Tasks;
 import io.amelia.lang.ApplicationException;
 import io.amelia.logcompat.LogBuilder;
 import io.amelia.looper.LooperRouter;
+import io.amelia.tasks.Tasks;
 
 /**
  * Implements a basic application environment with modules Config, Tasks, Events.

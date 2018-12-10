@@ -7,7 +7,7 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.foundation.bindings;
+package io.amelia.bindings;
 
 import java.util.TreeSet;
 import java.util.function.Supplier;
@@ -33,7 +33,7 @@ public class FacadeRegistration<T extends FacadeBinding>
 	public boolean add( Entry<T> registration )
 	{
 		if ( isStrict && registrations.size() > 0 )
-			throw new BindingException.Ignorable( "The facade registration for \"" + serviceClass.getSimpleName() + "\" is strict, there for, only allowing for singular registration." );
+			throw new BindingsException.Ignorable( "The facade registration for \"" + serviceClass.getSimpleName() + "\" is strict, there for, only allowing for singular registration." );
 
 		return registrations.add( registration );
 	}

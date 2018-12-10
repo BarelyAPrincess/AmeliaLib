@@ -1,3 +1,12 @@
+/**
+ * This software may be modified and distributed under the terms
+ * of the MIT license.  See the LICENSE file for details.
+ * <p>
+ * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * <p>
+ * All Rights Reserved.
+ */
 package io.amelia.foundation.facades;
 
 import java.io.IOException;
@@ -6,8 +15,8 @@ import java.nio.file.Path;
 import javax.annotation.Nonnull;
 
 import io.amelia.data.TypeBase;
-import io.amelia.foundation.bindings.BindingException;
-import io.amelia.foundation.bindings.Bindings;
+import io.amelia.bindings.BindingsException;
+import io.amelia.bindings.Bindings;
 import io.amelia.foundation.plugins.PluginImpl;
 import io.amelia.foundation.plugins.PluginsImpl;
 import io.amelia.lang.APINotice;
@@ -42,7 +51,7 @@ public class Plugins
 
 	public static PluginsImpl getInstance()
 	{
-		return Bindings.resolveClassOrFail( PluginsImpl.class, () -> new BindingException.Ignorable( "The Plugins Subsystem is not loaded. This is either an application or initialization bug." ) );
+		return Bindings.resolveClassOrFail( PluginsImpl.class, () -> new BindingsException.Ignorable( "The Plugins Subsystem is not loaded. This is either an application or initialization bug." ) );
 	}
 
 	public static PluginImpl getPluginByClass( Class<?> clz ) throws PluginNotFoundException

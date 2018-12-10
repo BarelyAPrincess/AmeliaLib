@@ -10,6 +10,7 @@
 package io.amelia.events;
 
 import io.amelia.foundation.RegistrarBase;
+import io.amelia.support.Priority;
 import io.amelia.support.ConsumerWithException;
 
 public final class RegisteredListener<E extends AbstractEvent>
@@ -22,7 +23,7 @@ public final class RegisteredListener<E extends AbstractEvent>
 	}
 
 	private final ConsumerWithException<E, EventException.Error> listener;
-	private final EventPriority priority;
+	private final Priority priority;
 	private final RegistrarBase registrar;
 	private int count;
 	private Class<? extends AbstractEvent> eventClass;
@@ -30,7 +31,7 @@ public final class RegisteredListener<E extends AbstractEvent>
 	private long totalTime;
 	private boolean useTimings;
 
-	public RegisteredListener( final RegistrarBase registrar, final EventPriority priority, final ConsumerWithException<E, EventException.Error> listener )
+	public RegisteredListener( final RegistrarBase registrar, final Priority priority, final ConsumerWithException<E, EventException.Error> listener )
 	{
 		this.registrar = registrar;
 		this.priority = priority;
@@ -72,7 +73,7 @@ public final class RegisteredListener<E extends AbstractEvent>
 
 	private void callEvent0( final E event ) throws EventException.Error
 	{
-		if ( priority != EventPriority.MONITOR )
+		if ( priority != Priority.MONITOR )
 		{
 			if ( event instanceof Cancellable && ( ( Cancellable ) event ).isCancelled() )
 				return;
@@ -115,7 +116,7 @@ public final class RegisteredListener<E extends AbstractEvent>
 	 *
 	 * @return Registered Priority
 	 */
-	public EventPriority getPriority()
+	public Priority getPriority()
 	{
 		return priority;
 	}

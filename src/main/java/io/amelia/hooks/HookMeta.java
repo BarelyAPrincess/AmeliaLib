@@ -7,9 +7,17 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.foundation.bindings;
+package io.amelia.hooks;
 
-public interface PermissionBinding extends FacadeBinding
+import java.util.Arrays;
+import java.util.List;
+
+public final class HookMeta
 {
+	private final List<Class<?>> parameterTypes;
 
+	public HookMeta( Class<?>... parameterTypes )
+	{
+		this.parameterTypes = Arrays.asList( parameterTypes );
+	}
 }

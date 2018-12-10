@@ -21,18 +21,17 @@ import javax.annotation.Nonnull;
 
 import io.amelia.foundation.Kernel;
 import io.amelia.foundation.RegistrarBase;
-import io.amelia.foundation.events.EventsImpl;
 import io.amelia.lang.DeprecatedDetail;
+import io.amelia.support.Priority;
 import io.amelia.lang.ReportingLevel;
 import io.amelia.support.ConsumerWithException;
 import io.amelia.support.Objs;
 
-public class AmeliaEvents implements EventsImpl
+public class Events
 {
-	public static final Kernel.Logger L = Kernel.getLogger( AmeliaEvents.class );
+	public static final Kernel.Logger L = Kernel.getLogger( Events.class );
 
 	private Map<Class<? extends AbstractEvent>, EventHandlers> handlers = new ConcurrentHashMap<>();
-
 	private Object lock = new Object();
 
 	/**
@@ -41,7 +40,6 @@ public class AmeliaEvents implements EventsImpl
 	 *
 	 * @param event Event details
 	 */
-	@Override
 	public <T extends AbstractEvent> T callEvent( @Nonnull T event )
 	{
 		try
@@ -64,7 +62,6 @@ public class AmeliaEvents implements EventsImpl
 	 *
 	 * @throws EventException.Error Thrown if you try to call an async event on a sync thread
 	 */
-	@Override
 	public <T extends AbstractEvent> T callEventWithException( @Nonnull T event ) throws EventException.Error
 	{
 		if ( event.isAsynchronous() )
@@ -84,7 +81,6 @@ public class AmeliaEvents implements EventsImpl
 		return event;
 	}
 
-	@Override
 	public void fireAuthorNag( @Nonnull RegistrarBase registrarBase, @Nonnull String message )
 	{
 		callEvent( new AuthorNagEvent( registrarBase, message ) );
@@ -94,7 +90,6 @@ public class AmeliaEvents implements EventsImpl
 		} ); */
 	}
 
-	@Override
 	public void fireEvent( @Nonnull AbstractEvent event ) throws EventException.Error
 	{
 		event.onEventPreCall();
@@ -132,7 +127,6 @@ public class AmeliaEvents implements EventsImpl
 		event.onEventPostCall();
 	}
 
-	@Override
 	public EventHandlers getEventListeners( @Nonnull Class<? extends AbstractEvent> event )
 	{
 		EventHandlers eventHandlers = handlers.get( event );
@@ -146,7 +140,6 @@ public class AmeliaEvents implements EventsImpl
 		return eventHandlers;
 	}
 
-	@Override
 	public void listen( @Nonnull final RegistrarBase registrar, @Nonnull final Object listener, @Nonnull final Method method ) throws EventException.Error
 	{
 		final EventHandler eventHandler = method.getAnnotation( EventHandler.class );
@@ -196,7 +189,6 @@ public class AmeliaEvents implements EventsImpl
 		} );
 	}
 
-	@Override
 	public void listen( @Nonnull final RegistrarBase registrar, @Nonnull final Object listener )
 	{
 		Objs.notNull( registrar, "Registrar can not be null" );
@@ -221,10 +213,9 @@ public class AmeliaEvents implements EventsImpl
 		}
 	}
 
-	@Override
 	public <E extends AbstractEvent> void listen( @Nonnull RegistrarBase registrar, @Nonnull Class<E> event, @Nonnull ConsumerWithException<E, EventException.Error> listener )
 	{
-		listen( registrar, EventPriority.NORMAL, event, listener );
+		listen( registrar, Priority.NORMAL, event, listener );
 	}
 
 	/**
@@ -235,13 +226,11 @@ public class AmeliaEvents implements EventsImpl
 	 * @param event     Event class to register
 	 * @param listener  Consumer that will receive the event
 	 */
-	@Override
-	public <E extends AbstractEvent> void listen( @Nonnull RegistrarBase registrar, @Nonnull EventPriority priority, @Nonnull Class<E> event, @Nonnull ConsumerWithException<E, EventException.Error> listener )
+	public <E extends AbstractEvent> void listen( @Nonnull RegistrarBase registrar, @Nonnull Priority priority, @Nonnull Class<E> event, @Nonnull ConsumerWithException<E, EventException.Error> listener )
 	{
 		getEventListeners( event ).register( new RegisteredListener<>( registrar, priority, listener ) );
 	}
 
-	@Override
 	public void unregisterEvents( @Nonnull RegistrarBase registrar )
 	{
 		EventHandlers.unregisterAll( registrar );

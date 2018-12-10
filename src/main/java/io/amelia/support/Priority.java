@@ -7,12 +7,12 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.events;
+package io.amelia.support;
 
 /**
  * Represents an event's priority in execution
  */
-public enum EventPriority
+public enum Priority
 {
 	/**
 	 * Event call is of very low importance and should be ran first, to allow other plugins to further customize the
@@ -42,15 +42,15 @@ public enum EventPriority
 	 */
 	MONITOR( 5 );
 	
-	private final int slot;
+	private final int value;
 	
-	EventPriority( int slot )
+	Priority( int value )
 	{
-		this.slot = slot;
+		this.value = value;
 	}
 	
-	public int getSlot()
+	public int intValue()
 	{
-		return slot;
+		return value;
 	}
 }

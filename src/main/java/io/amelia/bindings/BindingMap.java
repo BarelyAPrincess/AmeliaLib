@@ -7,7 +7,7 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.foundation.bindings;
+package io.amelia.bindings;
 
 import java.lang.ref.WeakReference;
 import java.util.function.Supplier;
@@ -19,7 +19,7 @@ import io.amelia.data.ContainerWithValue;
 import io.amelia.support.Voluntary;
 
 @SuppressWarnings( "unchecked" )
-public final class BindingMap extends ContainerWithValue<BindingMap, BindingMap.BaseBinding, BindingException.Error>
+public final class BindingMap extends ContainerWithValue<BindingMap, BindingMap.BaseBinding, BindingsException.Error>
 {
 	WeakReference<WritableBinding> owner = null;
 
@@ -30,24 +30,24 @@ public final class BindingMap extends ContainerWithValue<BindingMap, BindingMap.
 		{
 			return new BindingMap();
 		}
-		catch ( BindingException.Error error )
+		catch ( BindingsException.Error error )
 		{
 			// This should never happen!
 			throw new RuntimeException( error );
 		}
 	}
 
-	private BindingMap() throws BindingException.Error
+	private BindingMap() throws BindingsException.Error
 	{
 		super( BindingMap::new, "" );
 	}
 
-	protected BindingMap( String key ) throws BindingException.Error
+	protected BindingMap( String key ) throws BindingsException.Error
 	{
 		super( BindingMap::new, key );
 	}
 
-	protected BindingMap( BindingMap parent, String key ) throws BindingException.Error
+	protected BindingMap( BindingMap parent, String key ) throws BindingsException.Error
 	{
 		super( BindingMap::new, parent, key );
 	}
@@ -57,7 +57,7 @@ public final class BindingMap extends ContainerWithValue<BindingMap, BindingMap.
 		return getAllChildren().filter( child -> child.hasValue() && valueClass.isAssignableFrom( child.getValue().get().getObjClass() ) ).map( map -> map.value );
 	}
 
-	public <T> Voluntary<T, BindingException.Error> getValue( String key, Class<T> cls )
+	public <T> Voluntary<T, BindingsException.Error> getValue( String key, Class<T> cls )
 	{
 		return getValue( key ).filter( obj -> cls.isAssignableFrom( obj.getClass() ) ).map( obj -> ( T ) obj );
 	}
@@ -67,21 +67,21 @@ public final class BindingMap extends ContainerWithValue<BindingMap, BindingMap.
 		return ( owner != null && owner.get() != null || parent != null && parent.isPrivatized() );
 	}
 
-	public void privatize( WritableBinding writableBinding ) throws BindingException.Denied
+	public void privatize( WritableBinding writableBinding ) throws BindingsException.Denied
 	{
 		if ( isPrivatized() )
-			throw new BindingException.Denied( "Namespace \"" + getNamespace().getString() + "\" has already been privatized." );
+			throw new BindingsException.Denied( "Namespace \"" + getNamespace().getString() + "\" has already been privatized." );
 		// Indented to unprivatize children and notify the potential owners.
 		unprivatize();
 		owner = new WeakReference<>( writableBinding );
 	}
 
-	public <S> void set( @Nonnull Class<S> objClass, @Nonnull Supplier<S> objSupplier ) throws BindingException.Error
+	public <S> void set( @Nonnull Class<S> objClass, @Nonnull Supplier<S> objSupplier ) throws BindingsException.Error
 	{
 		setValue( new BaseBinding( objClass, objSupplier ) );
 	}
 
-	public void set( Object obj ) throws BindingException.Error
+	public void set( Object obj ) throws BindingsException.Error
 	{
 		if ( obj == null )
 			setValue( null );
@@ -90,10 +90,10 @@ public final class BindingMap extends ContainerWithValue<BindingMap, BindingMap.
 	}
 
 	@Override
-	protected BindingException.Error getException( @Nonnull String message, Exception exception )
+	protected BindingsException.Error getException( @Nonnull String message, Exception exception )
 	{
 		// TODO Include node in exception
-		return new BindingException.Error( message );
+		return new BindingsException.Error( message );
 	}
 
 	private void unprivatize()

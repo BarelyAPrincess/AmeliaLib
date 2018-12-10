@@ -7,7 +7,7 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.foundation.bindings;
+package io.amelia.bindings;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -15,12 +15,12 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Annotates methods and fields from within binding provider class to indicate the full provided namespace.
- * This is recommended when possible to save the {@link Bindings} having to calculate the namespace through abstraction.
+ * Used to label a method as having a dynamic value inside BindingResolvers.
+ * Meaning the returned value will not be saved in the bindings and will be resolved each time.
  */
-@Target( {ElementType.FIELD, ElementType.METHOD} )
+@Target( {ElementType.METHOD, ElementType.FIELD} )
 @Retention( RetentionPolicy.RUNTIME )
-public @interface ProvidesBinding
+public @interface DynamicBinding
 {
-	String value();
+
 }

@@ -7,7 +7,7 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.foundation.bindings;
+package io.amelia.bindings;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

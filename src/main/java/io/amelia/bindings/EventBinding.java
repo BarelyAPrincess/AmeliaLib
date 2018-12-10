@@ -7,12 +7,9 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.data.parcel;
+package io.amelia.bindings;
 
-/**
- * References a channel that can transmit a parcel to multiple receivers, all registered using this channel.
- */
-public interface ParcelChannel
+public interface EventBinding extends FacadeBinding
 {
 
 }

@@ -7,7 +7,7 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.foundation.bindings;
+package io.amelia.bindings;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -24,6 +24,8 @@ import java.util.function.Supplier;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import io.amelia.foundation.ConfigRegistry;
+import io.amelia.foundation.Foundation;
 import io.amelia.foundation.Kernel;
 import io.amelia.lang.APINotice;
 import io.amelia.support.BiFunctionWithException;
@@ -31,6 +33,7 @@ import io.amelia.support.FunctionWithException;
 import io.amelia.support.Namespace;
 import io.amelia.support.Objs;
 import io.amelia.support.QuadFunctionWithException;
+import io.amelia.support.Streams;
 import io.amelia.support.Strs;
 import io.amelia.support.TriFunctionWithException;
 
@@ -105,19 +108,56 @@ public class Bindings
 
 		Package pack = aClass.getPackage();
 		if ( pack == null )
-			throw new BindingException.Denied( "We had a problem obtaining the package from class \"" + aClass.getName() + "\"." );
+			throw new BindingsException.Denied( "We had a problem obtaining the package from class \"" + aClass.getName() + "\"." );
 		String packName = pack.getName();
 		// if ( !packName.startsWith( "io.amelia." ) )
-		// throw new BindingException.Denied( "Only internal class starting with \"io.amelia\" can be got through this method." );
+		// throw new BindingsException.Denied( "Only internal class starting with \"io.amelia\" can be got through this method." );
 		return new WritableBinding( packName );
 	}
 
-	public static void init()
+	public static void init() throws BindingsException.Error
 	{
-		// TODO Is this needed now or ever?
+		if ( !ConfigRegistry.isLoaded() )
+			throw new BindingsException.Error( "Bindings can not be initialized before the ConfigRegistry has finished loading." );
 
-		// Load Builtin Facades First
-		// registerFacadeBinding( FacadeService.class, FacadePriority.STRICT, FacadeService::new );
+		/*
+		 * Register facades from configuration:
+		 *
+		 * {
+		 *   class: "io.amelia.facades.permissionBinding",
+		 *   namespace: "io.amelia.permissions.facade",
+		 *   priority: NORMAL
+		 * }
+		 */
+		Streams.forEachWithException( ConfigRegistry.config.getChild( Foundation.ConfigKeys.BINDINGS_FACADES ).getChildren(), child -> {
+			if ( child.hasChild( "class" ) )
+			{
+				Class<FacadeBinding> facadeClass = child.getStringAsClass( "class", FacadeBinding.class ).orElse( null );
+				FacadePriority priority = child.getEnum( "priority", FacadePriority.class ).orElse( FacadePriority.NORMAL );
+
+				if ( facadeClass == null )
+					Kernel.L.warning( "We found malformed arguments in the facade config for key -> " + child.getName() );
+				else
+				{
+					WritableBinding binding;
+					if ( child.hasChild( "namespace" ) && child.isType( "namespace", String.class ) )
+						binding = Bindings.getNamespace( child.getString( "namespace" ).orElseThrow( RuntimeException::new ) ).writable();
+					else
+						binding = Bindings.getSystemNamespace( facadeClass ).writable();
+
+					try
+					{
+						binding.registerFacadeBinding( facadeClass, () -> Objs.initClass( facadeClass ), priority );
+					}
+					catch ( BindingsException.Error e )
+					{
+						Kernel.L.severe( "Failed to register facade from config for key. {facadeKey=" + child.getName() + "}", e );
+					}
+				}
+			}
+			else
+				Kernel.L.warning( "We found malformed arguments in the facade config. {facadeKey=" + child.getName() + "}" );
+		} );
 	}
 
 	public static <T> T invokeFields( @Nonnull Object declaringObject, @Nonnull Predicate<Field> fieldPredicate )
@@ -139,7 +179,7 @@ public class Bindings
 
 					return obj;
 				}
-				catch ( IllegalAccessException | BindingException.Error error )
+				catch ( IllegalAccessException | BindingsException.Error error )
 				{
 					error.printStackTrace();
 				}
@@ -172,7 +212,7 @@ public class Bindings
 
 				return obj;
 			}
-			catch ( IllegalAccessException | InvocationTargetException | BindingException.Error e )
+			catch ( IllegalAccessException | InvocationTargetException | BindingsException.Error e )
 			{
 				e.printStackTrace();
 			}
@@ -199,16 +239,16 @@ public class Bindings
 	}
 
 	@APINotice
-	public static void registerResolver( @Nonnull String namespace, @Nonnull BindingResolver bindingResolver ) throws BindingException.Error
+	public static void registerResolver( @Nonnull String namespace, @Nonnull BindingResolver bindingResolver ) throws BindingsException.Error
 	{
 		Objs.notEmpty( namespace );
 		Objs.notNull( bindingResolver );
 
 		Namespace ns = Namespace.of( namespace ).fixInvalidChars().normalizeAscii();
 		if ( ns.startsWith( "io.amelia" ) )
-			throw new BindingException.Error( "Namespace \"io.amelia\" is reserved for internal use only." );
+			throw new BindingsException.Error( "Namespace \"io.amelia\" is reserved for internal use only." );
 		if ( ns.getNodeCount() < 3 )
-			throw new BindingException.Error( "Resolvers can only be registered to namespaces with no less than 3 nodes." );
+			throw new BindingsException.Error( "Resolvers can only be registered to namespaces with no less than 3 nodes." );
 		namespace = ns.getString();
 
 		bindingResolver.baseNamespace = namespace;
@@ -221,7 +261,7 @@ public class Bindings
 		{
 			return resolveClassOrFail( expectedClass );
 		}
-		catch ( BindingException.Error e )
+		catch ( BindingsException.Error e )
 		{
 			return null;
 		}
@@ -233,13 +273,13 @@ public class Bindings
 		{
 			return resolveClassOrFail( expectedClass );
 		}
-		catch ( BindingException.Error e )
+		catch ( BindingsException.Error e )
 		{
 			throw exceptionSupplier.get();
 		}
 	}
 
-	public static <T> T resolveClassOrFail( @Nonnull Class<? super T> expectedClass ) throws BindingException.Error
+	public static <T> T resolveClassOrFail( @Nonnull Class<? super T> expectedClass ) throws BindingsException.Error
 	{
 		for ( BindingResolver bindingResolver : getResolvers() )
 		{
@@ -248,7 +288,7 @@ public class Bindings
 				return ( T ) obj;
 		}
 
-		throw new BindingException.Error( "Could not resolve class " + expectedClass.getSimpleName() );
+		throw new BindingsException.Error( "Could not resolve class " + expectedClass.getSimpleName() );
 	}
 
 	protected static <T> T resolveNamespace( @Nonnull String namespace, @Nonnull Class<? super T> expectedClass )
@@ -266,7 +306,7 @@ public class Bindings
 		return null;
 	}
 
-	public static Object[] resolveParameters( @Nonnull Parameter[] parameters ) throws BindingException.Error
+	public static Object[] resolveParameters( @Nonnull Parameter[] parameters ) throws BindingsException.Error
 	{
 		if ( parameters.length == 0 )
 			return new Object[0];
@@ -292,7 +332,7 @@ public class Bindings
 
 			// If the obj is null and the parameter is not nullable, then throw an exception.
 			if ( obj == null && !parameter.isAnnotationPresent( Nullable.class ) )
-				throw new BindingException.Error( "Method parameter " + parameter.getName() + " had BindingNamespace annotation and we failed to resolve it!" );
+				throw new BindingsException.Error( "Method parameter " + parameter.getName() + " had BindingNamespace annotation and we failed to resolve it!" );
 			else
 				parameterObjects[i] = obj;
 		}

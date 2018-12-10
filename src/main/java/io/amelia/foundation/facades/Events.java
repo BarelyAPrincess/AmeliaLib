@@ -16,10 +16,10 @@ import javax.annotation.Nonnull;
 import io.amelia.events.AbstractEvent;
 import io.amelia.events.EventException;
 import io.amelia.events.EventHandlers;
-import io.amelia.events.EventPriority;
+import io.amelia.support.Priority;
 import io.amelia.foundation.RegistrarBase;
-import io.amelia.foundation.bindings.BindingException;
-import io.amelia.foundation.bindings.Bindings;
+import io.amelia.bindings.BindingsException;
+import io.amelia.bindings.Bindings;
 import io.amelia.foundation.events.EventsImpl;
 import io.amelia.support.ConsumerWithException;
 
@@ -66,7 +66,7 @@ public class Events
 
 	public static EventsImpl getInstance()
 	{
-		return Bindings.resolveClassOrFail( EventsImpl.class, () -> new BindingException.Ignorable( "The Events Subsystem is not loaded. This is either an application or initialization bug." ) );
+		return Bindings.resolveClassOrFail( EventsImpl.class, () -> new BindingsException.Ignorable( "The Events Subsystem is not loaded. This is either an application or initialization bug." ) );
 	}
 
 	private static void listen( final RegistrarBase registrar, final Object listener, final Method method ) throws EventException.Error
@@ -92,7 +92,7 @@ public class Events
 	 * @param event     Event class to register
 	 * @param listener  Consumer that will receive the event
 	 */
-	public static <E extends AbstractEvent> void listen( @Nonnull RegistrarBase registrar, @Nonnull EventPriority priority, @Nonnull Class<E> event, @Nonnull ConsumerWithException<E, EventException.Error> listener )
+	public static <E extends AbstractEvent> void listen( @Nonnull RegistrarBase registrar, @Nonnull Priority priority, @Nonnull Class<E> event, @Nonnull ConsumerWithException<E, EventException.Error> listener )
 	{
 		getInstance().listen( registrar, priority, event, listener );
 	}

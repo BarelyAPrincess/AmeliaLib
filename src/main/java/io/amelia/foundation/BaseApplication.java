@@ -18,14 +18,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import io.amelia.bindings.Bindings;
+import io.amelia.bindings.BindingsException;
 import io.amelia.data.ContainerBase;
 import io.amelia.data.parcel.ParcelInterface;
 import io.amelia.data.parcel.ParcelReceiver;
-import io.amelia.foundation.bindings.BindingException;
-import io.amelia.foundation.bindings.Bindings;
-import io.amelia.foundation.bindings.FacadeBinding;
-import io.amelia.foundation.bindings.FacadePriority;
-import io.amelia.foundation.bindings.WritableBinding;
+import io.amelia.events.Events;
+import io.amelia.hooks.Hooks;
 import io.amelia.lang.ApplicationException;
 import io.amelia.lang.ExceptionRegistrar;
 import io.amelia.lang.ExceptionReport;
@@ -33,12 +32,10 @@ import io.amelia.lang.ReportingLevel;
 import io.amelia.lang.StartupException;
 import io.amelia.lang.StartupInterruptException;
 import io.amelia.looper.LooperRouter;
-import io.amelia.storage.HoneyStorage;
 import io.amelia.support.Encrypt;
 import io.amelia.support.EnumColor;
 import io.amelia.support.IO;
 import io.amelia.support.Objs;
-import io.amelia.support.Streams;
 import io.amelia.support.Strs;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
@@ -161,6 +158,19 @@ public abstract class BaseApplication implements VendorRegistrar, ExceptionRegis
 		return primaryThread == Thread.currentThread();
 	}
 
+	public Events events()
+	{
+		try
+		{
+			return Bindings.resolveClassOrFail( Events.class );
+		}
+		catch ( BindingsException.Error e )
+		{
+			Kernel.getExceptionRegistrar().fatalError( e.getExceptionReport(), true );
+			return null;
+		}
+	}
+
 	@Override
 	public final boolean isRemote()
 	{
@@ -227,49 +237,9 @@ public abstract class BaseApplication implements VendorRegistrar, ExceptionRegis
 				envNode.setValue( entry.getKey().replace( '-', '_' ), entry.getValue() );
 			envNode.addFlag( ContainerBase.Flags.READ_ONLY, ContainerBase.Flags.NO_SAVE );
 
-			HoneyStorage.addConfigLoader( ConfigRegistry.LOADER );
-			HoneyStorage.init();
+			Hooks.invoke( "io.amelia.app.parse" );
 
 			Bindings.init();
-
-			/*
-			 * Register facades from configuration:
-			 *
-			 * {
-			 *   class: "io.amelia.facades.permissionBinding",
-			 *   namespace: "io.amelia.permissions.facade",
-			 *   priority: NORMAL
-			 * }
-			 */
-			Streams.forEachWithException( ConfigRegistry.config.getChild( Kernel.ConfigKeys.BINDINGS_FACADES ).getChildren(), child -> {
-				if ( child.hasChild( "class" ) )
-				{
-					Class<FacadeBinding> facadeClass = child.getStringAsClass( "class", FacadeBinding.class ).orElse( null );
-					FacadePriority priority = child.getEnum( "priority", FacadePriority.class ).orElse( FacadePriority.NORMAL );
-
-					if ( facadeClass == null )
-						Kernel.L.warning( "We found malformed arguments in the facade config for key -> " + child.getName() );
-					else
-					{
-						WritableBinding binding;
-						if ( child.hasChild( "namespace" ) && child.isType( "namespace", String.class ) )
-							binding = Bindings.getNamespace( child.getString( "namespace" ).orElseThrow( RuntimeException::new ) ).writable();
-						else
-							binding = Bindings.getSystemNamespace( facadeClass ).writable();
-
-						try
-						{
-							binding.registerFacadeBinding( facadeClass, () -> Objs.initClass( facadeClass ), priority );
-						}
-						catch ( BindingException.Error e )
-						{
-							Kernel.L.severe( "Failed to register facade from config for key. {facadeKey=" + child.getName() + "}", e );
-						}
-					}
-				}
-				else
-					Kernel.L.warning( "We found malformed arguments in the facade config. {facadeKey=" + child.getName() + "}" );
-			} );
 
 			parse();
 		}
@@ -288,7 +258,7 @@ public abstract class BaseApplication implements VendorRegistrar, ExceptionRegis
 	 *
 	 * @throws Exception
 	 */
-	abstract void parse() throws Exception;
+	protected abstract void parse() throws Exception;
 
 	void quitSafely()
 	{

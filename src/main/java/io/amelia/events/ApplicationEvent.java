@@ -7,16 +7,12 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.data.parcel;
+package io.amelia.events;
 
-public interface ParcelSender
+/**
+ * Internal Application Events
+ */
+public abstract class ApplicationEvent extends AbstractEvent
 {
-	/**
-	 * Used to reply to a parcel sent from this {@link ParcelSender}
-	 * However, it's common for the ability to receive to not exist.
-	 */
-	default ParcelReceiver getReplyTo()
-	{
-		return null;
-	}
+
 }

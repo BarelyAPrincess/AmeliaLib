@@ -7,7 +7,7 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.foundation.bindings;
+package io.amelia.bindings;
 
 import java.util.function.Supplier;
 
@@ -58,32 +58,32 @@ public class WritableBinding extends ReadableBinding
 	 * Also remember the only way to make the namespace public once again is to either dereference this instance or call the destroy method.
 	 * It's also note worth that if a parent namespace is privatized, it will take precedence and destroy this WritableBinding.
 	 */
-	public void privatize() throws BindingException.Denied
+	public void privatize() throws BindingsException.Denied
 	{
 		if ( baseNamespace.startsWith( "io.amelia" ) )
-			throw new BindingException.Denied( "Namespace \"io.amelia\" can't privatized as it's reserved for internal use." );
+			throw new BindingsException.Denied( "Namespace \"io.amelia\" can't privatized as it's reserved for internal use." );
 		if ( Strs.countMatches( baseNamespace, '.' ) < 2 )
-			throw new BindingException.Denied( "Namespaces with less than 3 nodes can't be privatized." );
+			throw new BindingsException.Denied( "Namespaces with less than 3 nodes can't be privatized." );
 
 		Bindings.bindings.getChildOrCreate( baseNamespace ).privatize( this );
 	}
 
-	public <T extends FacadeBinding> void registerFacadeBinding( @Nonnull Class<T> facadeService, @Nonnull Supplier<T> facadeSupplier ) throws BindingException.Error
+	public <T extends FacadeBinding> void registerFacadeBinding( @Nonnull Class<T> facadeService, @Nonnull Supplier<T> facadeSupplier ) throws BindingsException.Error
 	{
 		registerFacadeBinding( facadeService, facadeSupplier, FacadePriority.NORMAL );
 	}
 
-	public <T extends FacadeBinding> void registerFacadeBinding( @Nonnull Class<T> facadeService, @Nonnull Supplier<T> facadeSupplier, @Nonnull FacadePriority facadePriority ) throws BindingException.Error
+	public <T extends FacadeBinding> void registerFacadeBinding( @Nonnull Class<T> facadeService, @Nonnull Supplier<T> facadeSupplier, @Nonnull FacadePriority facadePriority ) throws BindingsException.Error
 	{
 		registerFacadeBinding( null, facadeService, facadeSupplier, facadePriority );
 	}
 
-	public <T extends FacadeBinding> void registerFacadeBinding( @Nullable String namespace, @Nonnull Class<T> facadeService, @Nonnull Supplier<T> facadeSupplier ) throws BindingException.Error
+	public <T extends FacadeBinding> void registerFacadeBinding( @Nullable String namespace, @Nonnull Class<T> facadeService, @Nonnull Supplier<T> facadeSupplier ) throws BindingsException.Error
 	{
 		registerFacadeBinding( namespace, facadeService, facadeSupplier, FacadePriority.NORMAL );
 	}
 
-	public <T extends FacadeBinding> FacadeRegistration.Entry<T> registerFacadeBinding( @Nullable String namespace, @Nonnull Class<T> facadeService, @Nonnull Supplier<T> facadeSupplier, @Nonnull FacadePriority facadePriority ) throws BindingException.Error
+	public <T extends FacadeBinding> FacadeRegistration.Entry<T> registerFacadeBinding( @Nullable String namespace, @Nonnull Class<T> facadeService, @Nonnull Supplier<T> facadeSupplier, @Nonnull FacadePriority facadePriority ) throws BindingsException.Error
 	{
 		return Bindings.Lock.callWithWriteLock( ( namespace0, facadeService0, facadeSupplier0, facadePriority0 ) -> {
 			namespace0 = Bindings.normalizeNamespace( namespace0 );
@@ -98,10 +98,10 @@ public class WritableBinding extends ReadableBinding
 				set( fullNamespace, facadeServiceList );
 			}
 			else if ( !facadeServiceList.getBindingClass().equals( facadeService0 ) )
-				throw new BindingException.Error( "The facade registered at namespace \"" + namespace0 + "\" does not match the facade already registered." );
+				throw new BindingsException.Error( "The facade registered at namespace \"" + namespace0 + "\" does not match the facade already registered." );
 
 			if ( facadeServiceList.isPriorityRegistered( facadePriority0 ) )
-				throw new BindingException.Error( "There is already a facade registered for priority level " + facadePriority0.name() + "at namespace \"" + namespace0 + "\"" );
+				throw new BindingsException.Error( "There is already a facade registered for priority level " + facadePriority0.name() + "at namespace \"" + namespace0 + "\"" );
 
 			FacadeRegistration.Entry registration = new FacadeRegistration.Entry<T>( facadeSupplier0, facadePriority0 );
 			facadeServiceList.add( registration );
@@ -109,7 +109,7 @@ public class WritableBinding extends ReadableBinding
 		}, namespace, facadeService, facadeSupplier, facadePriority );
 	}
 
-	public void set( String namespace, Object obj ) throws BindingException.Error
+	public void set( String namespace, Object obj ) throws BindingsException.Error
 	{
 		namespace = Bindings.normalizeNamespace( namespace );
 

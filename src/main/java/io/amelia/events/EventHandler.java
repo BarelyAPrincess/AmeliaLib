@@ -14,6 +14,8 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+import io.amelia.support.Priority;
+
 /**
  * An annotation to mark methods as being event handler methods
  */
@@ -34,7 +36,7 @@ public @interface EventHandler
 	 * <li>MONITOR</li>
 	 * </ol>
 	 */
-	EventPriority priority() default EventPriority.NORMAL;
+	Priority priority() default Priority.NORMAL;
 	
 	/**
 	 * Define if the handler ignores a cancelled event.

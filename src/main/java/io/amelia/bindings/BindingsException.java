@@ -7,13 +7,13 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.foundation.bindings;
+package io.amelia.bindings;
 
 import io.amelia.lang.ApplicationException;
 
-public class BindingException
+public class BindingsException
 {
-	private BindingException()
+	private BindingsException()
 	{
 
 	}

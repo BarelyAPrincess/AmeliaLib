@@ -7,7 +7,7 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.foundation.bindings;
+package io.amelia.bindings;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -15,11 +15,12 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Instructs the BindingResolver which class to instigate to fulfill a parameter requirement.
+ * Annotates methods and fields from within binding provider class to indicate the full provided namespace.
+ * This is recommended when possible to save the {@link Bindings} having to calculate the namespace through abstraction.
  */
+@Target( {ElementType.FIELD, ElementType.METHOD} )
 @Retention( RetentionPolicy.RUNTIME )
-@Target( ElementType.PARAMETER )
-public @interface BindingClass
+public @interface ProvidesBinding
 {
-	Class<?> value();
+	String value();
 }

@@ -35,7 +35,7 @@ public class MinimalApplication extends BaseApplication
 	}
 
 	@Override
-	void parse() throws Exception
+	protected void parse() throws Exception
 	{
 
 	}

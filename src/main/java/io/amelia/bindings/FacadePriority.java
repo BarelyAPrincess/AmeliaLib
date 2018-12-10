@@ -7,9 +7,13 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.foundation.bindings;
+package io.amelia.bindings;
 
-public interface EventBinding extends FacadeBinding
+public enum FacadePriority
 {
-
+	LOWEST,
+	LOW,
+	NORMAL,
+	HIGH,
+	HIGHEST
 }

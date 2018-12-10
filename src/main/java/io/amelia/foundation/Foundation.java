@@ -10,15 +10,17 @@
 package io.amelia.foundation;
 
 import java.io.IOException;
-import java.util.logging.Level;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import io.amelia.bindings.Bindings;
+import io.amelia.bindings.FacadeRegistration;
+import io.amelia.bindings.FoundationBindingResolver;
 import io.amelia.data.TypeBase;
-import io.amelia.foundation.bindings.Bindings;
-import io.amelia.foundation.bindings.FoundationBindingResolver;
+import io.amelia.events.RunlevelEvent;
 import io.amelia.foundation.facades.Events;
+import io.amelia.hooks.Hooks;
 import io.amelia.injection.Libraries;
 import io.amelia.injection.MavenReference;
 import io.amelia.lang.ApplicationException;
@@ -26,12 +28,9 @@ import io.amelia.lang.ExceptionReport;
 import io.amelia.lang.StartupException;
 import io.amelia.looper.LooperRouter;
 import io.amelia.looper.MainLooper;
-import io.amelia.plugins.events.RunlevelEvent;
 import io.amelia.support.EnumColor;
-import io.amelia.support.Exceptions;
 import io.amelia.support.IO;
 import io.amelia.support.Objs;
-import io.amelia.support.Strs;
 import io.amelia.support.Timing;
 
 /**
@@ -60,6 +59,9 @@ public final class Foundation
 
 	static
 	{
+		Hooks.invoke( "io.amelia.foundation.init" );
+
+		/* Infinite loop!
 		Kernel.setLogHandler( new LogHandler()
 		{
 			@Override
@@ -73,7 +75,7 @@ public final class Foundation
 			{
 				Strs.split( Exceptions.getStackTrace( cause ), "\n" ).forEach( str -> L.log( level, str ) );
 			}
-		} );
+		} );*/
 
 		Kernel.setKernelHandler( new KernelHandler()
 		{
@@ -357,7 +359,7 @@ public final class Foundation
 		// Initiate startup procedures.
 		setRunlevel( Runlevel.STARTUP );
 
-		if ( !ConfigRegistry.config.getValue( Kernel.ConfigKeys.DISABLE_METRICS ) )
+		if ( !ConfigRegistry.config.getValue( ConfigKeys.DISABLE_METRICS ) )
 		{
 			// TODO Implement!
 
@@ -381,7 +383,7 @@ public final class Foundation
 	public static class ConfigKeys
 	{
 		/**
-		 * Specifies built-in facades which can be registered here or by calling {@link io.amelia.foundation.bindings.FacadeRegistration#add(FacadeRegistration.Entry)} {@see Bindings#bindNamespace(String)}}.
+		 * Specifies built-in facades which can be registered here or by calling {@link io.amelia.bindings.FacadeRegistration#add(FacadeRegistration.Entry)} {@see Bindings#bindNamespace(String)}}.
 		 * Benefits of using configuration for facade registration is it adds the ability for end-users to disable select facades, however, this should be used if the facade is used by scripts.
 		 *
 		 * <pre>

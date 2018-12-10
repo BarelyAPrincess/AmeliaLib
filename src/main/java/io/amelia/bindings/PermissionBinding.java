@@ -7,13 +7,9 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.foundation.bindings;
+package io.amelia.bindings;
 
-public enum FacadePriority
+public interface PermissionBinding extends FacadeBinding
 {
-	LOWEST,
-	LOW,
-	NORMAL,
-	HIGH,
-	HIGHEST
+
 }
