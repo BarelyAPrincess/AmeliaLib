@@ -9,7 +9,7 @@
  */
 package io.amelia.networking;
 
-import io.amelia.foundation.bindings.FacadeBinding;
+import io.amelia.bindings.FacadeBinding;
 import io.amelia.lang.ApplicationException;
 
 public class NetworkingService implements FacadeBinding

@@ -11,7 +11,7 @@ package io.amelia.networking;
 
 import io.amelia.data.TypeBase;
 import io.amelia.foundation.Kernel;
-import io.amelia.foundation.bindings.Bindings;
+import io.amelia.bindings.Bindings;
 
 public class Networking
 {
