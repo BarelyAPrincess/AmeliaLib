@@ -22,7 +22,6 @@ import java.util.Map.Entry;
 
 import io.amelia.data.TypeBase;
 import io.amelia.events.EventException;
-import io.amelia.events.Events;
 import io.amelia.foundation.events.EventException;
 import io.amelia.foundation.facades.Events;
 import io.amelia.foundation.ConfigRegistry;
