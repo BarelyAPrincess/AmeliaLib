@@ -43,8 +43,6 @@ import io.amelia.lang.PluginDependencyUnknownException;
 import io.amelia.lang.PluginInvalidException;
 import io.amelia.lang.PluginMetaException;
 import io.amelia.lang.PluginNotFoundException;
-import io.amelia.logcompat.LogBuilder;
-import io.amelia.logcompat.Logger;
 import io.amelia.plugins.loader.PluginClassLoader;
 import io.amelia.plugins.loader.PluginLoader;
 import io.amelia.support.IO;
@@ -52,9 +50,9 @@ import io.amelia.support.Objs;
 import io.amelia.support.Priority;
 import io.amelia.tasks.Tasks;
 
-public class AmeliaPlugins<Subclass extends Plugin> implements PluginsImpl<Subclass>
+public class BasePlugins<Subclass extends Plugin> implements PluginsImpl<Subclass>
 {
-	public static final Kernel.Logger L = Kernel.getLogger( AmeliaPlugins.class );
+	public static final Kernel.Logger L = Kernel.getLogger( BasePlugins.class );
 
 	private final Map<Pattern, PluginLoader> fileAssociations = new HashMap<>();
 	private final ReentrantLock lock = new ReentrantLock();
@@ -62,7 +60,7 @@ public class AmeliaPlugins<Subclass extends Plugin> implements PluginsImpl<Subcl
 	private final List<Subclass> plugins = new ArrayList<>();
 	private Set<String> loadedPlugins = new HashSet<>();
 
-	public AmeliaPlugins()
+	public BasePlugins()
 	{
 		// Loads plugins in order as PluginManager receives the notices from the Events
 		Foundation.getApplication().events().listen( Foundation.getApplication(), Priority.NORMAL, RunlevelEvent.class, event -> {

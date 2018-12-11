@@ -216,7 +216,7 @@ public class PluginMeta extends VendorMeta
 			}
 			catch ( IllegalArgumentException ee )
 			{
-				AmeliaPlugins.L.severe( "Could not parse the library '" + e + "' for plugin '" + getName() + "', expected pattern 'group:name:version'. Unless fixed, it will be ignored.", ee );
+				BasePlugins.L.severe( "Could not parse the library '" + e + "' for plugin '" + getName() + "', expected pattern 'group:name:version'. Unless fixed, it will be ignored.", ee );
 			}
 			return null;
 		} );
@@ -363,7 +363,7 @@ public class PluginMeta extends VendorMeta
 	}
 
 	/**
-	 * Gives a list of other plugins that the plugin requires for full functionality. The {@link AmeliaPlugins} will make
+	 * Gives a list of other plugins that the plugin requires for full functionality. The {@link BasePlugins} will make
 	 * best effort to treat all entries here as if they were a {@link #getDepend() dependency}, but will never fail
 	 * because of one of these entries.
 	 * <ul>

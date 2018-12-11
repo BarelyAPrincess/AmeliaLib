@@ -52,7 +52,7 @@ public class MessageEvent extends ApplicationEvent implements Cancellable
 	public boolean containsRecipient( ParcelReceiver acct )
 	{
 		for ( ParcelReceiver acct1 : recipients )
-			if ( acct1.getId().equals( acct.getId() ) )
+			if ( acct1.uuid().equals( acct.uuid() ) )
 				return true;
 		return false;
 	}
@@ -123,7 +123,7 @@ public class MessageEvent extends ApplicationEvent implements Cancellable
 	public boolean removeRecipient( ParcelReceiver acct )
 	{
 		for ( ParcelReceiver acct1 : recipients )
-			if ( acct1.getId().equals( acct.getId() ) )
+			if ( acct1.uuid().equals( acct.uuid() ) )
 				return recipients.remove( acct1 );
 		return false;
 	}
