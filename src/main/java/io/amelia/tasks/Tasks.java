@@ -28,14 +28,18 @@ import java.util.function.Function;
 
 import io.amelia.foundation.Kernel;
 import io.amelia.foundation.RegistrarBase;
+import io.amelia.lang.APINotice;
 import io.amelia.looper.Delays;
 import io.amelia.looper.LooperRouter;
 import io.amelia.support.Objs;
 
 /**
  * Manages task scheduled in the main thread
+ *
+ * @Deprecated Will be removed in future versions. Please use the replacement "Looper" feature.
  */
 @Deprecated
+@APINotice(reason = "Will be removed in future versions. Please use the replacement Looper feature.")
 public class Tasks
 {
 	public static final Kernel.Logger L = Kernel.getLogger( Tasks.class );
@@ -79,7 +83,7 @@ public class Tasks
 	};
 	private static AsyncTaskDebugger debugTail = debugHead;
 	/**
-	 * Current head of linked-list. This reference is always stale, {@link Task#next} is the live reference.
+	 * Current head of linked-list. This reference is always stale, Task#next is the live reference.
 	 */
 	private static volatile Task head = new Task();
 	/**

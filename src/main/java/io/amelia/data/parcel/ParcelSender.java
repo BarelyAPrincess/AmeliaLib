@@ -9,12 +9,15 @@
  */
 package io.amelia.data.parcel;
 
+import javax.annotation.Nullable;
+
 public interface ParcelSender
 {
 	/**
 	 * Used to reply to a parcel sent from this {@link ParcelSender}
-	 * However, it's common for the ability to receive to not exist.
+	 * However, it's not uncommon for the implementation to lack the ability to receive parcels, i.e., can only send parcels.
 	 */
+	@Nullable
 	default ParcelReceiver getReplyTo()
 	{
 		return null;

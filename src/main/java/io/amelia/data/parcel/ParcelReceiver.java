@@ -9,20 +9,22 @@
  */
 package io.amelia.data.parcel;
 
+import java.util.UUID;
+
+import javax.annotation.Nonnull;
+
 import io.amelia.lang.ParcelException;
 
 /**
  * When you have a parcel or signal to be transmitted to another part of the application,
  * you first need to find the {@link ParcelReceiver} intended for handling the parcel.
  * Receivers are a dime-a-dozen, they are instigated on their own or are automatically
- * made available by sub-systems or plugins.
+ * made available by sub-systems and plugins.
  */
 public interface ParcelReceiver
 {
-	default String getId()
-	{
-		return null;
-	}
+	@Nonnull
+	UUID uuid();
 
 	void handleParcel( ParcelCarrier parcelCarrier ) throws ParcelException.Error;
 
