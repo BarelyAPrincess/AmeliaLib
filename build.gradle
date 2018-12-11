@@ -19,6 +19,7 @@ dependencies {
 	}
 
 	compile project( ":AmeliaCommonLib" )
+	compile project( ":AmeliaPermissionsLib" )
 
 	testCompile 'org.hamcrest:hamcrest-library:1.3'
 }

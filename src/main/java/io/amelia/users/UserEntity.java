@@ -9,24 +9,129 @@
  */
 package io.amelia.users;
 
-public class UserEntity implements UserPrincipal
-{
-	private final UserContext userContext;
+import com.google.common.base.Joiner;
 
-	UserEntity( UserContext userContext )
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
+import java.util.WeakHashMap;
+
+import javax.annotation.Nonnull;
+
+import io.amelia.data.parcel.ParcelReceiver;
+import io.amelia.data.parcel.ParcelSender;
+import io.amelia.lang.ParcelableException;
+import io.amelia.permission.PermissibleEntity;
+import io.amelia.support.Voluntary;
+import io.amelia.users.auth.UserCredentials;
+
+public class UserEntity implements UserSubject, ParcelSender, ParcelReceiver
+{
+	/**
+	 * Tracks permissibles that are referencing this account
+	 */
+	private final Set<UserAttachment> permissibles = Collections.newSetFromMap( new WeakHashMap<>() );
+	private final UserContext userContext;
+	private UserCredentials lastUsedCredentials = null;
+
+	UserEntity( @Nonnull UserContext userContext )
 	{
 		this.userContext = userContext;
 	}
 
-	@Override
-	public String uuid()
+	int countAttachments()
 	{
-		return userContext.uuid();
+		return permissibles.size();
+	}
+
+	public Collection<UserAttachment> getAttachments()
+	{
+		return Collections.unmodifiableSet( permissibles );
+	}
+
+	@Override
+	public UserContext getContext()
+	{
+		return userContext;
+	}
+
+	@Override
+	public String getDisplayName()
+	{
+		return userContext.getDisplayName();
+	}
+
+	@Override
+	public UserEntity getEntity()
+	{
+		return this;
+	}
+
+	public Set<String> getIpAddresses()
+	{
+		Set<String> ips = new HashSet<>();
+		for ( UserAttachment perm : getAttachments() )
+			ips.add( perm.getIpAddress() );
+		return ips;
+	}
+
+	public UserCredentials getLastUsedCredentials()
+	{
+		return lastUsedCredentials;
+	}
+
+	@Override
+	public PermissibleEntity getPermissible()
+	{
+		return getContext().getPermissible();
+	}
+
+	/**
+	 * Get a string from the Metadata with a default value
+	 *
+	 * @param key Metadata key.
+	 *
+	 * @return String
+	 */
+	public Voluntary<String, ParcelableException.Error> getString( String key )
+	{
+		return userContext.getString( key );
 	}
 
 	@Override
 	public String name()
 	{
 		return userContext.name();
+	}
+
+	public void registerAttachment( UserAttachment attachment )
+	{
+		if ( !permissibles.contains( attachment ) )
+			permissibles.add( attachment );
+	}
+
+	public void setLastUsedCredentials( UserCredentials lastUsedCredentials )
+	{
+		this.lastUsedCredentials = lastUsedCredentials;
+	}
+
+	@Override
+	public String toString()
+	{
+		return "User{" + userContext.toString() + ",Attachments{" + Joiner.on( "," ).join( getAttachments() ) + "}}";
+	}
+
+	public void unregisterAttachment( UserAttachment attachment )
+	{
+		permissibles.remove( attachment );
+	}
+
+	@Nonnull
+	@Override
+	public UUID uuid()
+	{
+		return userContext.uuid();
 	}
 }

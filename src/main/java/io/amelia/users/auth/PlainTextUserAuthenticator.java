@@ -141,7 +141,7 @@ public final class PlainTextUserAuthenticator extends UserAuthenticator
 				return false;
 			}
 
-			// db.queryUpdate( "INSERT INTO `accounts_plaintext` (`acctId`,`password`,`expires`) VALUES ('" + acct.getId() + "','" + password + "','" + expires + "');" );
+			// db.queryUpdate( "INSERT INTO `accounts_plaintext` (`acctId`,`password`,`expires`) VALUES ('" + acct.getUuid() + "','" + password + "','" + expires + "');" );
 		}
 		catch ( DatabaseException e )
 		{

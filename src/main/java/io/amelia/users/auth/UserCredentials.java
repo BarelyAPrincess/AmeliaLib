@@ -11,42 +11,42 @@ package io.amelia.users.auth;
 
 import javax.annotation.Nonnull;
 
+import io.amelia.lang.DescriptiveReason;
 import io.amelia.lang.ReportingLevel;
 import io.amelia.lang.UserException;
-import io.amelia.lang.DescriptiveReason;
-import io.amelia.users.UserBackend;
-import io.amelia.users.UserMeta;
+import io.amelia.users.BaseUsers;
 import io.amelia.users.UserPermissible;
+import io.amelia.support.UserPrincipal;
 
 /**
  * Provides login credentials to the {@link UserAuthenticator}
  */
 public abstract class UserCredentials
 {
+	private final DescriptiveReason descriptiveReason;
 	private final UserAuthenticator userAuthenticator;
-	private final DescriptiveReason userResult;
-	private final UserMeta userMeta;
+	private final UserPrincipal userPrincipal;
 
-	UserCredentials( UserAuthenticator userAuthenticator, UserMeta userMeta, DescriptiveReason userResult )
+	UserCredentials( UserAuthenticator userAuthenticator, UserPrincipal userPrincipal, DescriptiveReason descriptiveReason )
 	{
 		this.userAuthenticator = userAuthenticator;
-		this.userMeta = userMeta;
-		this.userResult = userResult;
+		this.userPrincipal = userPrincipal;
+		this.descriptiveReason = descriptiveReason;
 	}
 
-	public final UserMeta getUser()
+	public final DescriptiveReason getDescriptiveReason()
 	{
-		return userMeta;
+		return descriptiveReason;
+	}
+
+	public final UserPrincipal getUser()
+	{
+		return userPrincipal;
 	}
 
 	public final UserAuthenticator getUserAuthenticator()
 	{
 		return userAuthenticator;
-	}
-
-	public final DescriptiveReason getUserResult()
-	{
-		return userResult;
 	}
 
 	/**
@@ -58,21 +58,20 @@ public abstract class UserCredentials
 	 */
 	public void saveCredentialsToSession( @Nonnull UserPermissible user ) throws UserException.Error
 	{
-		if ( user.getUserMeta() != userMeta )
-			throw new UserException.Error( userMeta, ReportingLevel.L_ERROR, "These credentials don't match the provided permissible." );
+		if ( user.getEntity() != userPrincipal )
+			throw new UserException.Error( userPrincipal, ReportingLevel.L_ERROR, "These credentials don't match the provided permissible." );
 
-		if ( !userResult.getReportingLevel().isSuccess() )
-			throw new UserException.Error( userMeta, ReportingLevel.L_DENIED, "Can't save credentials unless they were successful." );
+		if ( !descriptiveReason.getReportingLevel().isSuccess() )
+			throw new UserException.Error( userPrincipal, ReportingLevel.L_DENIED, "Can't save credentials unless they were successful." );
 
-		if ( UserBackend.isNoneAccount( userMeta ) )
-			throw new UserException.Error( userMeta, ReportingLevel.L_SECURITY, "These credentials can't be saved." );
+		if ( BaseUsers.isNullUser( userPrincipal ) )
+			throw new UserException.Error( userPrincipal, ReportingLevel.L_SECURITY, "These credentials can't be saved." );
 
 		if ( "token".equals( user.getVariable( "auth" ) ) && user.getVariable( "token" ) != null )
 			UserAuthenticator.TOKEN.deleteToken( user.getVariable( "userId" ), user.getVariable( "token" ) );
 
 		user.setVariable( "auth", "token" );
-		user.setVariable( "locationId", userMeta.getLocationId() );
-		user.setVariable( "userId", userMeta.getUuid() );
-		user.setVariable( "token", UserAuthenticator.TOKEN.issueToken( userMeta ) );
+		user.setVariable( "uuid", userPrincipal.uuid() );
+		user.setVariable( "token", UserAuthenticator.TOKEN.issueToken( userPrincipal ) );
 	}
 }

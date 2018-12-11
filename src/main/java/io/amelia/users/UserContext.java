@@ -10,6 +10,7 @@
 package io.amelia.users;
 
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -20,10 +21,14 @@ import io.amelia.data.KeyValueGetterTrait;
 import io.amelia.data.KeyValueSetterTrait;
 import io.amelia.data.KeyValueTypesTrait;
 import io.amelia.data.TypeBase;
-import io.amelia.data.parcel.Parcel;
+import io.amelia.data.parcel.ParcelCarrier;
+import io.amelia.data.parcel.ParcelReceiver;
+import io.amelia.foundation.facades.Users;
+import io.amelia.lang.ParcelException;
 import io.amelia.lang.ParcelableException;
 import io.amelia.lang.UserException;
-import io.amelia.support.Encrypt;
+import io.amelia.permission.PermissibleEntity;
+import io.amelia.support.Streams;
 import io.amelia.support.Voluntary;
 import io.amelia.support.WeakReferenceList;
 import io.amelia.users.auth.UserCredentials;
@@ -34,37 +39,34 @@ import io.amelia.users.auth.UserCredentials;
  *
  * UserCreator (The Backend) -> UserContext (The User Details) -> UserMeta (The User Processed) -> UserInstance (The User Logged In and can have multiple instances)
  */
-public class UserContext implements UserPrincipal, Comparable<UserContext>, KeyValueTypesTrait, KeyValueSetterTrait<Object, ParcelableException.Error>, KeyValueGetterTrait<Object, ParcelableException.Error>
+public class UserContext implements UserSubject, Comparable<UserContext>, KeyValueTypesTrait<ParcelableException.Error>, KeyValueSetterTrait<Object, ParcelableException.Error>, KeyValueGetterTrait<Object, ParcelableException.Error>, ParcelReceiver
 {
-	private final UserCreator creator;
-	private final boolean isUnloadable;
-	private final Parcel parcel = Parcel.empty();
-	private final String uuid;
 	private WeakReferenceList<UserEntity> instances = new WeakReferenceList<>();
-	private UserCredentials lastUsedCredentials = null;
-	private String name;
+	private final boolean isUnloadable;
 	private boolean unloaded = false;
 
-	public UserContext( UserCreator creator, String uuid )
+	public UserContext( boolean isUnloadable )
 	{
-		this( creator, uuid, true );
-	}
-
-	public UserContext( UserCreator creator, String uuid, boolean isUnloadable )
-	{
-		if ( !Encrypt.isUuidValid( uuid ) )
-			throw new IllegalArgumentException( "The uuid is not valid!" );
-
-		this.uuid = uuid;
-		this.creator = creator;
 		this.isUnloadable = isUnloadable;
-		this.name = null;
 	}
 
 	@Override
-	public int compareTo( UserContext other )
+	public int compareTo( @Nonnull UserContext other )
 	{
-		return uuid().compareToIgnoreCase( other.uuid() );
+		return uuid().compareTo( other.uuid() );
+	}
+
+	@Override
+	public String getDisplayName()
+	{
+		// TODO This needs a way way to specify the display name layout per config that could use literal characters and colors.
+		return parcel.getString( "displayName" ).orElse( null );
+	}
+
+	@Override
+	public UserContext getContext()
+	{
+		return this;
 	}
 
 	public UserCreator getCreator()
@@ -72,6 +74,7 @@ public class UserContext implements UserPrincipal, Comparable<UserContext>, KeyV
 		return creator;
 	}
 
+	@Override
 	public UserEntity getEntity()
 	{
 		UserEntity instance = new UserEntity( this );
@@ -80,17 +83,18 @@ public class UserContext implements UserPrincipal, Comparable<UserContext>, KeyV
 	}
 
 	@Override
+	public PermissibleEntity getPermissible()
+	{
+
+	}
+
+	@Override
 	public Set<String> getKeys()
 	{
 		return parcel.getKeys();
 	}
 
-	public UserCredentials getLastUsedCredentials()
-	{
-		return lastUsedCredentials;
-	}
-
-	public Stream<UserEntity> getUserInstances()
+	public Stream<UserEntity> getEntities()
 	{
 		return instances.stream();
 	}
@@ -141,11 +145,6 @@ public class UserContext implements UserPrincipal, Comparable<UserContext>, KeyV
 		creator.save( this );
 	}
 
-	public void setLastUsedCredentials( UserCredentials lastUsedCredentials )
-	{
-		this.lastUsedCredentials = lastUsedCredentials;
-	}
-
 	@Override
 	public void setValue( String key, Object value ) throws ParcelableException.Error
 	{
@@ -174,14 +173,21 @@ public class UserContext implements UserPrincipal, Comparable<UserContext>, KeyV
 	{
 		if ( !isUnloadable )
 			throw new UserException.Error( this, uuid() + " can't be unloaded." );
-		HoneyUsers.users.remove( this );
+		Users.getInstance().users.remove( this );
 		unloaded = true;
 	}
 
+	@Nonnull
 	@Override
-	public String uuid()
+	public UUID uuid()
 	{
 		return uuid;
+	}
+
+	@Override
+	public void handleParcel( ParcelCarrier parcelCarrier ) throws ParcelException.Error
+	{
+		Streams.forEachWithException( getEntities(), userEntity -> userEntity.handleParcel( parcelCarrier ) );
 	}
 
 	public void validate() throws UserException.Error

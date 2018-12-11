@@ -9,7 +9,7 @@
  */
 package io.amelia.lang;
 
-import io.amelia.users.UserPrincipal;
+import io.amelia.support.UserPrincipal;
 
 /**
  * UserPrincipal Exception Container
@@ -24,70 +24,87 @@ public class UserException
 	public static class Error extends ApplicationException.Error
 	{
 		private static final long serialVersionUID = 5522301956671473324L;
-
+		private final DescriptiveReason descriptiveReason;
 		private final UserPrincipal userPrincipal;
 
 		public Error( UserPrincipal userPrincipal )
 		{
 			super();
 			this.userPrincipal = userPrincipal;
+			this.descriptiveReason = null;
 		}
 
 		public Error( UserPrincipal userPrincipal, String message )
 		{
 			super( message );
 			this.userPrincipal = userPrincipal;
+			this.descriptiveReason = null;
 		}
 
 		public Error( UserPrincipal userPrincipal, String message, Throwable cause )
 		{
 			super( message, cause );
 			this.userPrincipal = userPrincipal;
+			this.descriptiveReason = null;
 		}
 
 		public Error( UserPrincipal userPrincipal, Throwable cause )
 		{
 			super( cause );
 			this.userPrincipal = userPrincipal;
+			this.descriptiveReason = null;
 		}
 
 		public Error( UserPrincipal userPrincipal, ReportingLevel level )
 		{
 			super( level );
 			this.userPrincipal = userPrincipal;
+			this.descriptiveReason = null;
 		}
 
 		public Error( UserPrincipal userPrincipal, ReportingLevel level, String message )
 		{
 			super( level, message );
 			this.userPrincipal = userPrincipal;
+			this.descriptiveReason = null;
 		}
 
 		public Error( UserPrincipal userPrincipal, ReportingLevel level, String message, Throwable cause )
 		{
 			super( level, message, cause );
 			this.userPrincipal = userPrincipal;
+			this.descriptiveReason = null;
 		}
 
 		public Error( UserPrincipal userPrincipal, ReportingLevel level, Throwable cause )
 		{
 			super( level, cause );
 			this.userPrincipal = userPrincipal;
+			this.descriptiveReason = null;
 		}
 
 		public Error( UserPrincipal userPrincipal, DescriptiveReason descriptiveReason, Throwable cause )
 		{
-			this( userPrincipal, descriptiveReason.getReportingLevel(), descriptiveReason.getReasonMessage(), cause );
+			super( descriptiveReason.getReportingLevel(), descriptiveReason.getReasonMessage(), cause );
+			this.userPrincipal = userPrincipal;
+			this.descriptiveReason = descriptiveReason;
 		}
 
 		public Error( UserPrincipal userPrincipal, DescriptiveReason descriptiveReason )
 		{
-			this( userPrincipal, descriptiveReason.getReportingLevel(), descriptiveReason.getReasonMessage() );
+			super( descriptiveReason.getReportingLevel(), descriptiveReason.getReasonMessage() );
+			this.userPrincipal = userPrincipal;
+			this.descriptiveReason = descriptiveReason;
 		}
 
 		public UserPrincipal getUserPrincipal()
 		{
 			return userPrincipal;
+		}
+
+		public DescriptiveReason getDescriptiveReason()
+		{
+			return descriptiveReason;
 		}
 	}
 

@@ -49,7 +49,7 @@ public class DescriptiveReason
 	private final ReportingLevel level;
 	private final String reasonMessage;
 
-	private DescriptiveReason( ReportingLevel level, String reasonMessage )
+	public DescriptiveReason( ReportingLevel level, String reasonMessage )
 	{
 		this.reasonMessage = reasonMessage;
 		this.level = level;

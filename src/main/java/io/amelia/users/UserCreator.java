@@ -9,13 +9,17 @@
  */
 package io.amelia.users;
 
-import io.amelia.lang.UserException;
-import io.amelia.lang.DescriptiveReason;
+import java.util.UUID;
 
-abstract class UserCreator
+import io.amelia.foundation.facades.Users;
+import io.amelia.lang.UserException;
+import io.amelia.permission.PermissibleEntity;
+
+public abstract class UserCreator
 {
 	private final String name;
 	private boolean isDefault;
+	private BaseUsers usersInstance;
 
 	public UserCreator( String name, boolean isDefault )
 	{
@@ -23,12 +27,12 @@ abstract class UserCreator
 		this.isDefault = isDefault;
 
 		if ( isDefault )
-			HoneyUsers.getCreators().forEach( backend -> backend.isDefault = false );
+			Users.getInstance().getUserCreators().forEach( backend -> backend.isDefault = false );
 	}
 
-	public abstract UserContext create( String uuid ) throws UserException.Error;
+	public abstract UserContext create( UUID uuid ) throws UserException.Error;
 
-	public abstract boolean hasUser( String uuid );
+	public abstract boolean hasUser( UUID uuid );
 
 	public boolean isDefault()
 	{
@@ -44,11 +48,11 @@ abstract class UserCreator
 
 	public abstract void load();
 
-	public abstract void loginBegin( UserContext userContext, UserPermissible userPermissible, String acctId, Object... credentials );
+	public abstract void loginBegin( UserContext userContext, UserPermissible userPermissible, UUID uuid, Object... credentials );
 
-	public abstract void loginFailed( UserContext userContext, DescriptiveReason result );
+	public abstract void loginFailed( UserResult result );
 
-	public abstract void loginSuccess( UserContext userContext );
+	public abstract void loginSuccess( UserResult result );
 
 	public abstract void loginSuccessInit( UserContext userContext, PermissibleEntity permissibleEntity );
 
@@ -59,19 +63,20 @@ abstract class UserCreator
 
 	public abstract void reload( UserContext userContext ) throws UserException.Error;
 
-	public abstract UserResult resolve( String uuid );
+	public abstract UserResult resolve( UUID uuid );
 
 	/**
 	 * Attempts to save the supplied {@link UserContext}.
 	 *
 	 * @param userContext the savable User
+	 *
 	 * @throws UserException.Error per implementation
 	 */
 	public abstract void save( UserContext userContext ) throws UserException.Error;
 
 	public void setDefault()
 	{
-		HoneyUsers.getCreators().forEach( backend -> backend.isDefault = false );
+		Users.getInstance().getUserCreators().forEach( backend -> backend.isDefault = false );
 		this.isDefault = true;
 	}
 }

@@ -17,6 +17,7 @@ import io.amelia.lang.UserException;
 import io.amelia.support.Objs;
 import io.amelia.users.UserMeta;
 import io.amelia.users.UserPermissible;
+import io.amelia.support.UserPrincipal;
 
 /**
  * References available Account Authenticators
@@ -76,7 +77,7 @@ public abstract class UserAuthenticator
 	 *
 	 * @return The authorized account credentials
 	 */
-	public abstract UserCredentials authorize( UserMeta user, UserPermissible permissible ) throws UserException.Error;
+	public abstract UserCredentials authorize( UserPrincipal user, UserPermissible permissible ) throws UserException.Error;
 
 	/**
 	 * Used to check Account Credentials prior to creating the Account Instance
@@ -86,5 +87,5 @@ public abstract class UserAuthenticator
 	 *
 	 * @return An instance of the Account Credentials
 	 */
-	public abstract UserCredentials authorize( UserMeta user, Object... credentials ) throws UserException.Error;
+	public abstract UserCredentials authorize( UserPrincipal user, Object... credentials ) throws UserException.Error;
 }

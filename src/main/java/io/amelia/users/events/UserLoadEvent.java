@@ -7,11 +7,17 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.users;
+package io.amelia.users.events;
 
-public interface UserPrincipal
+import io.amelia.support.UserPrincipal;
+
+/**
+ * Fired when an User is being loaded into memory
+ */
+public class UserLoadEvent extends UserEvent
 {
-	String name();
-
-	String uuid();
+	public UserLoadEvent( UserPrincipal userPrincipal )
+	{
+		super( userPrincipal );
+	}
 }

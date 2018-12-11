@@ -9,17 +9,38 @@
  */
 package io.amelia.users;
 
+import io.amelia.events.AbstractEvent;
+import io.amelia.events.EventException;
 import io.amelia.events.EventHandler;
+import io.amelia.foundation.Foundation;
+import io.amelia.foundation.facades.Events;
+import io.amelia.foundation.facades.Users;
 import io.amelia.lang.DescriptiveReason;
 import io.amelia.lang.ParcelableException;
 import io.amelia.lang.UserException;
+import io.amelia.permission.PermissibleEntity;
+import io.amelia.permission.PermissionDefault;
+import io.amelia.permission.event.PermissibleEntityEvent;
 import io.amelia.support.DateAndTime;
 
 class UserCreatorMemory extends UserCreator
 {
 	public UserCreatorMemory()
 	{
-		super( "memory", HoneyUsers.getCreators().noneMatch( UserCreator::isDefault ) );
+		super( "memory", Users.getInstance().getUserCreators().noneMatch( UserCreator::isDefault ) );
+
+		Events.listen( Foundation.getApplication(), PermissibleEntityEvent.class, this::onPermissibleEntityEvent );
+	}
+
+	private void onPermissibleEntityEvent( PermissibleEntityEvent event )
+	{
+		// XXX Prevent the root user from losing it's OP permissions
+		if ( event.getAction() == PermissibleEntityEvent.Action.PERMISSIONS_CHANGED )
+			if ( BaseUsers.isRootUser( event.getEntity() ) )
+			{
+				event.getEntity().addPermission( PermissionDefault.OP.getNode(), true, null );
+				event.getEntity().setVirtual( true );
+			}
 	}
 
 	@Override
@@ -40,7 +61,7 @@ class UserCreatorMemory extends UserCreator
 	@Override
 	public boolean hasUser( String uuid )
 	{
-		return HoneyUsers.isNullUser( uuid ) || HoneyUsers.isRootUser( uuid );
+		return BaseUsers.isNullUser( uuid ) || BaseUsers.isRootUser( uuid );
 	}
 
 	@Override
@@ -62,13 +83,13 @@ class UserCreatorMemory extends UserCreator
 	}
 
 	@Override
-	public void loginFailed( UserContext userContext, DescriptiveReason result )
+	public void loginFailed( UserResult result )
 	{
 		// Do Nothing
 	}
 
 	@Override
-	public void loginSuccess( UserContext userContext )
+	public void loginSuccess( UserResult result )
 	{
 		// Do Nothing
 	}
@@ -76,27 +97,15 @@ class UserCreatorMemory extends UserCreator
 	@Override
 	public void loginSuccessInit( UserContext userContext, PermissibleEntity permissibleEntity )
 	{
-		if ( userContext.getCreator() == this && HoneyUsers.isRootUser( userContext ) )
+		if ( userContext.getCreator() == this && BaseUsers.isRootUser( userContext ) )
 		{
-			entity.addPermission( PermissionDefault.OP.getNode(), true, null );
-			entity.setVirtual( true );
-			// meta.registerAttachment( ApplicationTerminal.terminal() );
+			permissibleEntity.addPermission( PermissionDefault.OP.getNode(), true, null );
+			permissibleEntity.setVirtual( true );
+			// getUserContext.registerAttachment( ApplicationTerminal.terminal() );
 		}
 
-		if ( userContext.getCreator() == this && HoneyUsers.isNullUser( userContext ) )
-			entity.setVirtual( true );
-	}
-
-	@EventHandler
-	public void onPermissibleEntityEvent( PermissibleEntityEvent event )
-	{
-		// XXX Prevent the root user from losing it's OP permissions
-		if ( event.getAction() == Action.PERMISSIONS_CHANGED )
-			if ( AccountType.isRootAccount( event.getEntity() ) )
-			{
-				event.getEntity().addPermission( PermissionDefault.OP.getNode(), true, null );
-				event.getEntity().setVirtual( true );
-			}
+		if ( userContext.getCreator() == this && BaseUsers.isNullUser( userContext ) )
+			permissibleEntity.setVirtual( true );
 	}
 
 	@Override

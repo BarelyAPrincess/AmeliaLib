@@ -13,40 +13,27 @@ import javax.annotation.Nonnull;
 
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.lang.DatabaseException;
-import io.amelia.lang.ReportingLevel;
 import io.amelia.lang.DescriptiveReason;
+import io.amelia.lang.ReportingLevel;
+import io.amelia.looper.Delays;
+import io.amelia.looper.LooperRouter;
 import io.amelia.support.DateAndTime;
 import io.amelia.support.Encrypt;
-import io.amelia.users.UserMeta;
+import io.amelia.users.BaseUsers;
+import io.amelia.support.UserPrincipal;
 
 /**
  * Used to authenticate an account using an Account Id and Token combination
  */
 public class OnetimeTokenUserAuthenticator extends UserAuthenticator
 {
-	class OnetimeTokenUserCredentials extends UserCredentials
-	{
-		private String token;
-
-		OnetimeTokenUserCredentials( UserMeta meta, DescriptiveReason.DescriptiveReason descriptiveReason, String token )
-		{
-			super( OnetimeTokenUserAuthenticator.this, meta, descriptiveReason.newUserResult() );
-			this.token = token;
-		}
-
-		public String getToken()
-		{
-			return token;
-		}
-	}
-
-	private final Database db = StorageModule.i().getDatabase();
+	// private final Database db = StorageModule.i().getDatabase();
 
 	OnetimeTokenUserAuthenticator()
 	{
 		super( "token" );
 
-		try
+		/* try
 		{
 			if ( !db.table( "accounts_token" ).exists() )
 				db.table( "accounts_token" ).columnCreateVar( "acctId", 255 ).columnCreateVar( "token", 255 ).columnCreateInt( "expires", 12 );
@@ -54,31 +41,26 @@ public class OnetimeTokenUserAuthenticator extends UserAuthenticator
 		catch ( DatabaseException e )
 		{
 			e.printStackTrace();
-		}
+		} */
 
-		TaskManager.instance().scheduleAsyncRepeatingTask( AccountManager.i(), 0L, Ticks.MINUTE * ConfigRegistry.i().getInt( "sessions.cleanupInterval", 5 ), new Runnable()
-		{
-			@Override
-			public void run()
+		LooperRouter.getMainLooper().postTaskRepeatingAt( () -> {
+			try
 			{
-				try
-				{
-					int deleted = db.table( "accounts_token" ).delete().where( "expires" ).moreThan( 0 ).and().where( "expires" ).lessThan( Timings.epoch() ).executeWithException().count();
-					if ( deleted > 0 )
-						AccountManager.getLogger().info( EnumColor.DARK_AQUA + "The cleanup task deleted " + deleted + " expired login token(s)." );
-				}
-				catch ( DatabaseException e )
-				{
-					e.printStackTrace();
-				}
+				int deleted = db.table( "accounts_token" ).delete().where( "expires" ).moreThan( 0 ).and().where( "expires" ).lessThan( Timings.epoch() ).executeWithException().count();
+				if ( deleted > 0 )
+					AccountManager.getLogger().info( EnumColor.DARK_AQUA + "The cleanup task deleted " + deleted + " expired login token(s)." );
 			}
-		} );
+			catch ( DatabaseException e )
+			{
+				e.printStackTrace();
+			}
+		}, 0L, Delays.MINUTE * ConfigRegistry.config.getValue( BaseUsers.ConfigKeys.SESSIONS_CLEANUP_INTERVAL ), true );
 
-		EventDispatcher.i().registerEvents( this, this );
+		// Foundation.getApplication().events().listen(  );
 	}
 
 	@Override
-	public UserCredentials authorize( AccountMeta acct, AccountPermissible perm ) throws AccountException
+	public UserCredentials authorize( UserPrincipal acct, AccountPermissible perm ) throws AccountException
 	{
 		if ( acct == null )
 			throw new AccountException( AccountDescriptiveReason.INCORRECT_LOGIN, acct );
@@ -92,7 +74,7 @@ public class OnetimeTokenUserAuthenticator extends UserAuthenticator
 	}
 
 	@Override
-	public UserCredentials authorize( AccountMeta acct, Object... credentials ) throws AccountException
+	public UserCredentials authorize( UserPrincipal acct, Object... credentials ) throws AccountException
 	{
 		if ( acct == null )
 			throw new AccountException( AccountDescriptiveReason.INCORRECT_LOGIN, acct );
@@ -176,14 +158,14 @@ public class OnetimeTokenUserAuthenticator extends UserAuthenticator
 	 *
 	 * @return The issued token, be sure to save the token, authenticate with the token later. Token is valid for 7 days.
 	 */
-	public String issueToken( @Nonnull UserMeta user )
+	public String issueToken( @Nonnull UserPrincipal user )
 	{
 		String token = Encrypt.randomize( user.getUuid() ) + DateAndTime.epoch();
 		try
 		{
 			user.getUserBackend()
 
-			// if ( db.queryUpdate( "INSERT INTO `accounts_token` (`acctId`,`token`,`expires`) VALUES (?,?,?);", acct.getId(), token, ( Timings.epoch() + ( 60 * 60 * 24 * 7 ) ) ) < 1 )
+			// if ( db.queryUpdate( "INSERT INTO `accounts_token` (`acctId`,`token`,`expires`) VALUES (?,?,?);", acct.getUuid(), token, ( Timings.epoch() + ( 60 * 60 * 24 * 7 ) ) ) < 1 )
 			if ( db.table( "accouts_token" ).insert().value( "acctId", user.getId() ).value( "token", token ).value( "expires", Timings.epoch() + 60 * 60 * 24 * 7 ).executeWithException().count() < 0 )
 			{
 				AccountManager.getLogger().severe( "We had an unknown issue inserting token '" + token + "' into the database!" );
@@ -194,7 +176,22 @@ public class OnetimeTokenUserAuthenticator extends UserAuthenticator
 		{
 			e.printStackTrace();
 			return null;
+		} return token;
+	}
+
+	class OnetimeTokenUserCredentials extends UserCredentials
+	{
+		private String token;
+
+		OnetimeTokenUserCredentials( UserPrincipal meta, DescriptiveReason.DescriptiveReason descriptiveReason, String token )
+		{
+			super( OnetimeTokenUserAuthenticator.this, meta, descriptiveReason.newUserResult() );
+			this.token = token;
 		}
-		return token;
+
+		public String getToken()
+		{
+			return token;
+		}
 	}
 }
