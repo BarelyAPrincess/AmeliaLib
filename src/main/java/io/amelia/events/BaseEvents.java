@@ -22,14 +22,14 @@ import javax.annotation.Nonnull;
 import io.amelia.foundation.Kernel;
 import io.amelia.foundation.RegistrarBase;
 import io.amelia.lang.DeprecatedDetail;
-import io.amelia.support.Priority;
 import io.amelia.lang.ReportingLevel;
 import io.amelia.support.ConsumerWithException;
 import io.amelia.support.Objs;
+import io.amelia.support.Priority;
 
-public class Events
+public class BaseEvents
 {
-	public static final Kernel.Logger L = Kernel.getLogger( Events.class );
+	public static final Kernel.Logger L = Kernel.getLogger( BaseEvents.class );
 
 	private Map<Class<? extends AbstractEvent>, EventHandlers> handlers = new ConcurrentHashMap<>();
 	private Object lock = new Object();

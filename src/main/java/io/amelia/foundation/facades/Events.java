@@ -13,15 +13,15 @@ import java.lang.reflect.Method;
 
 import javax.annotation.Nonnull;
 
+import io.amelia.bindings.Bindings;
+import io.amelia.bindings.BindingsException;
 import io.amelia.events.AbstractEvent;
+import io.amelia.events.BaseEvents;
 import io.amelia.events.EventException;
 import io.amelia.events.EventHandlers;
-import io.amelia.support.Priority;
 import io.amelia.foundation.RegistrarBase;
-import io.amelia.bindings.BindingsException;
-import io.amelia.bindings.Bindings;
-import io.amelia.foundation.events.EventsImpl;
 import io.amelia.support.ConsumerWithException;
+import io.amelia.support.Priority;
 
 public class Events
 {
@@ -64,9 +64,9 @@ public class Events
 		return getInstance().getEventListeners( event );
 	}
 
-	public static EventsImpl getInstance()
+	public static <T extends BaseEvents> T getInstance()
 	{
-		return Bindings.resolveClassOrFail( EventsImpl.class, () -> new BindingsException.Ignorable( "The Events Subsystem is not loaded. This is either an application or initialization bug." ) );
+		return Bindings.resolveClassOrFail( BaseEvents.class, () -> new BindingsException.Ignorable( "The Events are not loaded. This is either an application or initialization bug." ) );
 	}
 
 	private static void listen( final RegistrarBase registrar, final Object listener, final Method method ) throws EventException.Error
@@ -79,7 +79,7 @@ public class Events
 		getInstance().listen( registrar, listener );
 	}
 
-	public static <E extends AbstractEvent> void listen( @Nonnull RegistrarBase registrar, @Nonnull Class<E> event, @Nonnull ConsumerWithException<E, EventException.Error> listener )
+	public static <Event extends AbstractEvent> void listen( @Nonnull RegistrarBase registrar, @Nonnull Class<Event> event, @Nonnull ConsumerWithException<Event, EventException.Error> listener )
 	{
 		getInstance().listen( registrar, event, listener );
 	}
@@ -92,7 +92,7 @@ public class Events
 	 * @param event     Event class to register
 	 * @param listener  Consumer that will receive the event
 	 */
-	public static <E extends AbstractEvent> void listen( @Nonnull RegistrarBase registrar, @Nonnull Priority priority, @Nonnull Class<E> event, @Nonnull ConsumerWithException<E, EventException.Error> listener )
+	public static <Event extends AbstractEvent> void listen( @Nonnull RegistrarBase registrar, @Nonnull Priority priority, @Nonnull Class<Event> event, @Nonnull ConsumerWithException<Event, EventException.Error> listener )
 	{
 		getInstance().listen( registrar, priority, event, listener );
 	}

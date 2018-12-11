@@ -18,12 +18,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import javax.annotation.Nonnull;
+
 import io.amelia.bindings.Bindings;
 import io.amelia.bindings.BindingsException;
 import io.amelia.data.ContainerBase;
 import io.amelia.data.parcel.ParcelInterface;
 import io.amelia.data.parcel.ParcelReceiver;
-import io.amelia.events.Events;
+import io.amelia.events.BaseEvents;
 import io.amelia.hooks.Hooks;
 import io.amelia.lang.ApplicationException;
 import io.amelia.lang.ExceptionRegistrar;
@@ -105,7 +107,8 @@ public abstract class BaseApplication implements VendorRegistrar, ExceptionRegis
 		return env;
 	}
 
-	public String getId()
+	@Nonnull
+	public String uuid()
 	{
 		return env.getString( "instance-id" ).orElse( null );
 	}
@@ -158,11 +161,11 @@ public abstract class BaseApplication implements VendorRegistrar, ExceptionRegis
 		return primaryThread == Thread.currentThread();
 	}
 
-	public Events events()
+	public BaseEvents events()
 	{
 		try
 		{
-			return Bindings.resolveClassOrFail( Events.class );
+			return Bindings.resolveClassOrFail( BaseEvents.class );
 		}
 		catch ( BindingsException.Error e )
 		{

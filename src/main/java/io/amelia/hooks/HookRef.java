@@ -66,7 +66,7 @@ public class HookRef implements Comparable<HookRef>
 				throw new ApplicationException.Ignorable( "Parameter type " + parameters[i].getType().getSimpleName() + " does not match the provided argument type " + arguments[i].getClass().getSimpleName() + "." );
 
 		// TODO Skip failed hook calls.
-		// TODO Save invoked parameters to hook meta as they're likely the best source we got, this will govern all future hooks and invokes.
+		// TODO Save invoked parameters to hook getUserContext as they're likely the best source we got, this will govern all future hooks and invokes.
 
 		try
 		{

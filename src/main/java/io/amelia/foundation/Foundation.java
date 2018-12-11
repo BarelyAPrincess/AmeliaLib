@@ -257,7 +257,7 @@ public final class Foundation
 		if ( !app.hasArgument( "no-banner" ) )
 			app.showBanner( Kernel.L );
 
-		L.info( "Application Instance Identity: " + app.getId() );
+		L.info( "Application Instance Identity: " + app.uuid() );
 	}
 
 	public static void setRunlevel( @Nonnull Runlevel level )
