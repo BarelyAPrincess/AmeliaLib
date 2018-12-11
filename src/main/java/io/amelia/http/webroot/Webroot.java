@@ -40,7 +40,6 @@ import io.amelia.data.apache.ApacheConfiguration;
 import io.amelia.data.parcel.ConfigData;
 import io.amelia.database.Database;
 import io.amelia.database.elegant.ElegantQueryTable;
-import io.amelia.events.Events;
 import io.amelia.foundation.ConfigData;
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.foundation.Env;

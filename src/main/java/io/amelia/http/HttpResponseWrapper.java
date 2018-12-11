@@ -25,7 +25,6 @@ import java.util.logging.Level;
 
 import io.amelia.http.apache.ApacheHandler;
 import io.amelia.http.events.HttpErrorEvent;
-import io.amelia.events.Events;
 import io.amelia.foundation.Kernel;
 import io.amelia.http.events.HttpExceptionEvent;
 import io.amelia.http.session.Session;

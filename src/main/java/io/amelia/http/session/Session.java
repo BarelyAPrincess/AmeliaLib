@@ -30,7 +30,6 @@ import io.amelia.http.webroot.Webroot;
 import io.amelia.http.webroot.WebrootRegistry;
 import io.amelia.lang.SessionException;
 import io.amelia.data.parcel.Parcel;
-import io.amelia.events.Events;
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.support.DateAndTime;
 import io.amelia.support.EnumColor;
@@ -93,13 +92,13 @@ public final class Session extends AccountPermissible implements Kickable
 	 */
 	private String sessionKey;
 	/**
-	 * The site this session is bound to
-	 */
-	private Webroot webroot;
-	/**
 	 * The epoch for when this session is to be destroyed
 	 */
 	private long timeout = 0;
+	/**
+	 * The site this session is bound to
+	 */
+	private Webroot webroot;
 
 	Session( @Nonnull SessionData data ) throws SessionException.Error
 	{
@@ -243,7 +242,7 @@ public final class Session extends AccountPermissible implements Kickable
 
 	public Map<String, Object> getGlobals()
 	{
-		return Collections.unmodifiableMap( globals );
+		return globals;
 	}
 
 	@Override
@@ -258,15 +257,6 @@ public final class Session extends AccountPermissible implements Kickable
 					ips.add( ipAddress );
 			}
 		return ips;
-	}
-
-	@Override
-	public Webroot getWebroot()
-	{
-		if ( webroot == null )
-			return WebrootRegistry.getDefaultWebroot();
-		else
-			return webroot;
 	}
 
 	public String getName()
@@ -318,6 +308,24 @@ public final class Session extends AccountPermissible implements Kickable
 		return data.data.getString( key ).orElse( def );
 	}
 
+	@Override
+	public Webroot getWebroot()
+	{
+		if ( webroot == null )
+			return WebrootRegistry.getDefaultWebroot();
+		else
+			return webroot;
+	}
+
+	/**
+	 * Replaces current nonce instance with a new instance.
+	 * Can be called multiple times.
+	 */
+	public void initNonce()
+	{
+		nonce = new Nonce( this );
+	}
+
 	public boolean isInvalidated()
 	{
 		return isInvalidated;
@@ -354,14 +362,14 @@ public final class Session extends AccountPermissible implements Kickable
 		data.timeout = 0;
 	}
 
+	// TODO Sessions can outlive a login.
+	// TODO Sessions can have an expiration in 7 days and a login can have an expiration of 24 hours.
+	// TODO Remember me would extend login expiration to the life of the session.
+
 	public Nonce nonce()
 	{
 		return nonce;
 	}
-
-	// TODO Sessions can outlive a login.
-	// TODO Sessions can have an expiration in 7 days and a login can have an expiration of 24 hours.
-	// TODO Remember me would extend login expiration to the life of the session.
 
 	public void processSessionCookie( String domain )
 	{
@@ -436,15 +444,6 @@ public final class Session extends AccountPermissible implements Kickable
 
 		if ( sessionCookie != null )
 			sessionCookie.setExpiration( timeout );
-	}
-
-	/**
-	 * Replaces current nonce instance with a new instance.
-	 * Can be called multiple times.
-	 */
-	public void initNonce()
-	{
-		nonce = new Nonce( this );
 	}
 
 	/**
@@ -537,15 +536,6 @@ public final class Session extends AccountPermissible implements Kickable
 		globals.put( key, val );
 	}
 
-	public void setWebroot( @Nonnull Webroot webroot )
-	{
-		if ( isInvalidated )
-			throw new IllegalStateException( "This session has been invalidated" );
-
-		this.webroot = webroot;
-		data.site = webroot.getWebrootId();
-	}
-
 	@Override
 	public void setVariable( String key, String value )
 	{
@@ -559,6 +549,15 @@ public final class Session extends AccountPermissible implements Kickable
 
 		data.data.put( key, value );
 		dataChangeHistory.add( key );
+	}
+
+	public void setWebroot( @Nonnull Webroot webroot )
+	{
+		if ( isInvalidated )
+			throw new IllegalStateException( "This session has been invalidated" );
+
+		this.webroot = webroot;
+		data.site = webroot.getWebrootId();
 	}
 
 	@Override

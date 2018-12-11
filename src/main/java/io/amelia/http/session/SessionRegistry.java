@@ -21,7 +21,9 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import io.amelia.data.TypeBase;
 import io.amelia.http.HoneyCookie;
 import io.amelia.http.session.adapters.FileAdapter;
 import io.amelia.http.session.adapters.SqlAdapter;
@@ -214,9 +216,9 @@ public class SessionRegistry
 	 *
 	 * @return A unmodifiable list of sessions
 	 */
-	public static List<Session> getSessions()
+	public static Stream<Session> getSessions()
 	{
-		return Collections.unmodifiableList( sessions );
+		return sessions.stream();
 	}
 
 	/**
@@ -379,5 +381,16 @@ public class SessionRegistry
 		MEMORY,
 		FILE,
 		SQL
+	}
+
+	public static class ConfigKeys
+	{
+		public static final TypeBase SESSIONS_BASE = new TypeBase( "sessions" );
+		public static final TypeBase.TypeInteger SESSIONS_REARM_TIMEOUT = new TypeBase.TypeInteger( SESSIONS_BASE, "rearmTimeoutWithEachRequest" );
+
+		public ConfigKeys()
+		{
+			// Static Access
+		}
 	}
 }

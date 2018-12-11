@@ -29,7 +29,6 @@ import io.amelia.http.events.RequestEvent;
 import io.amelia.lang.SessionException;
 import io.amelia.data.parcel.Parcel;
 import io.amelia.events.EventException;
-import io.amelia.events.Events;
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.foundation.Kernel;
 import io.amelia.http.mappings.DomainMapping;
