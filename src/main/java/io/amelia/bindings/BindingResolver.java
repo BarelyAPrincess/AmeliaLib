@@ -9,6 +9,7 @@
  */
 package io.amelia.bindings;
 
+import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -169,17 +170,15 @@ public abstract class BindingResolver
 	 *
 	 * @return
 	 */
-	protected <T> T get( @Nonnull Class<T> expectedClass )
+	protected <T> T get( @Nonnull Class<T> expectedClass, @Nonnull Object... args )
 	{
-		Objs.notNull( expectedClass );
-
 		Object obj = null;
 
 		if ( classToClassMappings.containsKey( expectedClass ) )
-			obj = get( classToClassMappings.get( expectedClass ) );
+			obj = get( classToClassMappings.get( expectedClass ), args );
 
 		if ( obj == null && classToNamespaceMappings.containsKey( expectedClass ) )
-			obj = get( classToNamespaceMappings.get( expectedClass ), expectedClass );
+			obj = get( classToNamespaceMappings.get( expectedClass ), expectedClass, args );
 
 		if ( obj == null )
 			obj = Bindings.invokeMethods( this, method -> expectedClass.isAssignableFrom( method.getReturnType() ) );

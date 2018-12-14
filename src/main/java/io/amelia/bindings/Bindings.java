@@ -9,6 +9,7 @@
  */
 package io.amelia.bindings;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -160,6 +161,46 @@ public class Bindings
 		} );
 	}
 
+	private static <T> T invokeConstructors( @Nonnull Class<? super T> declaringClass, @Nonnull Predicate<Constructor> constructorPredicate, @Nonnull Object... args ) throws BindingsException.Error
+	{
+		if ( declaringClass.isInterface() )
+			return null;
+
+		for ( Constructor<?> constructor : declaringClass.getDeclaredConstructors() )
+		{
+			Parameter[] parameters = constructor.getParameters();
+			Object[] arguments = new Object[parameters.length];
+			for ( int i = 0; i < parameters.length; i++ )
+			{
+				Parameter parameter = parameters[i];
+				Object result = null;
+				for ( int a = 0; a < args.length; a++ )
+				{
+					if ( args[a] instanceof Supplier )
+						args[a] = ( ( Supplier ) args[a] ).get();
+					if ( parameter.getType().isAssignableFrom( args[a].getClass() ) )
+						result = args[a];
+				}
+
+				if ( result == null )
+					result = Bindings.resolveClass( parameter.getType(), args );
+
+				if ( result == null )
+					result = Bindings.resolveNamespace( Strs.camelToNamespace( parameter.getName() ), parameter.getType(), args );
+
+				if ( result == null )
+					throw new BindingsException.Error( "Could not resolve a value for parameter. {name=" + parameter.getName() + ",type=" + parameter.getType() + "}" );
+
+				arguments[i] = result;
+			}
+
+			if ( constructorPredicate.test( constructor ) )
+			{
+
+			}
+		}
+	}
+
 	public static <T> T invokeFields( @Nonnull Object declaringObject, @Nonnull Predicate<Field> fieldPredicate )
 	{
 		return invokeFields( declaringObject, fieldPredicate, null );
@@ -255,11 +296,11 @@ public class Bindings
 		resolvers.add( bindingResolver );
 	}
 
-	public static <T> T resolveClass( @Nonnull Class<? super T> expectedClass )
+	public static <T> T resolveClass( @Nonnull Class<? super T> expectedClass, @Nonnull Object... args )
 	{
 		try
 		{
-			return resolveClassOrFail( expectedClass );
+			return resolveClassOrFail( expectedClass, args );
 		}
 		catch ( BindingsException.Error e )
 		{
@@ -267,11 +308,11 @@ public class Bindings
 		}
 	}
 
-	public static <T, E extends Exception> T resolveClassOrFail( @Nonnull Class<? super T> expectedClass, @Nonnull Supplier<E> exceptionSupplier ) throws E
+	public static <T, E extends Exception> T resolveClassOrFail( @Nonnull Class<? super T> expectedClass, @Nonnull Supplier<E> exceptionSupplier, @Nonnull Object... args ) throws E
 	{
 		try
 		{
-			return resolveClassOrFail( expectedClass );
+			return resolveClassOrFail( expectedClass, args );
 		}
 		catch ( BindingsException.Error e )
 		{
@@ -279,14 +320,18 @@ public class Bindings
 		}
 	}
 
-	public static <T> T resolveClassOrFail( @Nonnull Class<? super T> expectedClass ) throws BindingsException.Error
+	public static <T> T resolveClassOrFail( @Nonnull Class<? super T> expectedClass, @Nonnull Object... args ) throws BindingsException.Error
 	{
 		for ( BindingResolver bindingResolver : getResolvers() )
 		{
-			Object obj = bindingResolver.get( expectedClass );
+			Object obj = bindingResolver.get( expectedClass, args );
 			if ( obj != null )
 				return ( T ) obj;
 		}
+
+		T result = Bindings.invokeConstructors( expectedClass, () -> true, args );
+		if ( result != null )
+			return result;
 
 		throw new BindingsException.Error( "Could not resolve class " + expectedClass.getSimpleName() );
 	}

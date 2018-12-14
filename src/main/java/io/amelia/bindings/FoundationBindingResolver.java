@@ -11,29 +11,29 @@ package io.amelia.bindings;
 
 import io.amelia.foundation.BaseApplication;
 import io.amelia.foundation.Foundation;
-import io.amelia.foundation.facades.Plugins;
+import io.amelia.plugins.DefaultPlugins;
 
 public class FoundationBindingResolver extends BindingResolver
 {
-	Plugins pluginServiceManager = null;
+	DefaultPlugins pluginServiceManager = null;
 
 	public FoundationBindingResolver()
 	{
-		addAlias( Plugins.class, "plugins.manager" );
+		addAlias( DefaultPlugins.class, "plugins.manager" );
 		addAlias( "plugins.mgr", "plugins.manager" );
-	}
-
-	@ProvidesBinding( "plugins.manager" )
-	public Plugins pluginManager()
-	{
-		if ( pluginServiceManager == null )
-			pluginServiceManager = new Plugins();
-		return pluginServiceManager;
 	}
 
 	@DynamicBinding
 	public BaseApplication app()
 	{
 		return Foundation.getApplication();
+	}
+
+	@ProvidesBinding( "plugins.manager" )
+	public DefaultPlugins pluginManager()
+	{
+		if ( pluginServiceManager == null )
+			pluginServiceManager = new DefaultPlugins();
+		return pluginServiceManager;
 	}
 }

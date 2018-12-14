@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import javax.annotation.Nonnull;
 
@@ -25,7 +26,7 @@ import io.amelia.bindings.BindingsException;
 import io.amelia.data.ContainerBase;
 import io.amelia.data.parcel.ParcelInterface;
 import io.amelia.data.parcel.ParcelReceiver;
-import io.amelia.events.BaseEvents;
+import io.amelia.events.DefaultEvents;
 import io.amelia.hooks.Hooks;
 import io.amelia.lang.ApplicationException;
 import io.amelia.lang.ExceptionRegistrar;
@@ -39,6 +40,7 @@ import io.amelia.support.EnumColor;
 import io.amelia.support.IO;
 import io.amelia.support.Objs;
 import io.amelia.support.Strs;
+import io.amelia.users.DefaultUsers;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -62,10 +64,8 @@ public abstract class BaseApplication implements VendorRegistrar, ExceptionRegis
 		optionParser.accepts( "env-file", "The env file" ).withRequiredArg().ofType( String.class ).defaultsTo( ".env" );
 		optionParser.accepts( "env", "Override env values" ).withRequiredArg().ofType( String.class );
 
-		optionParser.accepts( "no-banner", "Disables the banner" );
-
 		for ( String pathKey : Kernel.getPathSlugs() )
-			optionParser.accepts( "dir-" + pathKey, "Sets the " + pathKey + " directory." ).withRequiredArg().ofType( String.class );
+			optionParser.accepts( "dir-" + pathKey, "Sets the " + pathKey + " directory path." ).withRequiredArg().ofType( String.class );
 	}
 
 	public void addArgument( String arg, String desc )
@@ -86,7 +86,7 @@ public abstract class BaseApplication implements VendorRegistrar, ExceptionRegis
 	public void checkOptionSet()
 	{
 		if ( optionSet == null )
-			throw new ApplicationException.Runtime( ReportingLevel.E_ERROR, "parse( String[] ) was never called." );
+			throw new ApplicationException.Runtime( ReportingLevel.E_ERROR, "Method parse( String[] ) was never called." );
 	}
 
 	void dispose()
@@ -107,10 +107,82 @@ public abstract class BaseApplication implements VendorRegistrar, ExceptionRegis
 		return env;
 	}
 
-	@Nonnull
-	public String uuid()
+	@SuppressWarnings( "unchecked" )
+	public <T extends BasePermissions> T getPermissions()
 	{
-		return env.getString( "instance-id" ).orElse( null );
+		return ( T ) getPermissions( BasePermissions.class );
+	}
+
+	public <T extends BasePermissions> T getPermissions( Class<T> expectedClass )
+	{
+		try
+		{
+			return Bindings.resolveClassOrFail( expectedClass );
+		}
+		catch ( BindingsException.Error e )
+		{
+			throw new ApplicationException.Runtime( "The Permissions implementation is missing.", e );
+		}
+	}
+
+	@SuppressWarnings( "unchecked" )
+	public <T extends BasePlugins> T getPlugins()
+	{
+		return ( T ) getPlugins( BasePlugins.class );
+	}
+
+	public <T extends BasePlugins> T getPlugins( Class<T> expectedClass )
+	{
+		try
+		{
+			return Bindings.resolveClassOrFail( expectedClass );
+		}
+		catch ( BindingsException.Error e )
+		{
+			throw new ApplicationException.Runtime( "The Plugins implementation is missing.", e );
+		}
+	}
+
+	@SuppressWarnings( "unchecked" )
+	public <T extends DefaultEvents> T getEvents()
+	{
+		return ( T ) getEvents( DefaultEvents.class );
+	}
+
+	public <T extends DefaultEvents> T getEvents( Class<T> expectedClass )
+	{
+		try
+		{
+			return Bindings.resolveClassOrFail( expectedClass );
+		}
+		catch ( BindingsException.Error e )
+		{
+			throw new ApplicationException.Runtime( "The Events implementation is missing.", e );
+		}
+	}
+
+	@SuppressWarnings( "unchecked" )
+	public <T extends DefaultUsers> T getUsers()
+	{
+		return ( T ) getUsers( DefaultUsers.class );
+	}
+
+	public <T extends DefaultUsers> T getUsers( Class<T> expectedClass )
+	{
+		try
+		{
+			return Bindings.resolveClassOrFail( expectedClass );
+		}
+		catch ( BindingsException.Error e )
+		{
+			throw new ApplicationException.Runtime( "The Users implementation is missing.", e );
+		}
+	}
+
+	@Nonnull
+	public UUID uuid()
+	{
+		return env.getString( "uuid" ).map( UUID::fromString ).orElseGet( UUID::randomUUID );
 	}
 
 	public Optional<Integer> getIntegerArgument( String arg )
@@ -161,11 +233,11 @@ public abstract class BaseApplication implements VendorRegistrar, ExceptionRegis
 		return primaryThread == Thread.currentThread();
 	}
 
-	public BaseEvents events()
+	public DefaultEvents events()
 	{
 		try
 		{
-			return Bindings.resolveClassOrFail( BaseEvents.class );
+			return Bindings.resolveClassOrFail( DefaultEvents.class );
 		}
 		catch ( BindingsException.Error e )
 		{

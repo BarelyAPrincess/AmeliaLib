@@ -7,7 +7,7 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.foundation.plugins;
+package io.amelia.foundation;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,7 +23,7 @@ import io.amelia.lang.PluginException;
 import io.amelia.plugins.PluginMeta;
 import io.amelia.plugins.loader.PluginLoader;
 
-public interface PluginImpl extends RegistrarBase
+public interface BasePlugin extends RegistrarBase
 {
 	boolean equals( Object obj );
 

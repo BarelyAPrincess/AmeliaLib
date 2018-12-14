@@ -19,6 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nonnull;
 
+import io.amelia.foundation.BaseEvents;
 import io.amelia.foundation.Kernel;
 import io.amelia.foundation.RegistrarBase;
 import io.amelia.lang.DeprecatedDetail;
@@ -27,10 +28,8 @@ import io.amelia.support.ConsumerWithException;
 import io.amelia.support.Objs;
 import io.amelia.support.Priority;
 
-public class BaseEvents
+public class DefaultEvents implements BaseEvents
 {
-	public static final Kernel.Logger L = Kernel.getLogger( BaseEvents.class );
-
 	private Map<Class<? extends AbstractEvent>, EventHandlers> handlers = new ConcurrentHashMap<>();
 	private Object lock = new Object();
 
@@ -40,6 +39,7 @@ public class BaseEvents
 	 *
 	 * @param event Event details
 	 */
+	@Override
 	public <T extends AbstractEvent> T callEvent( @Nonnull T event )
 	{
 		try
@@ -62,6 +62,7 @@ public class BaseEvents
 	 *
 	 * @throws EventException.Error Thrown if you try to call an async event on a sync thread
 	 */
+	@Override
 	public <T extends AbstractEvent> T callEventWithException( @Nonnull T event ) throws EventException.Error
 	{
 		if ( event.isAsynchronous() )
@@ -90,7 +91,7 @@ public class BaseEvents
 		} ); */
 	}
 
-	public void fireEvent( @Nonnull AbstractEvent event ) throws EventException.Error
+	private void fireEvent( @Nonnull AbstractEvent event ) throws EventException.Error
 	{
 		event.onEventPreCall();
 
@@ -140,6 +141,7 @@ public class BaseEvents
 		return eventHandlers;
 	}
 
+	@Override
 	public void listen( @Nonnull final RegistrarBase registrar, @Nonnull final Object listener, @Nonnull final Method method ) throws EventException.Error
 	{
 		final EventHandler eventHandler = method.getAnnotation( EventHandler.class );
@@ -189,6 +191,7 @@ public class BaseEvents
 		} );
 	}
 
+	@Override
 	public void listen( @Nonnull final RegistrarBase registrar, @Nonnull final Object listener )
 	{
 		Objs.notNull( registrar, "Registrar can not be null" );
@@ -213,6 +216,7 @@ public class BaseEvents
 		}
 	}
 
+	@Override
 	public <E extends AbstractEvent> void listen( @Nonnull RegistrarBase registrar, @Nonnull Class<E> event, @Nonnull ConsumerWithException<E, EventException.Error> listener )
 	{
 		listen( registrar, Priority.NORMAL, event, listener );
@@ -226,11 +230,13 @@ public class BaseEvents
 	 * @param event     Event class to register
 	 * @param listener  Consumer that will receive the event
 	 */
+	@Override
 	public <E extends AbstractEvent> void listen( @Nonnull RegistrarBase registrar, @Nonnull Priority priority, @Nonnull Class<E> event, @Nonnull ConsumerWithException<E, EventException.Error> listener )
 	{
 		getEventListeners( event ).register( new RegisteredListener<>( registrar, priority, listener ) );
 	}
 
+	@Override
 	public void unregisterEvents( @Nonnull RegistrarBase registrar )
 	{
 		EventHandlers.unregisterAll( registrar );

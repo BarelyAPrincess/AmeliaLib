@@ -7,7 +7,7 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.foundation.plugins;
+package io.amelia.foundation;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -22,7 +22,7 @@ import io.amelia.lang.PluginInvalidException;
 import io.amelia.lang.PluginNotFoundException;
 import io.amelia.plugins.loader.PluginLoader;
 
-public interface PluginsImpl<Subclass extends PluginImpl>
+public interface BasePlugins<Subclass extends BasePlugin>
 {
 	void clearPlugins();
 

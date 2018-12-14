@@ -19,7 +19,6 @@ import io.amelia.bindings.FacadeRegistration;
 import io.amelia.bindings.FoundationBindingResolver;
 import io.amelia.data.TypeBase;
 import io.amelia.events.RunlevelEvent;
-import io.amelia.foundation.facades.Events;
 import io.amelia.hooks.Hooks;
 import io.amelia.injection.Libraries;
 import io.amelia.injection.MavenReference;
@@ -127,7 +126,7 @@ public final class Foundation
 	 */
 	private static void onRunlevelChange() throws ApplicationException.Error
 	{
-		Events.callEventWithException( new RunlevelEvent( previousRunlevel, currentRunlevel ) );
+		app.getEvents().callEventWithException( new RunlevelEvent( previousRunlevel, currentRunlevel ) );
 
 		app.onRunlevelChange( previousRunlevel, currentRunlevel );
 

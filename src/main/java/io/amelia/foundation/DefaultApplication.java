@@ -29,6 +29,8 @@ public abstract class DefaultApplication extends BaseApplication
 	public DefaultApplication()
 	{
 		// CommandDispatch.handleCommands();
+
+		getOptionParser().accepts( "no-banner", "Disables the banner" );
 	}
 
 	@Override
