@@ -38,11 +38,12 @@ import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import io.amelia.lang.APINotice;
+
 public class Strs
 {
-	private static final Pattern SIMPLE_REGEX_PATTERN_CHARS = Pattern.compile( "^[\\w\\d\\s\\n\\t\\r\\\\.,*?+{}|]*$" );
-
 	public static final Map<String, String[]> CHARS_MAP;
+	private static final Pattern SIMPLE_REGEX_PATTERN_CHARS = Pattern.compile( "^[\\w\\d\\s\\n\\t\\r\\\\.,*?+{}|]*$" );
 
 	static
 	{
@@ -165,20 +166,6 @@ public class Strs
 		CHARS_MAP = Collections.unmodifiableMap( chars );
 	}
 
-	public static boolean matchesIgnoreCase( @Nullable String str, String... compareTo )
-	{
-		if ( str == null )
-			return false;
-		return Arrays.asList( toLowerCase( compareTo ) ).contains( str.toLowerCase() );
-	}
-
-	public static boolean matches( @Nullable String str, String... compareTo )
-	{
-		if ( str == null )
-			return false;
-		return Arrays.asList( compareTo ).contains( str );
-	}
-
 	public static String bytesToStringASCII( byte[] bytes )
 	{
 		return new String( bytes, StandardCharsets.US_ASCII );
@@ -187,6 +174,26 @@ public class Strs
 	public static String bytesToStringUTF( byte[] bytes )
 	{
 		return new String( bytes, StandardCharsets.UTF_8 );
+	}
+
+	/**
+	 * Converts a camel case string to a namespace by detecting the presence of uppercase letters.
+	 *
+	 * @param camelCase the string to convert
+	 *
+	 * @return the resulting namespace, e.g.,
+	 */
+	@APINotice
+	public static String camelToNamespace( @Nonnull String camelCase )
+	{
+		List<String> result = new ArrayList<>();
+
+		Pattern pattern = Pattern.compile( "([A-Z]?[a-z]*)" );
+		Matcher matcher = pattern.matcher( toAscii( camelCase ) );
+		for ( ; matcher.find(); )
+			result.add( matcher.group( 1 ) );
+
+		return join( result, "." ).toLowerCase();
 	}
 
 	public static String capitalizeWords( String str )
@@ -364,14 +371,14 @@ public class Strs
 		return var.matches( "[a-z0-9]+(?:[A-Z]{1,2}[a-z0-9]+)*" );
 	}
 
-	public static boolean isCapitalizedWordsFully( @Nonnull String str )
-	{
-		return str.equals( capitalizeWordsFully( str ) );
-	}
-
 	public static boolean isCapitalizedWords( @Nonnull String str )
 	{
 		return str.equals( capitalizeWords( str ) );
+	}
+
+	public static boolean isCapitalizedWordsFully( @Nonnull String str )
+	{
+		return str.equals( capitalizeWordsFully( str ) );
 	}
 
 	public static boolean isEmpty( @Nullable String str )
@@ -389,6 +396,11 @@ public class Strs
 	public static boolean isLowercase( String str )
 	{
 		return str.toLowerCase().equals( str );
+	}
+
+	public static boolean isNotEmpty( String str )
+	{
+		return str.length() > 0;
 	}
 
 	/**
@@ -468,9 +480,20 @@ public class Strs
 		return value.substring( 0, 1 ).toLowerCase() + value.substring( 1 );
 	}
 
+	@Nonnegative
+	public static int length( @Nullable String str )
+	{
+		return str == null ? 0 : str.length();
+	}
+
 	public static void lengthMustEqual( @Nonnull String str, @Nonnegative int len )
 	{
 		Objs.notFalse( str.length() == len, "String is lessThan or greatThan the required string length. {required=" + len + ",got=" + str.length() + "}" );
+	}
+
+	public static int lengthOrNeg( @Nullable String str )
+	{
+		return str == null ? -1 : str.length();
 	}
 
 	public static String limitLength( String str, int max )
@@ -483,6 +506,20 @@ public class Strs
 		if ( str.length() <= max )
 			return str;
 		return str.substring( 0, max ) + ( appendEllipsis ? "..." : "" );
+	}
+
+	public static boolean matches( @Nullable String str, String... compareTo )
+	{
+		if ( str == null )
+			return false;
+		return Arrays.asList( compareTo ).contains( str );
+	}
+
+	public static boolean matchesIgnoreCase( @Nullable String str, String... compareTo )
+	{
+		if ( str == null )
+			return false;
+		return Arrays.asList( toLowerCase( compareTo ) ).contains( str.toLowerCase() );
 	}
 
 	@Nonnull
@@ -949,6 +986,12 @@ public class Strs
 		return trimEnd( normalizedText, characters );
 	}
 
+	public static String trimAllRegex( @Nullable String text, String regex )
+	{
+		text = trimStartRegex( text, regex );
+		return trimEndRegex( text, regex );
+	}
+
 	/**
 	 * Trim specified character from end of string
 	 *
@@ -981,6 +1024,26 @@ public class Strs
 
 		if ( text.trim().endsWith( substr ) )
 			text = text.trim().substring( 0, text.trim().length() - substr.length() ).trim();
+
+		return text;
+	}
+
+	public static String trimEndRegex( @Nullable String text, String regex )
+	{
+		if ( length( text ) < 1 )
+			return "";
+
+		if ( !SIMPLE_REGEX_PATTERN_CHARS.matcher( text ).matches() )
+			throw new IllegalArgumentException( "Regex contains disallowed characters." );
+
+		Pattern sweeper = Pattern.compile( "^(.*)(" + regex + ")$" );
+		Matcher matcher = sweeper.matcher( text );
+
+		while ( matcher.find() )
+		{
+			text = matcher.replaceFirst( "$1" );
+			matcher = sweeper.matcher( text );
+		}
 
 		return text;
 	}
@@ -1019,17 +1082,6 @@ public class Strs
 		return text;
 	}
 
-	@Nonnegative
-	public static int length( @Nullable String str )
-	{
-		return str == null ? 0 : str.length();
-	}
-
-	public static int lengthOrNeg( @Nullable String str )
-	{
-		return str == null ? -1 : str.length();
-	}
-
 	public static String trimStartRegex( @Nullable String text, String regex )
 	{
 		if ( length( text ) < 1 )
@@ -1048,32 +1100,6 @@ public class Strs
 		}
 
 		return text;
-	}
-
-	public static String trimEndRegex( @Nullable String text, String regex )
-	{
-		if ( length( text ) < 1 )
-			return "";
-
-		if ( !SIMPLE_REGEX_PATTERN_CHARS.matcher( text ).matches() )
-			throw new IllegalArgumentException( "Regex contains disallowed characters." );
-
-		Pattern sweeper = Pattern.compile( "^(.*)(" + regex + ")$" );
-		Matcher matcher = sweeper.matcher( text );
-
-		while ( matcher.find() )
-		{
-			text = matcher.replaceFirst( "$1" );
-			matcher = sweeper.matcher( text );
-		}
-
-		return text;
-	}
-
-	public static String trimAllRegex( @Nullable String text, String regex )
-	{
-		text = trimStartRegex( text, regex );
-		return trimEndRegex( text, regex );
 	}
 
 	public static <T extends Collection<String>> T wrap( T list )
@@ -1119,11 +1145,6 @@ public class Strs
 	private Strs()
 	{
 
-	}
-
-	public static boolean isNotEmpty( String str )
-	{
-		return str.length() > 0;
 	}
 
 	/**

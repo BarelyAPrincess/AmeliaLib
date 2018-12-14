@@ -13,7 +13,17 @@ import java.util.UUID;
 
 public interface UserPrincipal
 {
+	/**
+	 * Gets the "friendly" name to display of this user. This may include color from the {@link io.amelia.support.EnumColor} class.
+	 *
+	 * @return the friendly name
+	 */
 	String name();
 
+	/**
+	 * Gets the universal id to track this user.
+	 *
+	 * @return the UUID
+	 */
 	UUID uuid();
 }

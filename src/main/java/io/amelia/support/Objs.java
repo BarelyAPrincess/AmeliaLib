@@ -19,6 +19,7 @@ import java.math.BigDecimal;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -44,6 +45,38 @@ import io.amelia.lang.UncaughtException;
 
 public class Objs
 {
+	public static <T> boolean allMatch( Comparator<T> comparator, T obj, T... objs )
+	{
+		for ( T o : objs )
+			if ( comparator.compare( obj, o ) != 0 )
+				return false;
+		return true;
+	}
+
+	public static <T extends Comparable<T>> boolean allMatch( T obj, T... objs )
+	{
+		for ( T o : objs )
+			if ( obj.compareTo( o ) != 0 )
+				return false;
+		return true;
+	}
+
+	public static <T> boolean anyMatch( Comparator<T> comparator, T obj, T... objs )
+	{
+		for ( T o : objs )
+			if ( comparator.compare( obj, o ) == 0 )
+				return true;
+		return false;
+	}
+
+	public static <T extends Comparable<T>> boolean anyMatch( T obj, T... objs )
+	{
+		for ( T o : objs )
+			if ( obj.compareTo( o ) == 0 )
+				return true;
+		return false;
+	}
+
 	public static <V> List<V> castList( @Nonnull List<?> list, @Nonnull Class<V> expectedObjectClass )
 	{
 		Objs.notNull( list );
@@ -456,6 +489,14 @@ public class Objs
 		throw new ClassCastException( "Uncaught Conversion to String of Type: " + value.getClass().getName() );
 	}
 
+	public static <T extends Comparable<T>> int compareToAverage( T obj, T... objs )
+	{
+		int average = 0;
+		for ( T o : objs )
+			average += obj.compareTo( o );
+		return average;
+	}
+
 	public static boolean containsKeys( Map<String, ?> origMap, Collection<String> keys )
 	{
 		for ( String key : keys )
@@ -605,7 +646,14 @@ public class Objs
 	public static <T, E extends Exception> void ifPresent( @Nonnull Optional<T> value, @Nonnull ConsumerWithException<T, E> consumer ) throws E
 	{
 		if ( value.isPresent() )
-			consumer.accept( value.get() );
+			try
+			{
+				consumer.accept( value.get() );
+			}
+			catch ( Exception e )
+			{
+				throw ( E ) e;
+			}
 	}
 
 	public static <T, E extends Exception> void ifPresent( @Nullable T value, @Nonnull ConsumerWithException<T, E> consumer ) throws E
@@ -892,6 +940,22 @@ public class Objs
 	{
 		notNull( value );
 		return value;
+	}
+
+	public static <T> boolean noneMatch( Comparator<T> comparator, T obj, T... objs )
+	{
+		for ( T o : objs )
+			if ( comparator.compare( obj, o ) == 0 )
+				return false;
+		return true;
+	}
+
+	public static <T extends Comparable<T>> boolean noneMatch( T obj, T... objs )
+	{
+		for ( T o : objs )
+			if ( obj.compareTo( o ) == 0 )
+				return false;
+		return true;
 	}
 
 	public static <T extends CharSequence> T notEmpty( final T chars, final String message, final Object... values )
