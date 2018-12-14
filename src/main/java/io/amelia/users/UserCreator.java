@@ -11,7 +11,6 @@ package io.amelia.users;
 
 import java.util.UUID;
 
-import io.amelia.foundation.facades.Users;
 import io.amelia.lang.UserException;
 import io.amelia.permission.PermissibleEntity;
 
@@ -19,18 +18,34 @@ public abstract class UserCreator
 {
 	private final String name;
 	private boolean isDefault;
-	private BaseUsers usersInstance;
+	private DefaultUsers users;
 
-	public UserCreator( String name, boolean isDefault )
+	public UserCreator( DefaultUsers users, String name, boolean isDefault )
 	{
+		this.users = users;
 		this.name = name;
 		this.isDefault = isDefault;
 
 		if ( isDefault )
-			Users.getInstance().getUserCreators().forEach( backend -> backend.isDefault = false );
+			users.getUserCreators().forEach( backend -> backend.isDefault = false );
 	}
 
 	public abstract UserContext create( UUID uuid ) throws UserException.Error;
+
+	public String[] getLoginFields()
+	{
+		return new String[] {"username", "phone", "email"};
+	}
+
+	public String getUUIDField()
+	{
+		return "uuid";
+	}
+
+	public DefaultUsers getUsers()
+	{
+		return users;
+	}
 
 	public abstract boolean hasUser( UUID uuid );
 
@@ -76,7 +91,7 @@ public abstract class UserCreator
 
 	public void setDefault()
 	{
-		Users.getInstance().getUserCreators().forEach( backend -> backend.isDefault = false );
+		users.getUserCreators().forEach( backend -> backend.isDefault = false );
 		this.isDefault = true;
 	}
 }

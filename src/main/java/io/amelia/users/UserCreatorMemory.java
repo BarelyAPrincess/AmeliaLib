@@ -9,13 +9,10 @@
  */
 package io.amelia.users;
 
-import io.amelia.events.AbstractEvent;
-import io.amelia.events.EventException;
-import io.amelia.events.EventHandler;
+import java.util.UUID;
+
 import io.amelia.foundation.Foundation;
-import io.amelia.foundation.facades.Events;
 import io.amelia.foundation.facades.Users;
-import io.amelia.lang.DescriptiveReason;
 import io.amelia.lang.ParcelableException;
 import io.amelia.lang.UserException;
 import io.amelia.permission.PermissibleEntity;
@@ -29,14 +26,14 @@ class UserCreatorMemory extends UserCreator
 	{
 		super( "memory", Users.getInstance().getUserCreators().noneMatch( UserCreator::isDefault ) );
 
-		Events.listen( Foundation.getApplication(), PermissibleEntityEvent.class, this::onPermissibleEntityEvent );
+		Foundation.getApplication().getEvents().listen( Foundation.getApplication(), PermissibleEntityEvent.class, this::onPermissibleEntityEvent );
 	}
 
 	private void onPermissibleEntityEvent( PermissibleEntityEvent event )
 	{
 		// XXX Prevent the root user from losing it's OP permissions
 		if ( event.getAction() == PermissibleEntityEvent.Action.PERMISSIONS_CHANGED )
-			if ( BaseUsers.isRootUser( event.getEntity() ) )
+			if ( DefaultUsers.isRootUser( event.getEntity() ) )
 			{
 				event.getEntity().addPermission( PermissionDefault.OP.getNode(), true, null );
 				event.getEntity().setVirtual( true );
@@ -44,9 +41,9 @@ class UserCreatorMemory extends UserCreator
 	}
 
 	@Override
-	public UserContext create( String uuid ) throws UserException.Error
+	public UserContext create( UUID uuid ) throws UserException.Error
 	{
-		UserContext context = new UserContext( this, uuid );
+		UserContext context = new UserContext( this, uuid, true );
 		try
 		{
 			context.setValue( "data", DateAndTime.epoch() );
@@ -59,9 +56,9 @@ class UserCreatorMemory extends UserCreator
 	}
 
 	@Override
-	public boolean hasUser( String uuid )
+	public boolean hasUser( UUID uuid )
 	{
-		return BaseUsers.isNullUser( uuid ) || BaseUsers.isRootUser( uuid );
+		return DefaultUsers.isNullUser( uuid ) || DefaultUsers.isRootUser( uuid );
 	}
 
 	@Override
@@ -77,7 +74,7 @@ class UserCreatorMemory extends UserCreator
 	}
 
 	@Override
-	public void loginBegin( UserContext userContext, UserPermissible userPermissible, String acctId, Object... credentials )
+	public void loginBegin( UserContext userContext, UserPermissible userPermissible, UUID uuid, Object... credentials )
 	{
 		// Do Nothing
 	}
@@ -97,14 +94,14 @@ class UserCreatorMemory extends UserCreator
 	@Override
 	public void loginSuccessInit( UserContext userContext, PermissibleEntity permissibleEntity )
 	{
-		if ( userContext.getCreator() == this && BaseUsers.isRootUser( userContext ) )
+		if ( userContext.getCreator() == this && DefaultUsers.isRootUser( userContext ) )
 		{
 			permissibleEntity.addPermission( PermissionDefault.OP.getNode(), true, null );
 			permissibleEntity.setVirtual( true );
 			// getUserContext.registerAttachment( ApplicationTerminal.terminal() );
 		}
 
-		if ( userContext.getCreator() == this && BaseUsers.isNullUser( userContext ) )
+		if ( userContext.getCreator() == this && DefaultUsers.isNullUser( userContext ) )
 			permissibleEntity.setVirtual( true );
 	}
 
@@ -115,7 +112,7 @@ class UserCreatorMemory extends UserCreator
 	}
 
 	@Override
-	public UserResult resolve( String uuid )
+	public UserResult resolve( UUID uuid )
 	{
 		return null;
 	}

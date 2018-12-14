@@ -14,7 +14,7 @@ import javax.annotation.Nonnull;
 import io.amelia.lang.DescriptiveReason;
 import io.amelia.lang.ReportingLevel;
 import io.amelia.lang.UserException;
-import io.amelia.users.BaseUsers;
+import io.amelia.users.DefaultUsers;
 import io.amelia.users.UserPermissible;
 import io.amelia.support.UserPrincipal;
 
@@ -64,7 +64,7 @@ public abstract class UserCredentials
 		if ( !descriptiveReason.getReportingLevel().isSuccess() )
 			throw new UserException.Error( userPrincipal, ReportingLevel.L_DENIED, "Can't save credentials unless they were successful." );
 
-		if ( BaseUsers.isNullUser( userPrincipal ) )
+		if ( DefaultUsers.isNullUser( userPrincipal ) )
 			throw new UserException.Error( userPrincipal, ReportingLevel.L_SECURITY, "These credentials can't be saved." );
 
 		if ( "token".equals( user.getVariable( "auth" ) ) && user.getVariable( "token" ) != null )

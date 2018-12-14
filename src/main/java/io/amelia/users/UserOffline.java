@@ -3,8 +3,10 @@ package io.amelia.users;
 import java.util.UUID;
 
 import io.amelia.data.parcel.Parcel;
-import io.amelia.foundation.facades.Users;
+import io.amelia.foundation.ConfigRegistry;
+import io.amelia.lang.UserException;
 import io.amelia.permission.PermissibleEntity;
+import io.amelia.support.Parcels;
 
 /**
  * Provides context to a user without actually existing within the users implementation.
@@ -12,29 +14,37 @@ import io.amelia.permission.PermissibleEntity;
  */
 public class UserOffline implements UserSubject
 {
-	private final UserCreator creator;
-
-	private final Parcel parcel = Parcel.empty();
+	final Parcel parcel = Parcel.empty();
+	private final UserCreator userCreator;
 	private final UUID uuid;
-	private String name;
+	private UserContext userContext;
 
-	public UserOffline( UserCreator creator, UUID uuid )
+	public UserOffline( UserCreator userCreator, UUID uuid )
 	{
 		this.uuid = uuid;
-		this.creator = creator;
-		this.name = null;
+		this.userCreator = userCreator;
 	}
 
-	@Override
-	public String getDisplayName()
+	public UserContext getContext( boolean create )
 	{
-		return;
+		UserContext userContext = userCreator.getUsers().getUsers().filter( user -> uuid.equals( user.uuid() ) ).findAny().orElse( null );
+		if ( create )
+			try
+			{
+				userContext = new UserContext( this );
+				userCreator.getUsers().put( userContext );
+			}
+			catch ( UserException.Error error )
+			{
+				// Ignore
+			}
+		return userContext;
 	}
 
 	@Override
 	public UserContext getContext()
 	{
-		return Users.getInstance().getUsers().filter( user -> uuid.equals( user.uuid() ) ).findAny().orElse( null );
+		return getContext( true );
 	}
 
 	@Override
@@ -49,10 +59,15 @@ public class UserOffline implements UserSubject
 		return getContext().getPermissible();
 	}
 
+	public UserCreator getUserCreator()
+	{
+		return userCreator;
+	}
+
 	@Override
 	public String name()
 	{
-		return name;
+		return Parcels.parseFormatString( parcel, ConfigRegistry.config.getValue( DefaultUsers.ConfigKeys.DISPLAY_NAME_FORMAT ) ).orElse( "{error}" );
 	}
 
 	@Override

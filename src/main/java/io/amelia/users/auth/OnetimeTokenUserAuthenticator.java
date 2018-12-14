@@ -19,7 +19,7 @@ import io.amelia.looper.Delays;
 import io.amelia.looper.LooperRouter;
 import io.amelia.support.DateAndTime;
 import io.amelia.support.Encrypt;
-import io.amelia.users.BaseUsers;
+import io.amelia.users.DefaultUsers;
 import io.amelia.support.UserPrincipal;
 
 /**
@@ -54,7 +54,7 @@ public class OnetimeTokenUserAuthenticator extends UserAuthenticator
 			{
 				e.printStackTrace();
 			}
-		}, 0L, Delays.MINUTE * ConfigRegistry.config.getValue( BaseUsers.ConfigKeys.SESSIONS_CLEANUP_INTERVAL ), true );
+		}, 0L, Delays.MINUTE * ConfigRegistry.config.getValue( DefaultUsers.ConfigKeys.SESSIONS_CLEANUP_INTERVAL ), true );
 
 		// Foundation.getApplication().events().listen(  );
 	}

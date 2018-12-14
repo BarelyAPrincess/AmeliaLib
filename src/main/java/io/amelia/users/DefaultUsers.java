@@ -14,28 +14,27 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 
 import io.amelia.data.TypeBase;
+import io.amelia.foundation.BaseUsers;
 import io.amelia.foundation.ConfigRegistry;
-import io.amelia.foundation.Kernel;
 import io.amelia.lang.ApplicationException;
 import io.amelia.lang.ConfigException;
 import io.amelia.lang.DescriptiveReason;
 import io.amelia.lang.ReportingLevel;
 import io.amelia.lang.UserException;
 import io.amelia.support.Encrypt;
+import io.amelia.support.Objs;
 import io.amelia.support.Streams;
-import io.amelia.support.Strs;
 import io.amelia.support.UserPrincipal;
 
-public class BaseUsers
+public class DefaultUsers implements BaseUsers
 {
-	public static final Kernel.Logger L = Kernel.getLogger( BaseUsers.class );
-
 	public static final UserCreatorMemory MEMORY = new UserCreatorMemory();
 	public static final UserContext USER_NULL;
 	public static final UserContext USER_ROOT;
@@ -59,29 +58,29 @@ public class BaseUsers
 
 	public static boolean isNullUser( UserPrincipal userPrincipal )
 	{
-		return USER_NULL.uuid().equalsIgnoreCase( userPrincipal.uuid() );
+		return USER_NULL.uuid().equals( userPrincipal.uuid() );
 	}
 
-	public static boolean isNullUser( String uuid )
+	public static boolean isNullUser( UUID uuid )
 	{
-		return USER_NULL.uuid().equalsIgnoreCase( uuid );
+		return USER_NULL.uuid().equals( uuid );
 	}
 
 	public static boolean isRootUser( UserPrincipal userPrincipal )
 	{
-		return USER_ROOT.uuid().equalsIgnoreCase( userPrincipal.uuid() );
+		return USER_ROOT.uuid().equals( userPrincipal.uuid() );
 	}
 
-	public static boolean isRootUser( String uuid )
+	public static boolean isRootUser( UUID uuid )
 	{
-		return USER_ROOT.uuid().equalsIgnoreCase( uuid );
+		return USER_ROOT.uuid().equals( uuid );
 	}
 
 	volatile Set<UserContext> users = new CopyOnWriteArraySet<>();
 	private boolean isDebugEnabled = ConfigRegistry.config.getValue( ConfigKeys.DEBUG_ENABLED );
 	private volatile Set<UserCreator> userCreators = new CopyOnWriteArraySet<>();
 
-	public BaseUsers()
+	public DefaultUsers()
 	{
 		userCreators.add( MEMORY );
 	}
@@ -93,15 +92,14 @@ public class BaseUsers
 		userCreator.load();
 	}
 
-	public UserContext createUser( @Nonnull String uuid ) throws UserException.Error
+	@Override
+	public UserContext createUser( @Nonnull UUID uuid ) throws UserException.Error
 	{
-		return createUser( uuid, getDefaultBackend() );
+		return createUser( uuid, getDefaultCreator() );
 	}
 
-	public UserContext createUser( @Nonnull String uuid, @Nonnull UserCreator userCreator ) throws UserException.Error
+	public UserContext createUser( @Nonnull UUID uuid, @Nonnull UserCreator userCreator ) throws UserException.Error
 	{
-		if ( !Encrypt.isUuidValid( uuid ) )
-			throw new IllegalArgumentException( "UUID is not valid!" );
 		if ( !userCreator.isEnabled() )
 			throw new UserException.Error( null, DescriptiveReason.FEATURE_DISABLED.getReportingLevel(), DescriptiveReason.FEATURE_DISABLED.getReasonMessage() );
 		UserContext userContext = userCreator.create( uuid );
@@ -118,17 +116,18 @@ public class BaseUsers
 		return uuid;
 	}
 
-	public Optional<UserCreator> getBackend( String name )
+	public Optional<UserCreator> getUserCreator( String name )
 	{
-		return getUserCreators().filter( backend -> name.equalsIgnoreCase( backend.name() ) ).findAny();
+		return getUserCreators().filter( userCreator -> name.equalsIgnoreCase( userCreator.name() ) ).findAny();
 	}
 
-	public UserCreator getDefaultBackend()
+	public UserCreator getDefaultCreator()
 	{
 		return getUserCreators().filter( UserCreator::isDefault ).filter( UserCreator::isEnabled ).findAny().orElse( MEMORY );
 	}
 
-	public UserResult getUser( @Nonnull String uuid )
+	@Override
+	public UserResult getUser( @Nonnull UUID uuid )
 	{
 		UserResult userResult = new UserResult( uuid );
 		getUser( userResult );
@@ -136,23 +135,16 @@ public class BaseUsers
 	}
 
 	/**
-	 * Locates the user from the User Creator.
-	 * Does not authenticate.
+	 * Resolves a user using the registered user creators.
+	 * Never authenticates.
 	 */
 	public void getUser( @Nonnull UserResult userResult )
 	{
-		String uuid = userResult.uuid();
+		UUID uuid = userResult.uuid();
 
-		if ( USER_NULL.uuid().equalsIgnoreCase( uuid ) )
+		if ( Objs.anyMatch( uuid, USER_NULL.uuid(), USER_ROOT.uuid() ) )
 		{
-			userResult.setUser( USER_NULL );
-			userResult.setDescriptiveReason( DescriptiveReason.LOGIN_SUCCESS );
-			return;
-		}
-
-		if ( USER_ROOT.uuid().equalsIgnoreCase( uuid ) )
-		{
-			userResult.setUser( USER_ROOT );
+			userResult.setUser( uuid == USER_NULL.uuid() ? USER_NULL : USER_ROOT );
 			userResult.setDescriptiveReason( DescriptiveReason.LOGIN_SUCCESS );
 			return;
 		}
@@ -208,6 +200,7 @@ public class BaseUsers
 		return userCreators.stream();
 	}
 
+	@Override
 	public Stream<UserContext> getUsers()
 	{
 		return users.stream();
@@ -220,7 +213,7 @@ public class BaseUsers
 
 	void put( UserContext userContext ) throws UserException.Error
 	{
-		if ( Strs.matchesIgnoreCase( userContext.uuid(), USER_NULL.uuid(), USER_ROOT.uuid() ) )
+		if ( Objs.anyMatch( userContext.uuid(), USER_NULL.uuid(), USER_ROOT.uuid() ) )
 			throw new UserException.Error( userContext, DescriptiveReason.INTERNAL_ERROR );
 		if ( users.stream().anyMatch( user -> user.compareTo( userContext ) == 0 ) )
 			return;
@@ -233,7 +226,7 @@ public class BaseUsers
 		this.isDebugEnabled = isDebugEnabled;
 	}
 
-	void unload( @Nonnull String uuid ) throws UserException.Error
+	void unload( @Nonnull UUID uuid ) throws UserException.Error
 	{
 		Streams.forEachWithException( users.stream().filter( user -> uuid.equals( user.uuid() ) ), UserContext::unload );
 	}
@@ -254,6 +247,7 @@ public class BaseUsers
 		public static final TypeBase USERS_BASE = new TypeBase( "users" );
 		public static final TypeBase.TypeInteger MAX_LOGINS = new TypeBase.TypeInteger( USERS_BASE, "maxLogins", -1 );
 		public static final TypeBase CREATORS = new TypeBase( USERS_BASE, "userCreators" );
+		public static final TypeBase.TypeString DISPLAY_NAME_FORMAT = new TypeBase.TypeString( USERS_BASE, "displayNameFormat", "${fname} ${name}" );
 		public static final TypeBase.TypeBoolean DEBUG_ENABLED = new TypeBase.TypeBoolean( USERS_BASE, "debugEnabled", false );
 		public static final TypeBase.TypeBoolean SINGLE_SIGNON = new TypeBase.TypeBoolean( USERS_BASE, "singleSignon", false );
 		public static final TypeBase.TypeString SINGLE_SIGNON_MESSAGE = new TypeBase.TypeString( USERS_BASE, "singleSignonMessage", "You logged in from another location." );

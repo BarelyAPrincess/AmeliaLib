@@ -16,8 +16,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import io.amelia.foundation.BaseUsers;
 import io.amelia.foundation.ConfigRegistry;
-import io.amelia.foundation.facades.Events;
+import io.amelia.foundation.Foundation;
 import io.amelia.foundation.facades.Users;
 import io.amelia.lang.DescriptiveReason;
 import io.amelia.lang.ReportingLevel;
@@ -42,9 +43,9 @@ public abstract class UserPermissible extends Permissible implements UserSubject
 	private boolean checkUser()
 	{
 		if ( entity == null )
-			entity = BaseUsers.USER_NULL.getEntity();
+			entity = io.amelia.users.DefaultUsers.USER_NULL.getEntity();
 
-		return !BaseUsers.isNullUser( entity );
+		return !io.amelia.users.DefaultUsers.isNullUser( entity );
 	}
 
 	protected abstract void failedLogin( UserResult result );
@@ -139,7 +140,7 @@ public abstract class UserPermissible extends Permissible implements UserSubject
 				user.getCreator().loginBegin( user, this, uuid, credObjs );
 
 				UserLoginBeginEvent event = new UserLoginBeginEvent( user, this, credObjs );
-				Events.callEvent( event );
+				Foundation.getApplication().getEvents().callEvent( event );
 
 				if ( !event.getDescriptiveReason().getReportingLevel().isIgnorable() )
 				{
@@ -156,10 +157,10 @@ public abstract class UserPermissible extends Permissible implements UserSubject
 					UserEntity userEntity = user.getEntity();
 					userEntity.setLastUsedCredentials( credentials );
 
-					if ( userEntity.countAttachments() > 1 && ConfigRegistry.config.getValue( BaseUsers.ConfigKeys.SINGLE_SIGNON ) )
+					if ( userEntity.countAttachments() > 1 && ConfigRegistry.config.getValue( io.amelia.users.DefaultUsers.ConfigKeys.SINGLE_SIGNON ) )
 						for ( UserAttachment userAttachment : userEntity.getAttachments() )
 							if ( userAttachment instanceof Kickable )
-								( ( Kickable ) userAttachment ).kick( ConfigRegistry.config.getValue( BaseUsers.ConfigKeys.SINGLE_SIGNON_MESSAGE ) );
+								( ( Kickable ) userAttachment ).kick( ConfigRegistry.config.getValue( io.amelia.users.DefaultUsers.ConfigKeys.SINGLE_SIGNON_MESSAGE ) );
 
 					user.setValue( "lastLogin", DateAndTime.epoch() );
 
@@ -183,7 +184,7 @@ public abstract class UserPermissible extends Permissible implements UserSubject
 
 					successfulLogin();
 					user.getContext().getCreator().loginSuccess( result );
-					Events.callEvent( new UserLoginSuccessEvent( this, result ) );
+					Foundation.getApplication().getEvents().callEvent( new UserLoginSuccessEvent( this, result ) );
 				}
 				else
 					result.setDescriptiveReason( credentials.getDescriptiveReason() );
@@ -212,7 +213,7 @@ public abstract class UserPermissible extends Permissible implements UserSubject
 			failedLogin( result );
 			if ( user != null )
 				user.getContext().getCreator().loginFailed( result );
-			Events.callEvent( new UserLoginFailedEvent( result ) );
+			Foundation.getApplication().getEvents().callEvent( new UserLoginFailedEvent( result ) );
 		}
 
 		if ( Users.getInstance().isDebugEnabled() )
@@ -236,7 +237,7 @@ public abstract class UserPermissible extends Permissible implements UserSubject
 
 	public UserResult logout()
 	{
-		if ( !BaseUsers.isNullUser( entity ) )
+		if ( !io.amelia.users.DefaultUsers.isNullUser( entity ) )
 		{
 			BaseUsers.L.info( EnumColor.GREEN + "Successful Logout: [id='" + entity.uuid() + "',displayName='" + entity.getDisplayName() + "',ipAddresses='" + entity.getIpAddresses() + "']" );
 
