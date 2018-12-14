@@ -22,17 +22,16 @@ import java.util.Map.Entry;
 
 import io.amelia.data.TypeBase;
 import io.amelia.events.EventException;
-import io.amelia.foundation.events.EventException;
-import io.amelia.foundation.facades.Events;
 import io.amelia.foundation.ConfigRegistry;
+import io.amelia.foundation.Foundation;
 import io.amelia.foundation.Kernel;
 import io.amelia.lang.ScriptingException;
 import io.amelia.scripting.event.PostEvalEvent;
 import io.amelia.scripting.event.PreEvalEvent;
 import io.amelia.scripting.groovy.GroovyRegistry;
+import io.amelia.scripting.processing.CoffeeProcessor;
 import io.amelia.scripting.processing.ImageProcessor;
 import io.amelia.scripting.processing.JSMinProcessor;
-import io.amelia.scripting.processing.CoffeeProcessor;
 import io.amelia.scripting.processing.LessProcessor;
 import io.amelia.support.Encrypt;
 import io.amelia.support.IO;
@@ -202,7 +201,7 @@ public class ScriptingFactory
 				name = "EvalScript" + Encrypt.rand( 8 ) + ".chi";
 			else
 			{
-				String rel = IO.relPath( context.getPath().getParent(), context.site().directory() ).replace( '\\', '.' ).replace( '/', '.' );
+				String rel = IO.relPath( context.getPath().getParent(), context.webroot().directory() ).replace( '\\', '.' ).replace( '/', '.' );
 				context.setCachePath( Paths.get( rel.contains( "." ) ? rel.substring( 0, rel.indexOf( "." ) ) : rel ).resolve( context.getCachePath() ) );
 				context.setScriptPackage( rel.contains( "." ) ? rel.substring( rel.indexOf( "." ) + 1 ) : "" );
 				name = context.getPath().getFileName().toString();
@@ -218,7 +217,7 @@ public class ScriptingFactory
 			PreEvalEvent preEvent = new PreEvalEvent( context );
 			try
 			{
-				Events.callEventWithException( preEvent );
+				Foundation.getApplication().getEvents().callEventWithException( preEvent );
 			}
 			catch ( Exception e )
 			{
@@ -262,7 +261,7 @@ public class ScriptingFactory
 			PostEvalEvent postEvent = new PostEvalEvent( context );
 			try
 			{
-				Events.callEventWithException( postEvent );
+				Foundation.getApplication().getEvents().callEventWithException( postEvent );
 			}
 			catch ( EventException.Error e )
 			{
