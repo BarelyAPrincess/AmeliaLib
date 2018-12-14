@@ -38,19 +38,18 @@ import javax.annotation.Nonnull;
 
 import io.amelia.data.parcel.ParcelLoader;
 import io.amelia.events.AbstractEvent;
-import io.amelia.events.AmeliaEvents;
 import io.amelia.events.EventException;
 import io.amelia.events.EventHandler;
 import io.amelia.events.RegisteredListener;
+import io.amelia.foundation.Foundation;
 import io.amelia.foundation.Kernel;
-import io.amelia.foundation.facades.Events;
 import io.amelia.lang.DeprecatedDetail;
 import io.amelia.lang.PluginDependencyUnknownException;
 import io.amelia.lang.PluginException;
 import io.amelia.lang.PluginInvalidException;
 import io.amelia.lang.PluginMetaException;
 import io.amelia.lang.ReportingLevel;
-import io.amelia.plugins.BasePlugins;
+import io.amelia.plugins.DefaultPlugins;
 import io.amelia.plugins.PluginMeta;
 import io.amelia.plugins.events.PluginDisableEvent;
 import io.amelia.plugins.events.PluginEnableEvent;
@@ -85,7 +84,7 @@ public final class JavaPluginLoader implements PluginLoader<JavaPlugin>
 		}
 		catch ( NoClassDefFoundError e )
 		{
-			BasePlugins.L.severe( "Plugin " + plugin.getMeta().getDisplayName() + " has failed to register events for " + listener.getClass() + " because " + e.getMessage() + " does not exist." );
+			DefaultPlugins.L.severe( "Plugin " + plugin.getMeta().getDisplayName() + " has failed to register events for " + listener.getClass() + " because " + e.getMessage() + " does not exist." );
 			return ret;
 		}
 
@@ -97,7 +96,7 @@ public final class JavaPluginLoader implements PluginLoader<JavaPlugin>
 			final Class<?> checkClass;
 			if ( method.getParameterTypes().length != 1 || !AbstractEvent.class.isAssignableFrom( checkClass = method.getParameterTypes()[0] ) )
 			{
-				BasePlugins.L.severe( plugin.getMeta().getDisplayName() + " attempted to register an invalid EventHandler method signature \"" + method.toGenericString() + "\" in " + listener.getClass() );
+				DefaultPlugins.L.severe( plugin.getMeta().getDisplayName() + " attempted to register an invalid EventHandler method signature \"" + method.toGenericString() + "\" in " + listener.getClass() );
 				continue;
 			}
 			final Class<? extends AbstractEvent> eventClass = checkClass.asSubclass( AbstractEvent.class );
@@ -115,13 +114,13 @@ public final class JavaPluginLoader implements PluginLoader<JavaPlugin>
 					if ( clazz.isAnnotationPresent( DeprecatedDetail.class ) )
 					{
 						DeprecatedDetail deprecated = clazz.getAnnotation( DeprecatedDetail.class );
-						BasePlugins.L.warning( String.format( "The plugin '%s' has registered a EventListener for %s on method '%s', but the event is Deprecated because '%s'; please notify the authors %s.", plugin.getMeta().getDisplayName(), clazz.getName(), method.toGenericString(), deprecated.reason(), Arrays.toString( plugin.getMeta().getAuthors().toArray() ) ) );
+						DefaultPlugins.L.warning( String.format( "The plugin '%s' has registered a EventListener for %s on method '%s', but the event is Deprecated because '%s'; please notify the authors %s.", plugin.getMeta().getDisplayName(), clazz.getName(), method.toGenericString(), deprecated.reason(), Arrays.toString( plugin.getMeta().getAuthors().toArray() ) ) );
 						break;
 					}
 
 					if ( clazz.isAnnotationPresent( Deprecated.class ) )
 					{
-						BasePlugins.L.warning( String.format( "The plugin '%s' has registered a EventListener for %s on method '%s', but the event is Deprecated! Please notify the authors %s.", plugin.getMeta().getDisplayName(), clazz.getName(), method.toGenericString(), Arrays.toString( plugin.getMeta().getAuthors().toArray() ) ) );
+						DefaultPlugins.L.warning( String.format( "The plugin '%s' has registered a EventListener for %s on method '%s', but the event is Deprecated! Please notify the authors %s.", plugin.getMeta().getDisplayName(), clazz.getName(), method.toGenericString(), Arrays.toString( plugin.getMeta().getAuthors().toArray() ) ) );
 						break;
 					}
 				}
@@ -155,32 +154,26 @@ public final class JavaPluginLoader implements PluginLoader<JavaPlugin>
 		if ( plugin.isEnabled() )
 		{
 			String message = String.format( "Disabling %s", plugin.getMeta().getDisplayName() );
-			BasePlugins.L.info( message );
+			DefaultPlugins.L.info( message );
 
-			Events.callEvent( new PluginDisableEvent( plugin ) );
+			Foundation.getApplication().getEvents().callEvent( new PluginDisableEvent( plugin ) );
 
-			JavaPlugin jPlugin = plugin;
-			ClassLoader cloader = jPlugin.getClassLoader();
+			ClassLoader loader = plugin.getClassLoader();
 
 			try
 			{
-				jPlugin.setEnabled( false );
+				plugin.setEnabled( false );
 			}
 			catch ( Throwable ex )
 			{
-				BasePlugins.L.log( Level.SEVERE, "Error occurred while disabling " + plugin.getMeta().getDisplayName() + " (Is it up to date?)", ex );
+				DefaultPlugins.L.log( Level.SEVERE, "Error occurred while disabling " + plugin.getMeta().getDisplayName() + " plugin.", ex );
 			}
 
-			loaders.remove( jPlugin.getMeta().getName() );
+			loaders.remove( plugin.getMeta().getName() );
 
-			if ( cloader instanceof PluginClassLoader )
-			{
-				PluginClassLoader loader = ( PluginClassLoader ) cloader;
-				Set<String> names = loader.getClasses();
-
-				for ( String name : names )
+			if ( loader instanceof PluginClassLoader )
+				for ( String name : ( ( PluginClassLoader ) loader ).getClasses() )
 					removeClass( name );
-			}
 		}
 	}
 
@@ -189,7 +182,7 @@ public final class JavaPluginLoader implements PluginLoader<JavaPlugin>
 	{
 		if ( !plugin.isEnabled() )
 		{
-			BasePlugins.L.info( "Enabling " + plugin.getMeta().getDisplayName() );
+			DefaultPlugins.L.info( "Enabling " + plugin.getMeta().getDisplayName() );
 
 			JavaPlugin jPlugin = plugin;
 
@@ -205,22 +198,22 @@ public final class JavaPluginLoader implements PluginLoader<JavaPlugin>
 			catch ( PluginException.Unconfigured ex )
 			{
 				// Manually thrown by plugins to convey when they are unconfigured
-				BasePlugins.L.severe( String.format( "The plugin %s has reported that it's unconfigured, the plugin has been disabled until this is resolved.", plugin.getMeta().getDisplayName() ), ex );
+				DefaultPlugins.L.severe( String.format( "The plugin %s has reported that it's unconfigured, the plugin has been disabled until this is resolved.", plugin.getMeta().getDisplayName() ), ex );
 			}
 			catch ( PluginException.Error ex )
 			{
 				// Manually thrown by plugins to convey an issue
-				BasePlugins.L.severe( String.format( "The plugin %s has thrown the internal PluginException, the plugin has been disabled until this is resolved.", plugin.getMeta().getDisplayName() ), ex );
+				DefaultPlugins.L.severe( String.format( "The plugin %s has thrown the internal PluginException, the plugin has been disabled until this is resolved.", plugin.getMeta().getDisplayName() ), ex );
 			}
 			catch ( Throwable ex )
 			{
 				// Thrown for unexpected internal plugin problems
-				BasePlugins.L.severe( String.format( "Error occurred while enabling %s (Is it up to date?)", plugin.getMeta().getDisplayName() ), ex );
+				DefaultPlugins.L.severe( String.format( "Error occurred while enabling %s (Is it up to date?)", plugin.getMeta().getDisplayName() ), ex );
 			}
 
 			// Perhaps abort here, rather than continue going, but as it stands,
 			// an abort is not possible the way it's currently written
-			Events.callEvent( new PluginEnableEvent( plugin ) );
+			Foundation.getApplication().getEvents().callEvent( new PluginEnableEvent( plugin ) );
 		}
 	}
 
@@ -358,7 +351,7 @@ public final class JavaPluginLoader implements PluginLoader<JavaPlugin>
 				}
 				catch ( IOException e )
 				{
-					BasePlugins.L.severe( "We had a problem trying to extract native libraries from plugin file '" + pluginPath + "':", e );
+					DefaultPlugins.L.severe( "We had a problem trying to extract native libraries from plugin file '" + pluginPath + "':", e );
 				}
 
 			// Attempts to extract bundled library files

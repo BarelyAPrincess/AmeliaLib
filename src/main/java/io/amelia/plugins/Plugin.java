@@ -16,12 +16,12 @@ import java.nio.file.Path;
 import javax.annotation.Nonnull;
 
 import io.amelia.data.parcel.Parcel;
-import io.amelia.foundation.plugins.PluginImpl;
+import io.amelia.foundation.BasePlugin;
 import io.amelia.lang.ParcelableException;
 import io.amelia.lang.PluginException;
 import io.amelia.plugins.loader.PluginLoader;
 
-public abstract class Plugin implements PluginImpl
+public abstract class Plugin implements BasePlugin
 {
 	@Override
 	public final boolean equals( Object obj )

@@ -31,12 +31,13 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 
+import io.amelia.data.TypeBase;
 import io.amelia.events.EventHandlers;
 import io.amelia.events.RunlevelEvent;
 import io.amelia.foundation.Foundation;
 import io.amelia.foundation.Kernel;
 import io.amelia.foundation.Runlevel;
-import io.amelia.foundation.plugins.PluginsImpl;
+import io.amelia.foundation.BasePlugins;
 import io.amelia.injection.Libraries;
 import io.amelia.injection.MavenReference;
 import io.amelia.lang.PluginDependencyUnknownException;
@@ -50,9 +51,9 @@ import io.amelia.support.Objs;
 import io.amelia.support.Priority;
 import io.amelia.tasks.Tasks;
 
-public class BasePlugins<Subclass extends Plugin> implements PluginsImpl<Subclass>
+public class DefaultPlugins<Subclass extends Plugin> implements BasePlugins<Subclass>
 {
-	public static final Kernel.Logger L = Kernel.getLogger( BasePlugins.class );
+	public static final Kernel.Logger L = Kernel.getLogger( DefaultPlugins.class );
 
 	private final Map<Pattern, PluginLoader> fileAssociations = new HashMap<>();
 	private final ReentrantLock lock = new ReentrantLock();
@@ -60,7 +61,7 @@ public class BasePlugins<Subclass extends Plugin> implements PluginsImpl<Subclas
 	private final List<Subclass> plugins = new ArrayList<>();
 	private Set<String> loadedPlugins = new HashSet<>();
 
-	public BasePlugins()
+	public DefaultPlugins()
 	{
 		// Loads plugins in order as PluginManager receives the notices from the Events
 		Foundation.getApplication().events().listen( Foundation.getApplication(), Priority.NORMAL, RunlevelEvent.class, event -> {
@@ -600,5 +601,10 @@ public class BasePlugins<Subclass extends Plugin> implements PluginsImpl<Subclas
 	public void shutdown()
 	{
 		clearPlugins();
+	}
+
+	public static class ConfigKeys
+	{
+		public static final TypeBase BaseNode = new TypeBase( "plugins.conf" );
 	}
 }

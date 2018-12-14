@@ -24,11 +24,11 @@ import io.amelia.data.parcel.Parcel;
 import io.amelia.data.parcel.ParcelLoader;
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.foundation.VendorMeta;
-import io.amelia.foundation.facades.Plugins;
 import io.amelia.lang.ParcelableException;
 import io.amelia.lang.PluginException;
 import io.amelia.logcompat.LogBuilder;
 import io.amelia.logcompat.Logger;
+import io.amelia.plugins.DefaultPlugins;
 import io.amelia.plugins.Plugin;
 import io.amelia.plugins.PluginMeta;
 import io.amelia.support.IO;
@@ -245,7 +245,7 @@ public abstract class JavaPlugin extends Plugin
 
 	public void publishConfig()
 	{
-		ConfigRegistry.config.getChild( Plugins.ConfigKeys.BaseNode );
+		ConfigRegistry.config.getChild( DefaultPlugins.ConfigKeys.BaseNode );
 
 
 
