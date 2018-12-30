@@ -15,6 +15,9 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -166,7 +169,11 @@ public class Bindings
 		if ( declaringClass.isInterface() )
 			return null;
 
-		for ( Constructor<?> constructor : declaringClass.getDeclaredConstructors() )
+		List<Constructor<?>> constructors = Arrays.asList( declaringClass.getDeclaredConstructors() );
+
+		constructors.sort( Comparator.comparingInt( Constructor::getParameterCount ) );
+
+		for ( Constructor<?> constructor : constructors )
 		{
 			Parameter[] parameters = constructor.getParameters();
 			Object[] arguments = new Object[parameters.length];
@@ -196,9 +203,18 @@ public class Bindings
 
 			if ( constructorPredicate.test( constructor ) )
 			{
-
+				try
+				{
+					return ( T ) constructor.newInstance( arguments );
+				}
+				catch ( InstantiationException | IllegalAccessException | InvocationTargetException e )
+				{
+					// Ignore and try next.
+				}
 			}
 		}
+
+		return null;
 	}
 
 	public static <T> T invokeFields( @Nonnull Object declaringObject, @Nonnull Predicate<Field> fieldPredicate )
@@ -336,10 +352,9 @@ public class Bindings
 		throw new BindingsException.Error( "Could not resolve class " + expectedClass.getSimpleName() );
 	}
 
-	protected static <T> T resolveNamespace( @Nonnull String namespace, @Nonnull Class<? super T> expectedClass )
+	protected static <T> T resolveNamespace( @Nonnull String namespace, @Nonnull Class<? super T> expectedClass, @Nonnull Object... args )
 	{
 		Objs.notEmpty( namespace );
-		Objs.notNull( expectedClass );
 
 		for ( BindingResolver bindingResolver : getResolvers( namespace ) )
 		{
