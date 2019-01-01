@@ -10,12 +10,12 @@
 package io.amelia.bindings;
 
 import io.amelia.foundation.BaseApplication;
+import io.amelia.foundation.BasePlugins;
 import io.amelia.foundation.Foundation;
-import io.amelia.plugins.DefaultPlugins;
 
 public class FoundationBindingResolver extends BindingResolver
 {
-	DefaultPlugins pluginServiceManager = null;
+	BasePlugins pluginServiceManager = null;
 
 	public FoundationBindingResolver()
 	{
@@ -30,7 +30,7 @@ public class FoundationBindingResolver extends BindingResolver
 	}
 
 	@ProvidesBinding( "plugins.manager" )
-	public DefaultPlugins pluginManager()
+	public BasePlugins pluginManager()
 	{
 		if ( pluginServiceManager == null )
 			pluginServiceManager = new DefaultPlugins();
