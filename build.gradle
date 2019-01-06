@@ -20,6 +20,7 @@ dependencies {
 	testCompile 'org.hamcrest:hamcrest-library:1.3'
 
 	compile project( ":AmeliaCommonLib" )
+	compile project( ":AmeliaAppLib" )
 
 	// Database Drivers
 	compile group: 'com.rethinkdb', name: 'rethinkdb-driver', version: '2.3.3'

@@ -24,7 +24,6 @@ import io.amelia.foundation.ConfigLoader;
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.foundation.Kernel;
 import io.amelia.hooks.Hook;
-import io.amelia.hooks.Hooks;
 import io.amelia.lang.ConfigException;
 import io.amelia.lang.ParcelException;
 import io.amelia.lang.StorageException;
@@ -128,7 +127,7 @@ public class HoneyStorage
 		try
 		{
 			if ( initialized )
-				throw new StorageException.Error( "Storage registry is already been initialized." );
+				throw new StorageException.Error( "Storage registry has already been initialized." );
 
 			rootBackend = new FileStorageBackend( Kernel.getPath( Kernel.PATH_APP ), NodePath.of( "foundation" ) );
 			StorageBackend configBackend = new FileStorageBackend( Kernel.getPath( Kernel.PATH_CONFIG ), NodePath.of( "config" ), BackendType.CONFIG );

@@ -196,7 +196,7 @@ public abstract class WhereItem
 					}
 					catch ( ClassCastException ee )
 					{
-						StorageModule.getLogger().severe( ee );
+						DatabaseManager.getLogger().severe( ee );
 					}
 				else
 					where( key ).matches( val );
