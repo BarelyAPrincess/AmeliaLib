@@ -22,8 +22,8 @@ import java.util.Map.Entry;
 
 import io.amelia.data.TypeBase;
 import io.amelia.events.EventException;
+import io.amelia.events.Events;
 import io.amelia.foundation.ConfigRegistry;
-import io.amelia.foundation.Foundation;
 import io.amelia.foundation.Kernel;
 import io.amelia.lang.ScriptingException;
 import io.amelia.scripting.event.PostEvalEvent;
@@ -217,7 +217,7 @@ public class ScriptingFactory
 			PreEvalEvent preEvent = new PreEvalEvent( context );
 			try
 			{
-				Foundation.getApplication().getEvents().callEventWithException( preEvent );
+				Events.getInstance().callEventWithException( preEvent );
 			}
 			catch ( Exception e )
 			{
@@ -261,7 +261,7 @@ public class ScriptingFactory
 			PostEvalEvent postEvent = new PostEvalEvent( context );
 			try
 			{
-				Foundation.getApplication().getEvents().callEventWithException( postEvent );
+				Events.getInstance().callEventWithException( postEvent );
 			}
 			catch ( EventException.Error e )
 			{

@@ -120,22 +120,22 @@ abstract class ScriptingBaseHttp extends Builtin
 	 */
 	Account getAccount( String uid )
 	{
-		Account result = AccountManager.i().getAccount( hasLogin() ? getAccount().getLocation().getUuid() : getSite().getId(), uid )
+		Account result = AccountManager.i().getAccount( hasLogin() ? getAccount().getLocation().uuid() : getSite().getId(), uid )
 
 		// if ( result == null )
-			// result = AccountManager.instance().getAccountPartial( hasLogin() ? getUserSubject().getLocation().getUuid() : getSite().getUuid(), uid )
+			// result = AccountManager.instance().getAccountPartial( hasLogin() ? getUserSubject().getLocation().uuid() : getSite().uuid(), uid )
 
 		return result
 	}
 
 	List<AccountMeta> getAccounts( String query )
 	{
-		return AccountManager.i().getAccounts( hasLogin() ? getAccount().getLocation().getUuid() : getSite().getId(), query )
+		return AccountManager.i().getAccounts( hasLogin() ? getAccount().getLocation().uuid() : getSite().getId(), query )
 	}
 
 	List<AccountMeta> getAccounts( String query, int limit )
 	{
-		return AccountManager.i().getAccounts( hasLogin() ? getAccount().getLocation().getUuid() : getSite().getId(), query ).stream().limit( limit ).collect( Collectors.toList() )
+		return AccountManager.i().getAccounts( hasLogin() ? getAccount().getLocation().uuid() : getSite().getId(), query ).stream().limit( limit ).collect( Collectors.toList() )
 	}
 
 	/**
