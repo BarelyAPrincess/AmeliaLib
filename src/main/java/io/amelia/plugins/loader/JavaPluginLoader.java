@@ -40,8 +40,8 @@ import io.amelia.data.parcel.ParcelLoader;
 import io.amelia.events.AbstractEvent;
 import io.amelia.events.EventException;
 import io.amelia.events.EventHandler;
+import io.amelia.events.Events;
 import io.amelia.events.RegisteredListener;
-import io.amelia.foundation.Foundation;
 import io.amelia.foundation.Kernel;
 import io.amelia.lang.DeprecatedDetail;
 import io.amelia.lang.PluginDependencyUnknownException;
@@ -156,7 +156,7 @@ public final class JavaPluginLoader implements PluginLoader<JavaPlugin>
 			String message = String.format( "Disabling %s", plugin.getMeta().getDisplayName() );
 			DefaultPlugins.L.info( message );
 
-			Foundation.getApplication().getEvents().callEvent( new PluginDisableEvent( plugin ) );
+			Events.getInstance().callEvent( new PluginDisableEvent( plugin ) );
 
 			ClassLoader loader = plugin.getClassLoader();
 
@@ -213,7 +213,7 @@ public final class JavaPluginLoader implements PluginLoader<JavaPlugin>
 
 			// Perhaps abort here, rather than continue going, but as it stands,
 			// an abort is not possible the way it's currently written
-			Foundation.getApplication().getEvents().callEvent( new PluginEnableEvent( plugin ) );
+			Events.getInstance().callEvent( new PluginEnableEvent( plugin ) );
 		}
 	}
 

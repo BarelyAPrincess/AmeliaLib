@@ -33,11 +33,11 @@ import javax.annotation.Nonnull;
 
 import io.amelia.data.TypeBase;
 import io.amelia.events.EventHandlers;
+import io.amelia.events.Events;
 import io.amelia.events.RunlevelEvent;
 import io.amelia.foundation.Foundation;
 import io.amelia.foundation.Kernel;
 import io.amelia.foundation.Runlevel;
-import io.amelia.foundation.BasePlugins;
 import io.amelia.injection.Libraries;
 import io.amelia.injection.MavenReference;
 import io.amelia.lang.PluginDependencyUnknownException;
@@ -64,7 +64,7 @@ public class DefaultPlugins<Subclass extends Plugin> implements BasePlugins<Subc
 	public DefaultPlugins()
 	{
 		// Loads plugins in order as PluginManager receives the notices from the Events
-		Foundation.getApplication().events().listen( Foundation.getApplication(), Priority.NORMAL, RunlevelEvent.class, event -> {
+		Events.getInstance().listen( Foundation.getApplication(), Priority.NORMAL, RunlevelEvent.class, event -> {
 			Runlevel level = event.getRunLevel();
 			getPlugins().filter( plugin -> !plugin.isEnabled() && plugin.getMeta().getLoad() == level ).forEach( this::enablePlugin );
 		} );
