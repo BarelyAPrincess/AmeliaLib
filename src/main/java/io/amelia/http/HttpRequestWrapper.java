@@ -39,7 +39,6 @@ import io.amelia.http.session.SessionWrapper;
 import io.amelia.http.webroot.Webroot;
 import io.amelia.http.webroot.WebrootRegistry;
 import io.amelia.lang.ApplicationException;
-import io.amelia.logging.LogEvent;
 import io.amelia.networking.NetworkLoader;
 import io.amelia.networking.Networking;
 import io.amelia.support.DateAndTime;
@@ -60,6 +59,7 @@ import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.handler.codec.http.cookie.Cookie;
+import io.netty.handler.codec.http.cookie.DefaultCookie;
 import io.netty.handler.codec.http.cookie.ServerCookieDecoder;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.util.CharsetUtil;
@@ -86,7 +86,7 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 	/**
 	 * Cookie Cache
 	 */
-	final Set<HoneyCookie> cookies = new HashSet<>();
+	final Set<DefaultCookie> cookies = new HashSet<>();
 	/**
 	 * The Get Map
 	 */
@@ -232,8 +232,8 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 		if ( var1 != null )
 			try
 			{
-				Set<Cookie> var2 = ServerCookieDecoder.LAX.decode( var1 );
-				for ( Cookie cookie : var2 )
+				Set<DefaultCookie> var2 = ServerCookieDecoder.LAX.decode( var1 );
+				for ( DefaultCookie cookie : var2 )
 					if ( cookie.name().startsWith( "_ws" ) )
 						serverCookies.add( cookie );
 					else
@@ -366,16 +366,13 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 	}
 
 	@Override
-	public Voluntary<Cookie, ApplicationException.Error> getCookie( String key )
+	public Voluntary<DefaultCookie> getCookie( String key )
 	{
-		for ( Cookie cookie : cookies )
-			if ( key.equalsIgnoreCase( cookie.name() ) )
-				return Voluntary.of( cookie );
-		return Voluntary.empty();
+		return Voluntary.of( cookies.stream().filter( cookie -> key.equalsIgnoreCase( cookie.name() ) ).findFirst() );
 	}
 
 	@Override
-	public Stream<HoneyCookie> getCookies()
+	public Stream<DefaultCookie> getCookies()
 	{
 		return cookies.stream();
 	}

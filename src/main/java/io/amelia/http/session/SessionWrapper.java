@@ -9,16 +9,6 @@
  */
 package io.amelia.http.session;
 
-import com.chiorichan.account.AccountAttachment;
-import com.chiorichan.account.AccountInstance;
-import com.chiorichan.account.AccountMeta;
-import com.chiorichan.account.AccountPermissible;
-import com.chiorichan.net.http.HttpCookie;
-import com.chiorichan.permission.PermissibleEntity;
-import com.chiorichan.site.Site;
-import com.chiorichan.site.SiteModule;
-import com.chiorichan.utils.UtilStrings;
-
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -31,19 +21,21 @@ import io.amelia.http.webroot.Webroot;
 import io.amelia.lang.SessionException;
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.lang.ApplicationException;
-import io.amelia.messaging.MessageSender;
 import io.amelia.scripting.BindingProvider;
 import io.amelia.scripting.ScriptBinding;
 import io.amelia.scripting.ScriptingFactory;
 import io.amelia.support.Strs;
 import io.amelia.support.Voluntary;
+import io.amelia.support.VoluntaryWithCause;
+import io.amelia.users.UserAttachment;
 import io.netty.handler.codec.http.cookie.Cookie;
+import io.netty.handler.codec.http.cookie.DefaultCookie;
 
 /**
  * Acts as a bridge between the session and the end user.
  * TODO If Session is nullified, we need to start a new one
  */
-public abstract class SessionWrapper implements BindingProvider, AccountAttachment
+public abstract class SessionWrapper implements BindingProvider, UserAttachment
 {
 	/**
 	 * The binding specific to this request
@@ -110,7 +102,7 @@ public abstract class SessionWrapper implements BindingProvider, AccountAttachme
 		return binding;
 	}
 
-	public abstract Voluntary<Cookie, ApplicationException.Error> getCookie( String key );
+	public abstract Voluntary<Cookie> getCookie( String key );
 
 	public abstract Stream<Cookie> getCookies();
 
@@ -130,8 +122,6 @@ public abstract class SessionWrapper implements BindingProvider, AccountAttachme
 	{
 		return getSession().getId();
 	}
-
-	public abstract Webroot getWebroot();
 
 	@Override
 	public final AccountPermissible getPermissible()
@@ -176,6 +166,8 @@ public abstract class SessionWrapper implements BindingProvider, AccountAttachme
 	{
 		return getSession().getVariable( key, def );
 	}
+
+	public abstract Webroot getWebroot();
 
 	public final boolean hasSession()
 	{
@@ -255,7 +247,7 @@ public abstract class SessionWrapper implements BindingProvider, AccountAttachme
 
 		session.setWebroot( site );
 
-		for ( HttpCookie cookie : getCookies() )
+		for ( DefaultCookie cookie : getCookies() )
 			session.putSessionCookie( cookie.getKey(), cookie );
 
 		// Reference Context
