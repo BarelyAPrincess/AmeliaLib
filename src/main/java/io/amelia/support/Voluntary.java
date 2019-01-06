@@ -1,22 +1,11 @@
-/**
- * This software may be modified and distributed under the terms
- * of the MIT license.  See the LICENSE file for details.
- * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
- * <p>
- * All Rights Reserved.
- */
 package io.amelia.support;
 
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -38,38 +27,23 @@ import javax.annotation.Nullable;
  * @apiNote This api feature is still in incubating status. Major changes to the API could happen at anytime.
  * @see Optional
  */
-public final class Voluntary<Type, Cause extends Exception>
+public class Voluntary<Type>
 {
 	/**
 	 * Common instance for {@code empty()}.
 	 */
-	private static final Voluntary<?, ?> EMPTY = new Voluntary<>();
+	private static final Voluntary<?> EMPTY = new Voluntary<>();
 
 	/**
-	 * If non-null, the value; if null, indicates no value is present
+	 * Common instance for {@code empty()}.
 	 */
-	private final Type value;
-
-	private final Cause cause;
-
-	/**
-	 * Constructs an empty instance.
-	 *
-	 * @implNote Generally only one empty instance, {@link Voluntary#EMPTY},
-	 * should exist per VM.
-	 */
-	private Voluntary()
-	{
-		this.value = null;
-		this.cause = null;
-	}
+	private static final VoluntaryWithCause<?, ?> EMPTY_WITH_CAUSE = new VoluntaryWithCause<>();
 
 	/**
 	 * Returns an empty {@code Voluntary} instance.  No value is present for this
 	 * Voluntary.
 	 *
 	 * @param <T> Type of the non-existent value
-	 * @param <C> Exception of the non-existent cause
 	 *
 	 * @return an empty {@code Voluntary}
 	 *
@@ -78,36 +52,32 @@ public final class Voluntary<Type, Cause extends Exception>
 	 * {@code Option.empty()}. There is no guarantee that it is a singleton.
 	 * Instead, use {@link #isPresent()}.
 	 */
-	public static <T, C extends Exception> Voluntary<T, C> empty()
+	public static <T> Voluntary<T> empty()
 	{
 		@SuppressWarnings( "unchecked" )
-		Voluntary<T, C> t = ( Voluntary<T, C> ) EMPTY;
+		Voluntary<T> t = ( Voluntary<T> ) EMPTY;
 		return t;
 	}
 
 	/**
-	 * Constructs an instance with the value present.
+	 * Returns an empty {@code VoluntaryWithCause} instance.  No value is present for this
+	 * VoluntaryWithCause.
 	 *
-	 * @param value the non-null value to be present
+	 * @param <T> Type of the non-existent value
+	 * @param <C> Exception of the non-existent cause
 	 *
-	 * @throws NullPointerException if value is null
+	 * @return an empty {@code VoluntaryWithCause}
+	 *
+	 * @apiNote Though it may be tempting to do so, avoid testing if an object
+	 * is empty by comparing with {@code ==} against instances returned by
+	 * {@code Option.empty()}. There is no guarantee that it is a singleton.
+	 * Instead, use {@link #isPresent()}.
 	 */
-	private Voluntary( Type value )
+	public static <T, C extends Exception> VoluntaryWithCause<T, C> emptyWithCause()
 	{
-		this.value = Objs.notNull( value );
-		this.cause = null;
-	}
-
-	private Voluntary( Type value, Cause cause )
-	{
-		this.value = Objs.notNull( value );
-		this.cause = cause;
-	}
-
-	private Voluntary( Cause cause )
-	{
-		this.value = null;
-		this.cause = cause;
+		@SuppressWarnings( "unchecked" )
+		VoluntaryWithCause<T, C> t = ( VoluntaryWithCause<T, C> ) EMPTY_WITH_CAUSE;
+		return t;
 	}
 
 	/**
@@ -120,51 +90,28 @@ public final class Voluntary<Type, Cause extends Exception>
 	 *
 	 * @throws NullPointerException if value is null
 	 */
-	public static <T, C extends Exception> Voluntary<T, C> of( T value )
+	public static <T> Voluntary<T> of( T value )
 	{
 		return new Voluntary<>( value );
 	}
 
-	public static <T, C extends Exception> Voluntary<T, C> of( T value, C cause )
+	public static <T> Voluntary<T> of( @Nonnull Optional<T> value )
 	{
-		return new Voluntary<>( value, cause );
+		return value.map( Voluntary::of ).orElseGet( Voluntary::empty );
 	}
 
-	public static <T, C extends Exception> Voluntary<T, C> ofElseException( T value, Supplier<C> cause )
+	public static <T, C extends Exception> VoluntaryWithCause<T, C> ofElseException( T value, Supplier<C> cause )
 	{
 		if ( value == null )
 			return withException( cause );
-		return of( value );
+		return ofWithCause( value );
 	}
 
-	public static <T, C extends Exception> Voluntary<T, C> ofElseException( T value, C cause )
+	public static <T, C extends Exception> VoluntaryWithCause<T, C> ofElseException( T value, C cause )
 	{
 		if ( value == null )
 			return withException( cause );
-		return of( value );
-	}
-
-	@SuppressWarnings( "unchecked" )
-	public static <T, C extends Exception> Voluntary<T, C> of( @Nonnull Optional<T> value )
-	{
-		return ( Voluntary<T, C> ) value.map( Voluntary::of ).orElseGet( Voluntary::empty );
-	}
-
-	public static <T, C extends Exception> Voluntary<T, C> withException( @Nullable C cause )
-	{
-		return new Voluntary<>( cause );
-	}
-
-	public static <T, C extends Exception> Voluntary<T, C> withException( @Nonnull Supplier<C> cause )
-	{
-		return new Voluntary<>( cause.get() );
-	}
-
-	public static <T> Voluntary<T, NullPointerException> withNullPointerException( @Nullable T value )
-	{
-		if ( value == null )
-			return withException( new NullPointerException() );
-		return of( value );
+		return ofWithCause( value );
 	}
 
 	/**
@@ -177,19 +124,184 @@ public final class Voluntary<Type, Cause extends Exception>
 	 * @return an {@code Voluntary} with a present value if the specified value
 	 * is non-null, otherwise an empty {@code Voluntary}
 	 */
-	public static <T, C extends Exception> Voluntary<T, C> ofNullable( @Nullable T value )
+	public static <T> Voluntary<T> ofNullable( @Nullable T value )
 	{
 		return value == null ? empty() : of( value );
 	}
 
-	public static <T, C extends Exception> Voluntary<T, C> ofNullable( @Nullable T value, @Nullable C cause )
+	public static <T, C extends Exception> VoluntaryWithCause<T, C> ofNullableWithCause( @Nullable T value )
 	{
-		return value == null ? cause == null ? empty() : withException( cause ) : of( value, cause );
+		return value == null ? emptyWithCause() : ofWithCause( value );
 	}
 
-	public static <T, C extends Exception> Voluntary<T, C> ofNullable( @Nullable T value, @Nullable Supplier<C> cause )
+	public static <T, C extends Exception> VoluntaryWithCause<T, C> ofNullableWithCause( @Nullable T value, @Nullable C cause )
 	{
-		return value == null ? cause == null ? empty() : withException( cause ) : of( value, cause.get() );
+		return value == null ? cause == null ? emptyWithCause() : withException( cause ) : ofWithCause( value, cause );
+	}
+
+	public static <T, C extends Exception> VoluntaryWithCause<T, C> ofNullableWithCause( @Nullable T value, @Nullable Supplier<C> cause )
+	{
+		return value == null ? cause == null ? emptyWithCause() : withException( cause ) : ofWithCause( value, cause.get() );
+	}
+
+	/**
+	 * Returns an {@code VoluntaryWithCause} with the specified present non-null value.
+	 *
+	 * @param <T>   the class of the value
+	 * @param value the value to be present, which must be non-null
+	 *
+	 * @return an {@code VoluntaryWithCause} with the value present
+	 *
+	 * @throws NullPointerException if value is null
+	 */
+	public static <T, C extends Exception> VoluntaryWithCause<T, C> ofWithCause( T value )
+	{
+		return new VoluntaryWithCause<>( value );
+	}
+
+	public static <T, C extends Exception> VoluntaryWithCause<T, C> ofWithCause( T value, C cause )
+	{
+		return new VoluntaryWithCause<>( value, cause );
+	}
+
+	public static <T, C extends Exception> VoluntaryWithCause<T, C> ofWithCause( @Nonnull Optional<T> value )
+	{
+		return ( VoluntaryWithCause<T, C> ) value.map( VoluntaryWithCause::of ).orElseGet( VoluntaryWithCause::empty );
+	}
+
+	public static <T, C extends Exception> VoluntaryWithCause<T, C> withException( @Nullable C cause )
+	{
+		return new VoluntaryWithCause<>( cause );
+	}
+
+	public static <T, C extends Exception> VoluntaryWithCause<T, C> withException( @Nonnull Supplier<C> cause )
+	{
+		return new VoluntaryWithCause<>( cause.get() );
+	}
+
+	public static <T> VoluntaryWithCause<T, NullPointerException> withNullPointerException( @Nullable T value )
+	{
+		if ( value == null )
+			return withException( new NullPointerException() );
+		return ofWithCause( value );
+	}
+
+	/**
+	 * If non-null, the value; if null, indicates no value is present
+	 */
+	protected final Type value;
+
+	/**
+	 * Constructs an empty instance.
+	 *
+	 * @implNote Generally only one empty instance, {@link Voluntary#EMPTY},
+	 * should exist per VM.
+	 */
+	Voluntary()
+	{
+		this.value = null;
+	}
+
+	/**
+	 * Constructs an instance with the value present.
+	 *
+	 * @param value the non-null value to be present
+	 *
+	 * @throws NullPointerException if value is null
+	 */
+	Voluntary( Type value )
+	{
+		this.value = Objs.notNull( value );
+	}
+
+	/**
+	 * Indicates whether some other object is "equal to" this Voluntary. The
+	 * other object is considered equal if:
+	 * <ul>
+	 * <li>it is also an {@code Voluntary} and;
+	 * <li>both instances have no value present or;
+	 * <li>the present values are "equal to" each other via {@code equals()}.
+	 * </ul>
+	 *
+	 * @param obj an object to be tested for equality
+	 *
+	 * @return {code true} if the other object is "equal to" this object
+	 * otherwise {@code false}
+	 */
+	@Override
+	public boolean equals( Object obj )
+	{
+		if ( this == obj )
+		{
+			return true;
+		}
+
+		if ( !( obj instanceof Voluntary ) )
+		{
+			return false;
+		}
+
+		Voluntary<?> other = ( Voluntary<?> ) obj;
+		return Objects.equals( value, other.value );
+	}
+
+	/**
+	 * If a value is present, and the value matches the given predicate,
+	 * return an {@code Voluntary} describing the value, otherwise return an
+	 * empty {@code Voluntary}.
+	 *
+	 * @param predicate a predicate to apply to the value, if present
+	 *
+	 * @return an {@code Voluntary} describing the value of this {@code Voluntary}
+	 * if a value is present and the value matches the given predicate,
+	 * otherwise an empty {@code Voluntary}
+	 *
+	 * @throws NullPointerException if the predicate is null
+	 */
+	public Voluntary<Type> filter( Predicate<? super Type> predicate )
+	{
+		Objs.notNull( predicate );
+		if ( !isPresent() )
+			return this;
+		else
+			return predicate.test( value ) ? this : empty();
+	}
+
+	/**
+	 * If a value is present, apply the provided {@code Voluntary}-bearing
+	 * mapping function to it, return that result, otherwise return an empty
+	 * {@code Voluntary}.  This method is similar to {@link #map(Function)},
+	 * but the provided mapper is one whose result is already an {@code Voluntary},
+	 * and if invoked, {@code flatMap} does not wrap it with an additional
+	 * {@code Voluntary}.
+	 *
+	 * @param <U>    The type parameter to the {@code Voluntary} returned by
+	 * @param mapper a mapping function to apply to the value, if present
+	 *               the mapping function
+	 *
+	 * @return the result of applying an {@code Voluntary}-bearing mapping
+	 * function to the value of this {@code Voluntary}, if a value is present,
+	 * otherwise an empty {@code Voluntary}
+	 *
+	 * @throws NullPointerException if the mapping function is null or returns
+	 *                              a null result
+	 */
+	public <U> Voluntary<U> flatMap( @Nonnull Function<? super Type, Voluntary<U>> mapper )
+	{
+		Objs.notNull( mapper );
+		if ( isPresent() )
+			return Objs.notNull( mapper.apply( value ) );
+		else
+			return empty();
+	}
+
+	public <U> Voluntary<U> flatMapCompatible( @Nonnull Function<? super Type, Optional<U>> mapper )
+	{
+		Objs.notNull( mapper );
+		if ( isPresent() )
+			return Voluntary.of( Objs.notNull( mapper.apply( value ) ) );
+		else
+			return Voluntary.empty();
 	}
 
 	/**
@@ -208,60 +320,35 @@ public final class Voluntary<Type, Cause extends Exception>
 		return value;
 	}
 
-	public <T extends Type, X extends Exception> Voluntary<T, X> hasNotErrored( FunctionWithException<Type, T, X> mapper )
+	/**
+	 * Defines specification that a value is present and no error was thrown.
+	 */
+	public boolean hasSucceeded()
 	{
-		if ( cause == null )
-			try
-			{
-				return Voluntary.ofNullable( mapper.apply( value ) );
-			}
-			catch ( Exception e )
-			{
-				return withException( ( X ) e );
-			}
-		return ( Voluntary<T, X> ) this;
+		return value != null;
 	}
 
-	public <T extends Type, X extends Exception> Voluntary<T, X> hasNotErroredFlat( Function<Type, Voluntary<T, X>> mapper )
+	/**
+	 * Returns the hash code value of the present value, if any, or 0 (zero) if
+	 * no value is present.
+	 *
+	 * @return hash code value of the present value or 0 if no value is present
+	 */
+	@Override
+	public int hashCode()
 	{
-		if ( cause == null )
-			return mapper.apply( value );
-		return ( Voluntary<T, X> ) this;
+		return Objects.hashCode( value );
 	}
 
 	/**
 	 * If Voluntary has no value, the value will be retrieved from the supplied voluntary.
 	 * If the supplied Voluntary has not errored, this Voluntary's cause will be copied.
 	 */
-	public <T extends Type, X extends Exception> Voluntary<T, X> ifAbsentGet( Supplier<Voluntary<T, X>> supplier )
+	public <T extends Type> Voluntary<T> ifAbsentGet( Supplier<Voluntary<T>> supplier )
 	{
 		if ( !isPresent() )
-			return supplier.get().hasNotErrored( () -> ( X ) cause );
-		return ( Voluntary<T, X> ) this;
-	}
-
-	public <X extends Exception> Voluntary<Type, X> hasNotErrored( Supplier<X> causeSupplier )
-	{
-		if ( !hasErrored() )
-			return ofNullable( value, causeSupplier.get() );
-		return ( Voluntary<Type, X> ) this;
-	}
-
-	public <X extends Exception> Voluntary<Type, X> hasErroredMap( Function<Cause, X> causeMapFunction )
-	{
-		if ( hasErrored() )
-			return ofNullable( value, causeMapFunction.apply( cause ) );
-		return ( Voluntary<Type, X> ) this;
-	}
-
-	/**
-	 * Return {@code true} if there is a value present, otherwise {@code false}.
-	 *
-	 * @return {@code true} if there is a value present, otherwise {@code false}
-	 */
-	public boolean isPresent()
-	{
-		return value != null;
+			return supplier.get();
+		return ( Voluntary<T> ) this;
 	}
 
 	/**
@@ -273,28 +360,27 @@ public final class Voluntary<Type, Cause extends Exception>
 	 * @throws NullPointerException if value is present and {@code consumer} is
 	 *                              null
 	 */
-	public <X extends Exception> Voluntary<Type, Cause> ifPresent( ConsumerWithException<? super Type, X> consumer ) throws X
+	public <X extends Exception> Voluntary<Type> ifPresent( ConsumerWithException<? super Type, X> consumer ) throws X
 	{
 		if ( value != null )
-			consumer.accept( value );
+		{
+			try
+			{
+				consumer.accept( value );
+			}
+			catch ( Exception e )
+			{
+				throw ( X ) e;
+			}
+		}
 		return this;
-	}
-
-	public <X extends Exception> Voluntary<Type, X> withCause( X cause )
-	{
-		return ofNullable( value, cause );
-	}
-
-	public <X extends Exception> Voluntary<Type, X> withCause( Supplier<X> cause )
-	{
-		return ofNullable( value, cause.get() );
 	}
 
 	/**
 	 * Similar to {@link #ifPresent(ConsumerWithException)}, except returns a new {@code Voluntary}
 	 * that will contain any thrown exceptions, otherwise a {@code Voluntary} that contains the present value.
 	 */
-	public <X extends Exception> Voluntary<Type, X> ifPresentCatchException( ConsumerWithException<? super Type, X> consumer )
+	public <X extends Exception> VoluntaryWithCause<Type, X> ifPresentCatchException( ConsumerWithException<? super Type, X> consumer )
 	{
 		if ( value != null )
 			try
@@ -305,34 +391,17 @@ public final class Voluntary<Type, Cause extends Exception>
 			{
 				return withException( ( X ) e );
 			}
-		return ofNullable( value );
+		return ofNullableWithCause( value );
 	}
 
 	/**
-	 * If a value is present, and the value matches the given predicate,
-	 * return an {@code Voluntary} describing the value, otherwise return an
-	 * empty {@code Voluntary}.
+	 * Return {@code true} if there is a value present, otherwise {@code false}.
 	 *
-	 * @param predicate a predicate to apply to the value, if present
-	 *
-	 * @return an {@code Voluntary} describing the value of this {@code Voluntary}
-	 * if a value is present and the value matches the given predicate,
-	 * otherwise an empty {@code Voluntary}
-	 *
-	 * @throws NullPointerException if the predicate is null
+	 * @return {@code true} if there is a value present, otherwise {@code false}
 	 */
-	public Voluntary<Type, Cause> filter( Predicate<? super Type> predicate )
+	public boolean isPresent()
 	{
-		Objs.notNull( predicate );
-		if ( !isPresent() )
-			return this;
-		else
-			return predicate.test( value ) ? this : empty();
-	}
-
-	public <C extends Exception> Voluntary<Type, C> removeException()
-	{
-		return ofNullable( value );
+		return value != null;
 	}
 
 	/**
@@ -365,85 +434,27 @@ public final class Voluntary<Type, Cause extends Exception>
 	 * {@code map} returns an {@code Voluntary<FileInputStream>} for the desired
 	 * file if one exists.
 	 */
-	public <U> Voluntary<U, Cause> map( @Nonnull Function<? super Type, ? extends U> mapper )
+	public <U> Voluntary<U> map( @Nonnull Function<? super Type, ? extends U> mapper )
 	{
 		if ( isPresent() )
-			return Voluntary.ofNullable( mapper.apply( value ), cause );
+			return Voluntary.ofNullable( mapper.apply( value ) );
 		else
 			return empty();
 	}
 
-	public <U, X extends Exception> Voluntary<U, X> mapCatchException( @Nonnull FunctionWithException<? super Type, ? extends U, X> mapper )
+	public <U, X extends Exception> VoluntaryWithCause<U, X> mapCatchException( @Nonnull FunctionWithException<? super Type, ? extends U, X> mapper )
 	{
 		if ( isPresent() )
 			try
 			{
-				return ( Voluntary<U, X> ) Voluntary.ofNullable( mapper.apply( value ), cause );
+				return ( VoluntaryWithCause<U, X> ) VoluntaryWithCause.ofNullable( mapper.apply( value ) );
 			}
 			catch ( Exception e )
 			{
 				return withException( ( X ) e );
 			}
 		else
-			return empty();
-	}
-
-	public <C extends Exception> Voluntary<Type, C> hasErrored( @Nonnull BiFunction<? super Type, ? super Cause, Voluntary<Type, C>> mapper )
-	{
-		if ( hasErrored() )
-			return mapper.apply( value, cause );
-		else
-			return ( Voluntary<Type, C> ) this;
-	}
-
-	public boolean hasErrored()
-	{
-		return cause != null;
-	}
-
-	/**
-	 * Defines specification that a value is present and no error was thrown.
-	 */
-	public boolean hasSucceeded()
-	{
-		return value != null && cause == null;
-	}
-
-	/**
-	 * If a value is present, apply the provided {@code Voluntary}-bearing
-	 * mapping function to it, return that result, otherwise return an empty
-	 * {@code Voluntary}.  This method is similar to {@link #map(Function)},
-	 * but the provided mapper is one whose result is already an {@code Voluntary},
-	 * and if invoked, {@code flatMap} does not wrap it with an additional
-	 * {@code Voluntary}.
-	 *
-	 * @param <U>    The type parameter to the {@code Voluntary} returned by
-	 * @param mapper a mapping function to apply to the value, if present
-	 *               the mapping function
-	 *
-	 * @return the result of applying an {@code Voluntary}-bearing mapping
-	 * function to the value of this {@code Voluntary}, if a value is present,
-	 * otherwise an empty {@code Voluntary}
-	 *
-	 * @throws NullPointerException if the mapping function is null or returns
-	 *                              a null result
-	 */
-	public <U, C extends Exception> Voluntary<U, C> flatMap( @Nonnull Function<? super Type, Voluntary<U, C>> mapper )
-	{
-		Objs.notNull( mapper );
-		if ( isPresent() )
-			return Objs.notNull( mapper.apply( value ) );
-		else
-			return empty();
-	}
-
-	public <U> Voluntary<U, Cause> flatMapCompatible( @Nonnull Function<? super Type, Optional<U>> mapper )
-	{
-		Objs.notNull( mapper );
-		if ( isPresent() )
-			return Voluntary.of( Objs.notNull( mapper.apply( value ) ) );
-		else
-			return Voluntary.empty();
+			return emptyWithCause();
 	}
 
 	/**
@@ -501,68 +512,9 @@ public final class Voluntary<Type, Cause extends Exception>
 			return value;
 	}
 
-	public Type orElseThrowCause() throws Cause
+	public <C extends Exception> Voluntary<Type> removeException()
 	{
-		if ( value == null )
-		{
-			if ( cause == null )
-				throw new NoSuchElementException( "value and cause were both null" );
-			else
-				throw cause;
-		}
-		else
-			return value;
-	}
-
-	public <X extends Exception> Type orElseThrowCause( @Nonnull Function<Cause, X> function ) throws X
-	{
-		if ( value == null )
-			throw function.apply( cause );
-		else
-			return value;
-	}
-
-	/**
-	 * Indicates whether some other object is "equal to" this Voluntary. The
-	 * other object is considered equal if:
-	 * <ul>
-	 * <li>it is also an {@code Voluntary} and;
-	 * <li>both instances have no value present or;
-	 * <li>the present values are "equal to" each other via {@code equals()}.
-	 * </ul>
-	 *
-	 * @param obj an object to be tested for equality
-	 *
-	 * @return {code true} if the other object is "equal to" this object
-	 * otherwise {@code false}
-	 */
-	@Override
-	public boolean equals( Object obj )
-	{
-		if ( this == obj )
-		{
-			return true;
-		}
-
-		if ( !( obj instanceof Voluntary ) )
-		{
-			return false;
-		}
-
-		Voluntary<?, ?> other = ( Voluntary<?, ?> ) obj;
-		return Objects.equals( value, other.value );
-	}
-
-	/**
-	 * Returns the hash code value of the present value, if any, or 0 (zero) if
-	 * no value is present.
-	 *
-	 * @return hash code value of the present value or 0 if no value is present
-	 */
-	@Override
-	public int hashCode()
-	{
-		return Objects.hashCode( value );
+		return ofNullable( value );
 	}
 
 	/**
@@ -580,5 +532,15 @@ public final class Voluntary<Type, Cause extends Exception>
 	public String toString()
 	{
 		return value != null ? String.format( "Voluntary[%s]", value ) : "Voluntary.empty";
+	}
+
+	public <X extends Exception> VoluntaryWithCause<Type, X> withCause( X cause )
+	{
+		return ofNullableWithCause( value, cause );
+	}
+
+	public <X extends Exception> VoluntaryWithCause<Type, X> withCause( Supplier<X> cause )
+	{
+		return ofNullableWithCause( value, cause.get() );
 	}
 }

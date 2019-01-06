@@ -9,6 +9,8 @@
  */
 package io.amelia.data;
 
+import java.util.function.Supplier;
+
 public interface KeyValueSetterTrait<ValueType, ExceptionClass extends Exception>
 {
 	void setValue( String key, ValueType value ) throws ExceptionClass;
@@ -20,10 +22,10 @@ public interface KeyValueSetterTrait<ValueType, ExceptionClass extends Exception
 
 	default void setValueIfAbsent( TypeBase.TypeWithDefault<? extends ValueType> type ) throws ExceptionClass
 	{
-		setValueIfAbsent( type.getPath(), type.getDefault() );
+		setValueIfAbsent( type.getPath(), type.getDefaultSupplier() );
 	}
 
-	void setValueIfAbsent( String key, ValueType value ) throws ExceptionClass;
+	void setValueIfAbsent( String key, Supplier<? extends ValueType> value ) throws ExceptionClass;
 
 	default void setValues( KeyValueGetterTrait<ValueType, ?> values ) throws ExceptionClass
 	{

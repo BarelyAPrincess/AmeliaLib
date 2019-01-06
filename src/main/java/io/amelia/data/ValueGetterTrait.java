@@ -12,15 +12,15 @@ package io.amelia.data;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import io.amelia.support.Voluntary;
+import io.amelia.support.VoluntaryWithCause;
 
 public interface ValueGetterTrait<ValueType>
 {
-	Voluntary getValue( Function<ValueType, ValueType> computeFunction );
+	VoluntaryWithCause getValue( Function<ValueType, ValueType> computeFunction );
 
-	Voluntary getValue( Supplier<ValueType> supplier );
+	VoluntaryWithCause getValue( Supplier<ValueType> supplier );
 
-	Voluntary getValue();
+	VoluntaryWithCause getValue();
 
 	boolean hasValue();
 }

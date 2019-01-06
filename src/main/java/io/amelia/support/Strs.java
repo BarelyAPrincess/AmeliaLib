@@ -9,8 +9,6 @@
  */
 package io.amelia.support;
 
-import com.sun.istack.internal.NotNull;
-
 import java.awt.Color;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
@@ -360,7 +358,7 @@ public class Strs
 		return var;
 	}
 
-	@NotNull
+	@Nonnull
 	public static String ifNullReturnEmpty( @Nullable String str )
 	{
 		return str == null ? "" : str;

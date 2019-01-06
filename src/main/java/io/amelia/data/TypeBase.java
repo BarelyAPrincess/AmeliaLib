@@ -313,5 +313,10 @@ public class TypeBase
 		{
 			return def.get();
 		}
+
+		public Supplier<DefValue> getDefaultSupplier()
+		{
+			return def;
+		}
 	}
 }

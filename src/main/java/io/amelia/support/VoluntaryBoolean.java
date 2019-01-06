@@ -92,6 +92,33 @@ public final class VoluntaryBoolean
 	}
 
 	/**
+	 * Indicates whether some other object is "equal to" this OptionalInt. The
+	 * other object is considered equal if:
+	 * <ul>
+	 * <li>it is also an {@code OptionalInt} and;
+	 * <li>both instances have no value present or;
+	 * <li>the present values are "equal to" each other via {@code ==}.
+	 * </ul>
+	 *
+	 * @param obj an object to be tested for equality
+	 *
+	 * @return {code true} if the other object is "equal to" this object
+	 * otherwise {@code false}
+	 */
+	@Override
+	public boolean equals( Object obj )
+	{
+		if ( this == obj )
+			return true;
+
+		if ( !( obj instanceof VoluntaryBoolean ) )
+			return false;
+
+		VoluntaryBoolean other = ( VoluntaryBoolean ) obj;
+		return ( isPresent() && other.isPresent() ) ? value == other.value : isPresent() == other.isPresent();
+	}
+
+	/**
 	 * If a value is present, and the value matches the given predicate,
 	 * return an {@code Optional} describing the value, otherwise return an
 	 * empty {@code Optional}.
@@ -157,6 +184,11 @@ public final class VoluntaryBoolean
 		return value;
 	}
 
+	public String getString()
+	{
+		return value == null ? "empty" : value ? "true" : "false";
+	}
+
 	/**
 	 * Returns the hash code value of the present value, if any, or 0 (zero) if
 	 * no value is present.
@@ -167,52 +199,6 @@ public final class VoluntaryBoolean
 	public int hashCode()
 	{
 		return Objects.hashCode( value );
-	}
-
-	/**
-	 * Indicates whether some other object is "equal to" this OptionalInt. The
-	 * other object is considered equal if:
-	 * <ul>
-	 * <li>it is also an {@code OptionalInt} and;
-	 * <li>both instances have no value present or;
-	 * <li>the present values are "equal to" each other via {@code ==}.
-	 * </ul>
-	 *
-	 * @param obj an object to be tested for equality
-	 *
-	 * @return {code true} if the other object is "equal to" this object
-	 * otherwise {@code false}
-	 */
-	@Override
-	public boolean equals( Object obj )
-	{
-		if ( this == obj )
-			return true;
-
-		if ( !( obj instanceof VoluntaryBoolean ) )
-			return false;
-
-		VoluntaryBoolean other = ( VoluntaryBoolean ) obj;
-		return ( isPresent() && other.isPresent() ) ? value == other.value : isPresent() == other.isPresent();
-	}
-
-	/**
-	 * {@inheritDoc}
-	 * <p>
-	 * Returns a non-empty string representation of this object suitable for
-	 * debugging. The exact presentation format is unspecified and may vary
-	 * between implementations and versions.
-	 *
-	 * @return the string representation of this instance
-	 *
-	 * @implSpec If a value is present the result must include its string
-	 * representation in the result. Empty and present instances must be
-	 * unambiguously differentiable.
-	 */
-	@Override
-	public String toString()
-	{
-		return isPresent() ? String.format( "VoluntaryBoolean[%s]", value ) : "VoluntaryBoolean.empty";
 	}
 
 	/**
@@ -333,5 +319,24 @@ public final class VoluntaryBoolean
 			return value;
 		else
 			throw exceptionSupplier.get();
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * <p>
+	 * Returns a non-empty string representation of this object suitable for
+	 * debugging. The exact presentation format is unspecified and may vary
+	 * between implementations and versions.
+	 *
+	 * @return the string representation of this instance
+	 *
+	 * @implSpec If a value is present the result must include its string
+	 * representation in the result. Empty and present instances must be
+	 * unambiguously differentiable.
+	 */
+	@Override
+	public String toString()
+	{
+		return isPresent() ? String.format( "VoluntaryBoolean[%s]", value ) : "VoluntaryBoolean.empty";
 	}
 }

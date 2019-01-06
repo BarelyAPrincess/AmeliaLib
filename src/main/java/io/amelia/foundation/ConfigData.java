@@ -20,7 +20,10 @@ import io.amelia.data.ContainerWithValue;
 import io.amelia.data.KeyValueTypesTrait;
 import io.amelia.data.parcel.ParcelLoader;
 import io.amelia.lang.ConfigException;
-import io.amelia.support.Voluntary;
+import io.amelia.support.Namespace;
+import io.amelia.support.NodeStack;
+import io.amelia.support.Objs;
+import io.amelia.support.VoluntaryWithCause;
 
 public final class ConfigData extends ContainerWithValue<ConfigData, Object, ConfigException.Error> implements KeyValueTypesTrait<ConfigException.Error>
 {
@@ -65,6 +68,20 @@ public final class ConfigData extends ContainerWithValue<ConfigData, Object, Con
 			throw new RuntimeException( error );
 		}
 	}
+
+	public static ConfigData of( String namespace )
+	{
+		return of( Namespace.of( Objs.notNullOrDef( namespace, "" ) ) );
+	}
+
+	public static ConfigData of( NodeStack namespace )
+	{
+		ConfigData current = empty();
+		for ( String child : namespace.getNodes() )
+			current = current.getChildOrCreate( child );
+		return current;
+	}
+
 	private String loadedValueHash = null;
 
 	private ConfigData() throws ConfigException.Error
@@ -94,7 +111,7 @@ public final class ConfigData extends ContainerWithValue<ConfigData, Object, Con
 	}
 
 	@Override
-	public Voluntary<Object, ConfigException.Error> getValue( @Nonnull String key )
+	public VoluntaryWithCause<Object, ConfigException.Error> getValue( @Nonnull String key )
 	{
 		return super.getValue( key );
 	}

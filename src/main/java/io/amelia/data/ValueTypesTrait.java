@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 
@@ -26,6 +27,7 @@ import io.amelia.support.Strs;
 import io.amelia.support.Voluntary;
 import io.amelia.support.VoluntaryBoolean;
 import io.amelia.support.VoluntaryLong;
+import io.amelia.support.VoluntaryWithCause;
 
 /**
  * Provides common methods for converting an unknown value to (and from) {@link Object} using the Java 8 Optional feature.
@@ -49,7 +51,7 @@ public interface ValueTypesTrait<ExceptionClass extends ApplicationException.Err
 		return VoluntaryBoolean.ofNullable( getValue().map( Objs::castToBoolean ).orElse( null ) );
 	}
 
-	default Voluntary<Color, ExceptionClass> getColor()
+	default VoluntaryWithCause<Color, ExceptionClass> getColor()
 	{
 		return getValue().filter( v -> v instanceof Color ).map( v -> ( Color ) v );
 	}
@@ -59,7 +61,7 @@ public interface ValueTypesTrait<ExceptionClass extends ApplicationException.Err
 		return Objs.ifPresent( getValue().map( Objs::castToDouble ), OptionalDouble::of, OptionalDouble::empty );
 	}
 
-	default <T extends Enum<T>> Voluntary<T, ExceptionClass> getEnum( Class<T> enumClass )
+	default <T extends Enum<T>> VoluntaryWithCause<T, ExceptionClass> getEnum( Class<T> enumClass )
 	{
 		return getString().map( e -> Enum.valueOf( enumClass, e ) );
 	}
@@ -69,7 +71,7 @@ public interface ValueTypesTrait<ExceptionClass extends ApplicationException.Err
 		return Objs.ifPresent( getValue().map( Objs::castToInt ), OptionalInt::of, OptionalInt::empty );
 	}
 
-	default <T> Voluntary<List<T>, ExceptionClass> getList()
+	default <T> VoluntaryWithCause<List<T>, ExceptionClass> getList()
 	{
 		return getValue().filter( v -> v instanceof List ).map( v -> ( List<T> ) v );
 	}
@@ -79,7 +81,7 @@ public interface ValueTypesTrait<ExceptionClass extends ApplicationException.Err
 		getValue().filter( v -> v instanceof List ).ifPresent( v -> list.addAll( ( List<T> ) v ) );
 	}
 
-	default <T> Voluntary<List<T>, ExceptionClass> getList( @Nonnull Class<T> expectedObjectClass )
+	default <T> VoluntaryWithCause<List<T>, ExceptionClass> getList( @Nonnull Class<T> expectedObjectClass )
 	{
 		return getValue().filter( v -> v instanceof List ).map( v -> Objs.castList( ( List<?> ) v, expectedObjectClass ) );
 	}
@@ -89,59 +91,69 @@ public interface ValueTypesTrait<ExceptionClass extends ApplicationException.Err
 		return Objs.ifPresent( getValue().map( Objs::castToLong ), VoluntaryLong::of, VoluntaryLong::empty );
 	}
 
-	default Voluntary<String, ExceptionClass> getString()
+	default VoluntaryWithCause<String, ExceptionClass> getString()
 	{
 		return getString();
 	}
 
-	default <T> Voluntary<Class<T>, ExceptionClass> getStringAsClass()
+	default <T> VoluntaryWithCause<Class<T>, ExceptionClass> getStringAsClass()
 	{
 		return getStringAsClass( null );
 	}
 
 	@SuppressWarnings( "unchecked" )
-	default <T> Voluntary<Class<T>, ExceptionClass> getStringAsClass( @Nonnull Class<T> expectedClass )
+	default <T> VoluntaryWithCause<Class<T>, ExceptionClass> getStringAsClass( @Nonnull Class<T> expectedClass )
 	{
 		return getString().map( str -> ( Class<T> ) Objs.getClassByName( str ) ).filter( expectedClass::isAssignableFrom );
 	}
 
-	default Voluntary<File, ExceptionClass> getStringAsFile( File rel )
+	default VoluntaryWithCause<File, ExceptionClass> getStringAsFile( File rel )
 	{
 		return getString().map( s -> IO.buildFile( rel, s ) );
 	}
 
-	default Voluntary<File, ExceptionClass> getStringAsFile()
+	default VoluntaryWithCause<File, ExceptionClass> getStringAsFile()
 	{
 		return getString().map( IO::buildFile );
 	}
 
-	default Voluntary<Path, ExceptionClass> getStringAsPath( Path rel )
+	default VoluntaryWithCause<Path, ExceptionClass> getStringAsPath( Path rel )
 	{
 		return getString().map( s -> IO.buildPath( rel, s ) );
 	}
 
-	default Voluntary<Path, ExceptionClass> getStringAsPath()
+	default VoluntaryWithCause<Path, ExceptionClass> getStringAsPath()
 	{
 		return getString().map( IO::buildPath );
 	}
 
-	default Voluntary<List<String>, ExceptionClass> getStringList()
+	default Voluntary<List<String>> getStringList()
 	{
 		return getStringList( "|" );
 	}
 
 	@SuppressWarnings( "unchecked" )
-	default Voluntary<List<String>, ExceptionClass> getStringList( String delimiter )
+	default Voluntary<List<String>> getStringList( String delimiter )
+	{
+		return Voluntary.of( getStringStream( delimiter ).collect( Collectors.toList() ) );
+	}
+
+	default Stream<String> getStringStream()
+	{
+		return getStringStream( "|" );
+	}
+
+	default Stream<String> getStringStream( @Nonnull String delimiter )
 	{
 		Object value = getValue().orElse( null );
 		if ( value == null )
-			return Voluntary.empty();
+			return Stream.empty();
 		if ( value instanceof List )
-			return Voluntary.of( ( List<String> ) value );
-		return Voluntary.of( value ).map( Objs::castToString ).map( s -> Strs.split( s, delimiter ).collect( Collectors.toList() ) ).removeException();
+			return ( ( List<String> ) value ).stream();
+		return Stream.of( value ).map( Objs::castToString ).flatMap( s -> Strs.split( s, delimiter ) );
 	}
 
-	Voluntary<?, ExceptionClass> getValue();
+	VoluntaryWithCause<?, ExceptionClass> getValue();
 
 	default boolean isColor()
 	{
@@ -180,7 +192,7 @@ public interface ValueTypesTrait<ExceptionClass extends ApplicationException.Err
 
 	default boolean isType( @Nonnull Class<?> type )
 	{
-		Voluntary<?, ExceptionClass> result = getValue();
+		VoluntaryWithCause<?, ExceptionClass> result = getValue();
 		return result.isPresent() && type.isAssignableFrom( result.get().getClass() );
 	}
 }

@@ -35,6 +35,7 @@ import io.amelia.support.Namespace;
 import io.amelia.support.Objs;
 import io.amelia.support.Streams;
 import io.amelia.support.Voluntary;
+import io.amelia.support.VoluntaryWithCause;
 
 @SuppressWarnings( "unchecked" )
 public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, ExceptionClass>, ExceptionClass extends ApplicationException.Error>
@@ -187,11 +188,11 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 	}
 
 	@Nonnull
-	protected Voluntary<BaseClass, ExceptionClass> createChild( @Nonnull String key )
+	protected VoluntaryWithCause<BaseClass, ExceptionClass> createChild( @Nonnull String key )
 	{
 		disposalCheck();
 		if ( hasFlag( Flags.READ_ONLY ) )
-			return Voluntary.withException( getException( getCurrentPath() + " is read only.", null ) );
+			return VoluntaryWithCause.withException( getException( getCurrentPath() + " is read only.", null ) );
 		try
 		{
 			BaseClass child = creator.apply( ( BaseClass ) this, key );
@@ -199,11 +200,11 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 			fireListenerWithException( LISTENER_CHILD_ADD_BEFORE, child );
 			children.add( child );
 			fireListener( LISTENER_CHILD_ADD_AFTER, child );
-			return Voluntary.of( child );
+			return VoluntaryWithCause.ofWithCause( child );
 		}
 		catch ( Exception e )
 		{
-			return Voluntary.withException( ( ExceptionClass ) e );
+			return VoluntaryWithCause.withException( ( ExceptionClass ) e );
 		}
 	}
 
@@ -217,6 +218,7 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 		children.clear();
 		flags.clear();
 		flags.set( Flags.DISPOSED );
+		setDirty( true );
 	}
 
 	public void destroyChild( String key ) throws ExceptionClass
@@ -226,7 +228,7 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 		getChildVoluntary( key ).ifPresent( ContainerBase::destroy );
 	}
 
-	public Voluntary<BaseClass, ExceptionClass> destroyChildAndCreate( String key )
+	public VoluntaryWithCause<BaseClass, ExceptionClass> destroyChildAndCreate( String key )
 	{
 		if ( hasFlag( Flags.READ_ONLY ) )
 			return Voluntary.withException( getException( getCurrentPath() + " is read only.", null ) );
@@ -269,7 +271,7 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 		}
 	}
 
-	protected Voluntary<BaseClass, ExceptionClass> findChild( @Nonnull String key, boolean create )
+	protected VoluntaryWithCause<BaseClass, ExceptionClass> findChild( @Nonnull String key, boolean create )
 	{
 		disposalCheck();
 		Objs.notNull( key );
@@ -279,29 +281,29 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 
 		Namespace ns = Namespace.of( key, getOptions().getSeparator() );
 		if ( ns.getNodeCount() == 0 )
-			return Voluntary.of( ( BaseClass ) this );
+			return VoluntaryWithCause.ofWithCause( ( BaseClass ) this );
 
 		String first = ns.getStringFirst();
-		Voluntary<BaseClass, ExceptionClass> found = null;
+		VoluntaryWithCause<BaseClass, ExceptionClass> found = null;
 
 		for ( BaseClass child : children )
 			if ( child.getName() == null )
 				children.remove( child );
 			else if ( first.equalsIgnoreCase( child.getName() ) )
 			{
-				found = Voluntary.of( child );
+				found = VoluntaryWithCause.ofWithCause( child );
 				break;
 			}
 
 		if ( found == null && !create )
-			return Voluntary.empty();
+			return VoluntaryWithCause.emptyWithCause();
 		if ( found == null )
 			found = createChild( first );
 
 		if ( ns.getNodeCount() <= 1 )
 			return found;
 		else
-			return found.flatMap( child -> child.findChild( ns.subString( 1 ), create ) );
+			return found.flatMapWithCause( child -> child.findChild( ns.subString( 1 ), create ) );
 	}
 
 	final BaseClass findFlag( int flag )
@@ -398,7 +400,7 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 		return getChildOrCreate( type.getPath() );
 	}
 
-	public final Voluntary<BaseClass, ExceptionClass> getChildVoluntary( @Nonnull String key )
+	public final VoluntaryWithCause<BaseClass, ExceptionClass> getChildVoluntary( @Nonnull String key )
 	{
 		return findChild( key, false );
 	}
@@ -512,6 +514,11 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 		return parent != null;
 	}
 
+	public boolean isDirty()
+	{
+		return hasFlag( Flags.DIRTY );
+	}
+
 	public final boolean isDisposed()
 	{
 		return hasFlag( Flags.DISPOSED );
@@ -622,7 +629,7 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 	 *
 	 * @return found instance or null if does not exist.
 	 */
-	public Voluntary<BaseClass, ExceptionClass> pollChild( String key )
+	public VoluntaryWithCause<BaseClass, ExceptionClass> pollChild( String key )
 	{
 		return getChildVoluntary( key ).ifPresentCatchException( ContainerBase::removeFromParent );
 	}
@@ -657,6 +664,7 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 			parent.children.remove( this );
 			fireListener( LISTENER_CHILD_REMOVE_AFTER, parent, this );
 			parent = null;
+			setDirty( true );
 		}
 		return ( BaseClass ) this;
 	}
@@ -697,6 +705,15 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 		child.parent = ( BaseClass ) this;
 		child.containerOptions = null;
 		children.add( child );
+		setDirty( true );
+	}
+
+	public void setDirty( boolean dirty )
+	{
+		if ( dirty )
+			addFlag( Flags.DIRTY );
+		else
+			removeFlag( Flags.DIRTY );
 	}
 
 	public void setName( String localName )
@@ -735,6 +752,8 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 		public static final int NO_FLAG_RECURSION = getNextFlag();
 		// SPECIAL FLAG - DO NOT USE
 		public static final int DISPOSED = getNextFlag();
+		// TODO Indicates this ContainerBase was modified by a method call. This flag has to explicitly be removed to do proper checks.
+		public static final int DIRTY = getNextFlag();
 
 		protected static int getLastFlag()
 		{

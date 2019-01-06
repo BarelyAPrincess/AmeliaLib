@@ -28,8 +28,8 @@ import io.netty.buffer.Unpooled;
 
 public class FileContext
 {
-	private static final Charset DEFAULT_BINARY_CHARSET = Charset.forName( ConfigRegistry.config.getValue( ConfigRegistry.ConfigKeys.DEFAULT_BINARY_CHARSET ) );
-	private static final Charset DEFAULT_TEXT_CHARSET = Charset.forName( ConfigRegistry.config.getValue( ConfigRegistry.ConfigKeys.DEFAULT_TEXT_CHARSET ) );
+	private static final Charset DEFAULT_BINARY_CHARSET = Charset.forName( ConfigRegistry.config.getString( ConfigRegistry.ConfigKeys.DEFAULT_BINARY_CHARSET ) );
+	private static final Charset DEFAULT_TEXT_CHARSET = Charset.forName( ConfigRegistry.config.getString( ConfigRegistry.ConfigKeys.DEFAULT_TEXT_CHARSET ) );
 
 	private final Map<String, String> values = new TreeMap<>();
 	private Charset charset = null;

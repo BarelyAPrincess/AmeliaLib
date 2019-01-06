@@ -14,51 +14,73 @@ import java.util.Map;
 /**
  * Represents a pair with a Key and Value Object
  */
-public class Pair<K, V> implements Map.Entry<K, V>
+public class Pair<LV, RV> implements Map.Entry<LV, RV>
 {
-	private K key;
-	private V val;
+	private LV leftValue;
+	private RV rightValue;
 
 	public Pair()
 	{
-		this.key = null;
-		this.val = null;
+		this.leftValue = null;
+		this.rightValue = null;
 	}
 
-	public Pair( Map.Entry<K, V> entry )
+	public Pair( Map.Entry<LV, RV> entry )
 	{
-		this.key = entry.getKey();
-		this.val = entry.getValue();
+		this.leftValue = entry.getKey();
+		this.rightValue = entry.getValue();
 	}
 
-	public Pair( K key, V val )
+	public Pair( LV leftValue, RV rightValue )
 	{
-		this.key = key;
-		this.val = val;
-	}
-
-	@Override
-	public K getKey()
-	{
-		return key;
-	}
-
-	public void setKey( K key )
-	{
-		this.key = key;
+		this.leftValue = leftValue;
+		this.rightValue = rightValue;
 	}
 
 	@Override
-	public V getValue()
+	public LV getKey()
 	{
-		return val;
+		return leftValue;
+	}
+
+	public LV getLeft()
+	{
+		return leftValue;
+	}
+
+	public RV getRight()
+	{
+		return rightValue;
 	}
 
 	@Override
-	public V setValue( V val )
+	public RV getValue()
 	{
-		V old = this.val;
-		this.val = val;
+		return rightValue;
+	}
+
+	public LV setKey( LV leftValue )
+	{
+		LV old = this.leftValue;
+		this.leftValue = leftValue;
+		return old;
+	}
+
+	public LV setLeft( LV leftValue )
+	{
+		return setKey( leftValue );
+	}
+
+	public RV setRight( RV rightValue )
+	{
+		return setValue( rightValue );
+	}
+
+	@Override
+	public RV setValue( RV rightValue )
+	{
+		RV old = this.rightValue;
+		this.rightValue = rightValue;
 		return old;
 	}
 }

@@ -56,13 +56,10 @@ public class Parcel extends ContainerWithValue<Parcel, Object, ParcelableExcepti
 		super( Parcel::new, parent, key, value );
 	}
 
-	@SuppressWarnings( "unchecked" )
-	public final <T> T getParcelable( String key ) throws ParcelableException.Error
+	@Override
+	protected ParcelableException.Error getException( @Nonnull String message, Exception exception )
 	{
-		if ( !hasChild( key ) )
-			return null;
-
-		return ( T ) getChildVoluntary( key ).mapCatchException( Factory::deserialize ).orElseThrowCause( exception -> new ParcelableException.Error( this, exception ) );
+		return new ParcelableException.Error( this, message, exception );
 	}
 
 	public final <T> T getParcelable( String key, Class<T> objClass ) throws ParcelableException.Error
@@ -73,10 +70,13 @@ public class Parcel extends ContainerWithValue<Parcel, Object, ParcelableExcepti
 		return ( T ) getChildVoluntary( key ).mapCatchException( child -> Factory.deserialize( child, objClass ) ).orElseThrowCause( exception -> new ParcelableException.Error( this, exception ) );
 	}
 
-	@Override
-	protected ParcelableException.Error getException( @Nonnull String message, Exception exception )
+	@SuppressWarnings( "unchecked" )
+	public final <T> T getParcelable( String key ) throws ParcelableException.Error
 	{
-		return new ParcelableException.Error( this, message, exception );
+		if ( !hasChild( key ) )
+			return null;
+
+		return ( T ) getChildVoluntary( key ).mapCatchException( Factory::deserialize ).orElseThrowCause( exception -> new ParcelableException.Error( this, exception ) );
 	}
 
 	/**

@@ -34,6 +34,7 @@ import io.amelia.support.BiFunctionWithException;
 import io.amelia.support.Objs;
 import io.amelia.support.Pair;
 import io.amelia.support.Voluntary;
+import io.amelia.support.VoluntaryWithCause;
 
 @SuppressWarnings( "unchecked" )
 public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<BaseClass, ValueType, ExceptionClass>, ValueType, ExceptionClass extends ApplicationException.Error> extends ContainerBase<BaseClass, ExceptionClass> implements KeyValueSetterTrait<ValueType, ExceptionClass>, ValueSetterTrait<ValueType, ExceptionClass>, KeyValueGetterTrait<ValueType, ExceptionClass>, ValueGetterTrait<ValueType>
@@ -229,7 +230,7 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 		return findChild( key, false ).map( child -> child.getChildren().map( c -> ( ExpectedValueType ) c.value ).filter( Objects::nonNull ).collect( Collectors.toList() ) ).orElse( null );
 	}
 
-	public <T> Voluntary<T, ExceptionClass> getChildAsObject( @Nonnull String key, Class<T> cls )
+	public <T> VoluntaryWithCause<T, ExceptionClass> getChildAsObject( @Nonnull String key, Class<T> cls )
 	{
 		return findChild( key, false ).flatMapCompatible( child -> child.asObject( cls ) );
 	}
@@ -250,13 +251,13 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 	}
 
 	@Override
-	public Voluntary<ValueType, ExceptionClass> getValue( String key, Function<ValueType, ValueType> computeFunction )
+	public VoluntaryWithCause<ValueType, ExceptionClass> getValue( String key, Function<ValueType, ValueType> computeFunction )
 	{
-		return findChild( key, true ).flatMap( child -> child.getValue( computeFunction ) );
+		return findChild( key, true ).flatMapWithCause( child -> child.getValue( computeFunction ) );
 	}
 
 	@Override
-	public Voluntary<ValueType, ExceptionClass> getValue( Function<ValueType, ValueType> computeFunction )
+	public VoluntaryWithCause<ValueType, ExceptionClass> getValue( Function<ValueType, ValueType> computeFunction )
 	{
 		ValueType value = getValue().orElse( null );
 		ValueType newValue = computeFunction.apply( value );
@@ -269,17 +270,17 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 			{
 				return Voluntary.withException( ( ExceptionClass ) e );
 			}
-		return Voluntary.ofNullable( newValue );
+		return VoluntaryWithCause.ofNullableWithCause( newValue );
 	}
 
 	@Override
-	public Voluntary<ValueType, ExceptionClass> getValue( String key, Supplier<ValueType> supplier )
+	public VoluntaryWithCause<ValueType, ExceptionClass> getValue( String key, Supplier<ValueType> supplier )
 	{
-		return findChild( key, true ).flatMap( child -> child.getValue( supplier ) );
+		return findChild( key, true ).flatMapWithCause( child -> child.getValue( supplier ) );
 	}
 
 	@Override
-	public Voluntary<ValueType, ExceptionClass> getValue( Supplier<ValueType> supplier )
+	public VoluntaryWithCause<ValueType, ExceptionClass> getValue( Supplier<ValueType> supplier )
 	{
 		if ( !hasValue() )
 			try
@@ -294,16 +295,16 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 	}
 
 	@Override
-	public Voluntary<ValueType, ExceptionClass> getValue( @Nonnull String key )
+	public VoluntaryWithCause<ValueType, ExceptionClass> getValue( @Nonnull String key )
 	{
-		return findChild( key, false ).flatMap( ContainerWithValue::getValue );
+		return findChild( key, false ).flatMapWithCause( ContainerWithValue::getValue );
 	}
 
 	@Override
-	public Voluntary<ValueType, ExceptionClass> getValue()
+	public VoluntaryWithCause<ValueType, ExceptionClass> getValue()
 	{
 		disposalCheck();
-		return Voluntary.ofNullable( value );
+		return VoluntaryWithCause.ofNullableWithCause( value );
 	}
 
 	@Override
@@ -324,14 +325,14 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 		return !hasValue();
 	}
 
-	public Voluntary<ValueType, ExceptionClass> pollValue()
+	public VoluntaryWithCause<ValueType, ExceptionClass> pollValue()
 	{
-		return Voluntary.ofNullable( updateValue( null ) );
+		return VoluntaryWithCause.ofNullableWithCause( updateValue( null ) );
 	}
 
-	public Voluntary<ValueType, ExceptionClass> pollValue( String key )
+	public VoluntaryWithCause<ValueType, ExceptionClass> pollValue( String key )
 	{
-		return findChild( key, false ).flatMap( ContainerWithValue::pollValue );
+		return findChild( key, false ).flatMapWithCause( ContainerWithValue::pollValue );
 	}
 
 	@Override
@@ -359,20 +360,28 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 	}
 
 	@Override
-	public void setValueIfAbsent( ValueType value ) throws ExceptionClass
+	public void setValueIfAbsent( Supplier<? extends ValueType> value ) throws ExceptionClass
 	{
 		if ( !hasValue() )
-			setValue( value );
+			setValue( value.get() );
 	}
 
 	@Override
 	public void setValueIfAbsent( TypeBase.TypeWithDefault type ) throws ExceptionClass
 	{
-		getChildOrCreate( type ).setValueIfAbsent( ( ValueType ) type.getDefault() );
+		try
+		{
+			getChildOrCreate( type ).setValueIfAbsent( type.getDefaultSupplier() );
+		}
+		catch ( Exception e )
+		{
+			// XXX Why was I getting exception not declared compile errors?
+			throw ( ExceptionClass ) e;
+		}
 	}
 
 	@Override
-	public void setValueIfAbsent( String key, ValueType value ) throws ExceptionClass
+	public void setValueIfAbsent( String key, Supplier<? extends ValueType> value ) throws ExceptionClass
 	{
 		getChildOrCreate( key ).setValueIfAbsent( value );
 	}
@@ -397,6 +406,7 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 		fireListener( LISTENER_VALUE_CHANGE, this.value, value );
 		ValueType oldValue = this.value;
 		this.value = value;
+		setDirty( true );
 		return ( T ) oldValue;
 	}
 

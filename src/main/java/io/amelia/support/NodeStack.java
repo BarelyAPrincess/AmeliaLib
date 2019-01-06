@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import io.amelia.lang.ApplicationException;
 
@@ -215,6 +216,11 @@ public abstract class NodeStack<Self extends NodeStack> implements Cloneable, Co
 		return nodes.length;
 	}
 
+	public Stream<String> getNodeStream()
+	{
+		return Arrays.stream( nodes );
+	}
+
 	public String[] getNodes()
 	{
 		return nodes;
@@ -240,18 +246,31 @@ public abstract class NodeStack<Self extends NodeStack> implements Cloneable, Co
 		return getString( false );
 	}
 
+	public String getString( boolean escape )
+	{
+		return getString( null, escape );
+	}
+
+	public String getString( @Nullable String glue )
+	{
+		return getString( glue, false );
+	}
+
 	/**
 	 * Converts Namespace to a String
 	 *
+	 * @param glue   The glue to hold the compiled string together
 	 * @param escape Shall we escape separator characters in node names
 	 *
 	 * @return The converted String
 	 */
-	public String getString( boolean escape )
+	public String getString( @Nullable String glue, boolean escape )
 	{
+		final String newGlue = glue == null ? this.glue == null ? "." : this.glue : glue;
+		Stream<String> result = Arrays.stream( nodes ).filter( Strs::isNotEmpty );
 		if ( escape )
-			return Arrays.stream( nodes ).filter( Strs::isNotEmpty ).map( n -> n.replace( glue, "\\" + glue ) ).collect( Collectors.joining( glue ) );
-		return Arrays.stream( nodes ).filter( Strs::isNotEmpty ).collect( Collectors.joining( glue ) );
+			result = result.map( n -> n.replace( glue, "\\" + glue ) );
+		return result.collect( Collectors.joining( glue ) );
 	}
 
 	public String getStringFirst()
@@ -443,7 +462,6 @@ public abstract class NodeStack<Self extends NodeStack> implements Cloneable, Co
 		return create( prependString( nodes ) );
 	}
 
-	@SuppressWarnings( "unchecked" )
 	public String[] prependString( String... nodes )
 	{
 		if ( nodes.length == 0 )
@@ -455,13 +473,7 @@ public abstract class NodeStack<Self extends NodeStack> implements Cloneable, Co
 
 	public Self replace( String literal, String replacement )
 	{
-		return create( replaceString( literal, replacement ) );
-	}
-
-	@SuppressWarnings( "unchecked" )
-	public String[] replaceString( String literal, String replacement )
-	{
-		return Arrays.stream( nodes ).map( s -> s.replace( literal, replacement ) ).collect( Collectors.toList() ).toArray( new String[0] );
+		return create( Arrays.stream( nodes ).map( s -> s.replace( literal, replacement ) ).toArray( String[]::new ) );
 	}
 
 	public Self reverseOrder()

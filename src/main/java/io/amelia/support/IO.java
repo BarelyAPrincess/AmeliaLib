@@ -73,6 +73,7 @@ import io.netty.buffer.Unpooled;
 public class IO
 {
 	public static final String PATH_SEPERATOR = File.separator;
+	public static final List<String> excutableExts = Lists.newArrayList( "sh", "py" );
 	private static final char[] BYTE2CHAR = new char[256];
 	private static final String[] BYTE2HEX = new String[256];
 	private static final String[] BYTEPADDING = new String[16];
@@ -84,7 +85,6 @@ public class IO
 	private static final String[] HEXPADDING = new String[16];
 	private static final Kernel.Logger L = Kernel.getLogger( IO.class );
 	private static final String NEWLINE = "\n";
-	public static final List<String> excutableExts = Lists.newArrayList( "sh", "py" );
 
 	static
 	{
@@ -177,6 +177,19 @@ public class IO
 	public static Path buildPath( String... args )
 	{
 		return buildPath( false, args );
+	}
+
+	public static char byteToChar( short inx )
+	{
+		return BYTE2CHAR[inx];
+	}
+
+	public static String bytesToAscii( byte[] bytes )
+	{
+		StringBuilder dump = new StringBuilder();
+		for ( byte aByte : bytes )
+			dump.append( BYTE2CHAR[aByte & 0xFF] );
+		return dump.toString();
 	}
 
 	public static Byte[] bytesToBytes( byte[] bytes )
@@ -323,6 +336,31 @@ public class IO
 		return copy( inputStream, new FileOutputStream( path.toFile() ) );
 	}
 
+	public static boolean createFileIfNotExist( Path path )
+	{
+		try
+		{
+			if ( Files.notExists( path ) )
+			{
+				Files.createFile( path );
+				return true;
+			}
+		}
+		catch ( IOException e )
+		{
+			e.printStackTrace();
+		}
+
+		return false;
+	}
+
+	public static byte[] decodeHex( @Nonnull String data )
+	{
+		if ( data.contains( " " ) )
+			data = data.replaceAll( " ", "" );
+		return DatatypeConverter.parseHexBinary( data );
+	}
+
 	public static void deleteIfExists( File file ) throws IOException
 	{
 		deleteIfExists( file.toPath() );
@@ -382,13 +420,6 @@ public class IO
 			out[j++] = chars[0x0F & data[i]];
 		}
 		return out;
-	}
-
-	public static byte[] decodeHex( @Nonnull String data )
-	{
-		if ( data.contains( " " ) )
-			data = data.replaceAll( " ", "" );
-		return DatatypeConverter.parseHexBinary( data );
 	}
 
 	public static String encodeHexPretty( final byte... data )
@@ -1185,6 +1216,34 @@ public class IO
 		putResource( IO.class, resource, path );
 	}
 
+	public static byte[] readFileToBytes( @Nonnull File file ) throws IOException
+	{
+		InputStream in = null;
+		try
+		{
+			in = new FileInputStream( file );
+			return readStreamToBytes( in );
+		}
+		finally
+		{
+			closeQuietly( in );
+		}
+	}
+
+	public static byte[] readFileToBytes( @Nonnull Path path ) throws IOException
+	{
+		InputStream in = null;
+		try
+		{
+			in = Files.newInputStream( path );
+			return readStreamToBytes( in );
+		}
+		finally
+		{
+			closeQuietly( in );
+		}
+	}
+
 	public static List<String> readFileToLines( @Nonnull Path file, @Nonnull String ignorePrefix ) throws IOException
 	{
 		return readFileToStream( file, ignorePrefix ).collect( Collectors.toList() );
@@ -1223,34 +1282,6 @@ public class IO
 	public static Stream<String> readFileToStream( @Nonnull Path file ) throws IOException
 	{
 		return new BufferedReader( new InputStreamReader( Files.newInputStream( file ) ) ).lines();
-	}
-
-	public static byte[] readFileToBytes( @Nonnull File file ) throws IOException
-	{
-		InputStream in = null;
-		try
-		{
-			in = new FileInputStream( file );
-			return readStreamToBytes( in );
-		}
-		finally
-		{
-			closeQuietly( in );
-		}
-	}
-
-	public static byte[] readFileToBytes( @Nonnull Path path ) throws IOException
-	{
-		InputStream in = null;
-		try
-		{
-			in = Files.newInputStream( path );
-			return readStreamToBytes( in );
-		}
-		finally
-		{
-			closeQuietly( in );
-		}
 	}
 
 	public static String readFileToString( @Nonnull File file ) throws IOException
@@ -2096,18 +2127,5 @@ public class IO
 			long u = o.t;
 			return t < u ? -1 : t == u ? 0 : 1;
 		}
-	}
-
-	public static char byteToChar( short inx )
-	{
-		return BYTE2CHAR[inx];
-	}
-
-	public static String bytesToAscii( byte[] bytes )
-	{
-		StringBuilder dump = new StringBuilder();
-		for ( byte aByte : bytes )
-			dump.append( BYTE2CHAR[aByte & 0xFF] );
-		return dump.toString();
 	}
 }

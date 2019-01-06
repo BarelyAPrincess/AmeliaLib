@@ -10,7 +10,6 @@
 package io.amelia.support;
 
 import com.google.common.base.Charsets;
-import com.sun.istack.internal.NotNull;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -666,7 +665,7 @@ public class Objs
 		return optional.isPresent() ? ifPresentFunction.apply( optional.get() ) : notPresentSupplier.get();
 	}
 
-	public static <T, R, E extends Exception> R ifPresent( @Nonnull Voluntary<T, ?> optional, @Nonnull FunctionWithException<T, R, E> ifPresentFunction, SupplierWithException<R, E> notPresentSupplier ) throws E
+	public static <T, R, E extends Exception> R ifPresent( @Nonnull VoluntaryWithCause<T, ?> optional, @Nonnull FunctionWithException<T, R, E> ifPresentFunction, SupplierWithException<R, E> notPresentSupplier ) throws E
 	{
 		return optional.isPresent() ? ifPresentFunction.apply( optional.get() ) : notPresentSupplier.get();
 	}
@@ -837,11 +836,9 @@ public class Objs
 		}
 	}
 
-	public static VoluntaryBoolean isFalse( @NotNull Optional<?> bool )
+	public static VoluntaryBoolean isFalse( @Nonnull Optional<?> bool )
 	{
-		if ( !bool.isPresent() )
-			return VoluntaryBoolean.empty();
-		return VoluntaryBoolean.ofNullable( !isTrue( bool.get() ) );
+		return bool.map( o -> VoluntaryBoolean.ofNullable( !isTrue( o ) ) ).orElseGet( VoluntaryBoolean::empty );
 	}
 
 	public static <T> boolean isFalse( T bool )
@@ -977,11 +974,15 @@ public class Objs
 		if ( obj == null )
 			throw new NullPointerException( String.format( message, values ) );
 
-		Method methodIsEmpty = getMethodSafe( obj, "hasPendingEntries" );
+		Method methodIsEmpty = getMethodSafe( obj, "isEmpty" );
+		Method methodHasPendingEntries = getMethodSafe( obj, "hasPendingEntries" );
 		Method methodLength = getMethodSafe( obj, "length" );
 		Method methodSize = getMethodSafe( obj, "size" );
 
 		if ( methodIsEmpty != null && invokeMethodSafe( obj, methodIsEmpty, false ) )
+			throw new IllegalArgumentException( String.format( message, values ) );
+
+		if ( methodHasPendingEntries != null && invokeMethodSafe( obj, methodHasPendingEntries, false ) )
 			throw new IllegalArgumentException( String.format( message, values ) );
 
 		if ( methodLength != null )

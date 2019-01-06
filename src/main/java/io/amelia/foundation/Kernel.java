@@ -273,7 +273,7 @@ public class Kernel
 	 */
 	public static boolean isDevelopment()
 	{
-		return devMeta != null && "0".equals( devMeta.getBuildNumber() ) || ConfigRegistry.config.getValue( ConfigRegistry.ConfigKeys.DEVELOPMENT_MODE );
+		return devMeta != null && "0".equals( devMeta.getBuildNumber() ) || ConfigRegistry.config.getBoolean( ConfigRegistry.ConfigKeys.DEVELOPMENT_MODE );
 	}
 
 	protected static void setAppPath( @Nonnull Path appPath )

@@ -23,9 +23,6 @@ import io.amelia.lang.ParcelException;
  */
 public interface ParcelReceiver
 {
-	@Nonnull
-	UUID uuid();
-
 	void handleParcel( ParcelCarrier parcelCarrier ) throws ParcelException.Error;
 
 	/**

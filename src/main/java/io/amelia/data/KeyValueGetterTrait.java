@@ -16,12 +16,13 @@ import java.util.function.Supplier;
 import javax.annotation.Nonnull;
 
 import io.amelia.support.Voluntary;
+import io.amelia.support.VoluntaryWithCause;
 
 public interface KeyValueGetterTrait<ValueType, ExceptionClass extends Exception>
 {
 	Set<String> getKeys();
 
-	default Voluntary<ValueType, ExceptionClass> getValue( String key, Function<ValueType, ValueType> computeFunction )
+	default VoluntaryWithCause<ValueType, ExceptionClass> getValue( String key, Function<ValueType, ValueType> computeFunction )
 	{
 		ValueType value = getValue( key ).orElse( null );
 		ValueType newValue = computeFunction.apply( value );
@@ -35,10 +36,10 @@ public interface KeyValueGetterTrait<ValueType, ExceptionClass extends Exception
 			{
 				return Voluntary.withException( ( ExceptionClass ) e );
 			}
-		return Voluntary.ofNullable( newValue );
+		return VoluntaryWithCause.ofNullableWithCause( newValue );
 	}
 
-	default Voluntary<ValueType, ExceptionClass> getValue( String key, Supplier<ValueType> supplier )
+	default VoluntaryWithCause<ValueType, ExceptionClass> getValue( String key, Supplier<ValueType> supplier )
 	{
 		if ( !hasValue( key ) )
 			try
@@ -53,7 +54,7 @@ public interface KeyValueGetterTrait<ValueType, ExceptionClass extends Exception
 		return getValue( key );
 	}
 
-	Voluntary<ValueType, ExceptionClass> getValue( @Nonnull String key );
+	VoluntaryWithCause<ValueType, ExceptionClass> getValue( @Nonnull String key );
 
 	boolean hasValue( String key );
 }

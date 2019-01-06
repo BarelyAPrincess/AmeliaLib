@@ -21,17 +21,10 @@ import io.amelia.data.ValueTypesTrait;
 import io.amelia.lang.ApplicationException;
 import io.amelia.lang.ParcelException;
 import io.amelia.support.Streams;
-import io.amelia.support.Voluntary;
+import io.amelia.support.VoluntaryWithCause;
 
 public class ParcelChecker
 {
-	private final Node root = new Node();
-
-	public ParcelChecker()
-	{
-
-	}
-
 	public static <ContainerClass extends ContainerWithValue<ContainerClass, Object, ?>> void enforce( @Nonnull ParcelChecker parcelChecker, @Nonnull ContainerClass container, CheckerFlag... flags ) throws ParcelException.Error
 	{
 		if ( container.hasParent() )
@@ -56,7 +49,7 @@ public class ParcelChecker
 
 	private static <ContainerClass extends ContainerWithValue<ContainerClass, Object, ?>> void enforce( @Nonnull Node node, @Nonnull ContainerClass container, @Nonnull EnumSet<CheckerFlag> flags ) throws ParcelException.Error
 	{
-		Voluntary value = container.getValue();
+		VoluntaryWithCause value = container.getValue();
 		if ( node.getValueFlag() == ValueFlag.DENIED && value.isPresent() )
 			throw new ParcelException.Error( "The path " + node.getCurrentPath() + " had a value, however, this is NOT PERMITTED!" );
 		if ( node.getValueFlag() == ValueFlag.REQUIRED && !value.isPresent() )
@@ -84,88 +77,48 @@ public class ParcelChecker
 				enforce( child, otherChild, flags );
 		} );
 	}
+	private final Node root = new Node();
+
+	public ParcelChecker()
+	{
+
+	}
 
 	public void setValueType( @Nonnull String path, @Nonnull ValueType valueType, @Nullable Object def ) throws ParcelException.Error
 	{
 		root.getChildOrCreate( path ).setValueType( valueType, def );
 	}
 
-	protected class Node extends ContainerBase<Node, ParcelException.Error>
+	public enum CheckerFlag
 	{
-		private ValueFlag valueFlag = ValueFlag.DENIED;
-		private ValueType valueType = null;
-		private Object def = null;
+		/**
+		 * Do not throw an exception for additional unspecified keys and values.
+		 */
+		IGNORE_OVERFLOW,
+		/**
+		 * Do not throw an exception for missing keys and values.
+		 */
+		IGNORE_MISSING,
+		/**
+		 * Do not throw an exception for value type mismatch.
+		 */
+		IGNORE_TYPE_MISMATCH,
+	}
 
-		public Object getDefault()
-		{
-			if ( valueType == ValueType.NULL || valueFlag == ValueFlag.DENIED )
-				return null;
-			return def;
-		}
-
-		public boolean hasDefault()
-		{
-			return getDefault() != null;
-		}
-
-		public ValueFlag getValueFlag()
-		{
-			return valueFlag;
-		}
-
-		public ValueType getValueType()
-		{
-			return valueType;
-		}
-
-		public void setValueType( @Nonnull ValueType valueType, @Nullable Object def ) throws ParcelException.Error
-		{
-			if ( !valueType.isType( def ) )
-				throw getException( "Default value \"" + def + "\" does not match the ValueType \"" + valueType.name() + "\"", null );
-
-			this.valueType = valueType;
-			this.def = def;
-			if ( valueFlag == ValueFlag.DENIED )
-				valueFlag = ValueFlag.ALLOW;
-		}
-
-		public void setValueFlag( ValueFlag valueFlag )
-		{
-			if ( valueFlag == ValueFlag.DENIED )
-			{
-				valueType = null;
-				def = null;
-			}
-
-			this.valueFlag = valueFlag;
-		}
-
-		protected Node()
-		{
-			super( Node::new );
-		}
-
-		protected Node( @Nonnull String localName ) throws ParcelException.Error
-		{
-			super( Node::new, localName );
-		}
-
-		protected Node( @Nullable Node parent, @Nonnull String localName ) throws ParcelException.Error
-		{
-			super( Node::new, parent, localName );
-		}
-
-		@Override
-		protected boolean isTrimmable0()
-		{
-			return false;
-		}
-
-		@Override
-		protected ParcelException.Error getException( @Nonnull String message, @Nullable Exception exception )
-		{
-			return new ParcelException.Error( message, exception );
-		}
+	public enum ValueFlag
+	{
+		/**
+		 * Require a value to be set
+		 */
+		REQUIRED,
+		/**
+		 * Allow it but don't complain if missing
+		 */
+		ALLOW,
+		/**
+		 * Deny any value from being set
+		 */
+		DENIED,
 	}
 
 	public enum ValueType
@@ -182,8 +135,8 @@ public class ParcelChecker
 
 		public boolean isType( @Nullable Object def )
 		{
-			ValueTypesTrait tester = () -> Voluntary.of( def );
-			Voluntary result = Voluntary.empty();
+			ValueTypesTrait tester = () -> VoluntaryWithCause.ofWithCause( def );
+			VoluntaryWithCause result = VoluntaryWithCause.emptyWithCause();
 
 			if ( this == BOOLEAN )
 				return tester.getBoolean().isPresent();
@@ -208,35 +161,81 @@ public class ParcelChecker
 		}
 	}
 
-	public enum ValueFlag
+	protected class Node extends ContainerBase<Node, ParcelException.Error>
 	{
-		/**
-		 * Require a value to be set
-		 */
-		REQUIRED,
-		/**
-		 * Allow it but don't complain if missing
-		 */
-		ALLOW,
-		/**
-		 * Deny any value from being set
-		 */
-		DENIED,
-	}
+		private Object def = null;
+		private ValueFlag valueFlag = ValueFlag.DENIED;
+		private ValueType valueType = null;
 
-	public enum CheckerFlag
-	{
-		/**
-		 * Do not throw an exception for additional unspecified keys and values.
-		 */
-		IGNORE_OVERFLOW,
-		/**
-		 * Do not throw an exception for missing keys and values.
-		 */
-		IGNORE_MISSING,
-		/**
-		 * Do not throw an exception for value type mismatch.
-		 */
-		IGNORE_TYPE_MISMATCH,
+		protected Node()
+		{
+			super( Node::new );
+		}
+
+		protected Node( @Nonnull String localName ) throws ParcelException.Error
+		{
+			super( Node::new, localName );
+		}
+
+		protected Node( @Nullable Node parent, @Nonnull String localName ) throws ParcelException.Error
+		{
+			super( Node::new, parent, localName );
+		}
+
+		public Object getDefault()
+		{
+			if ( valueType == ValueType.NULL || valueFlag == ValueFlag.DENIED )
+				return null;
+			return def;
+		}
+
+		@Override
+		protected ParcelException.Error getException( @Nonnull String message, @Nullable Exception exception )
+		{
+			return new ParcelException.Error( message, exception );
+		}
+
+		public ValueFlag getValueFlag()
+		{
+			return valueFlag;
+		}
+
+		public ValueType getValueType()
+		{
+			return valueType;
+		}
+
+		public boolean hasDefault()
+		{
+			return getDefault() != null;
+		}
+
+		@Override
+		protected boolean isTrimmable0()
+		{
+			return false;
+		}
+
+		public void setValueFlag( ValueFlag valueFlag )
+		{
+			if ( valueFlag == ValueFlag.DENIED )
+			{
+				valueType = null;
+				def = null;
+			}
+
+			this.valueFlag = valueFlag;
+		}
+
+		public void setValueType( @Nonnull ValueType valueType, @Nullable Object def ) throws ParcelException.Error
+		{
+			if ( !valueType.isType( def ) )
+				throw getException( "Default value \"" + def + "\" does not match the ValueType \"" + valueType.name() + "\"", null );
+
+			this.valueType = valueType;
+			this.def = def;
+			if ( valueFlag == ValueFlag.DENIED )
+				valueFlag = ValueFlag.ALLOW;
+		}
 	}
 }

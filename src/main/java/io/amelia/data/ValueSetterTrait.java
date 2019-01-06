@@ -9,9 +9,11 @@
  */
 package io.amelia.data;
 
+import java.util.function.Supplier;
+
 public interface ValueSetterTrait<ValueType, ExceptionClass extends Exception>
 {
 	void setValue( ValueType value ) throws ExceptionClass;
 
-	void setValueIfAbsent( ValueType value ) throws ExceptionClass;
+	void setValueIfAbsent( Supplier<? extends ValueType> value ) throws ExceptionClass;
 }

@@ -19,7 +19,7 @@ public interface ConsumerWithException<T, E extends Exception>
 	 *
 	 * @param t the input argument
 	 */
-	void accept( T t ) throws Exception;
+	void accept( T t ) throws E;
 
 	/**
 	 * Returns a composed {@code Consumer} that performs, in sequence, this
