@@ -20,72 +20,19 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 
-import io.amelia.data.TypeBase;
-import io.amelia.foundation.BaseUsers;
 import io.amelia.foundation.ConfigRegistry;
-import io.amelia.lang.ApplicationException;
-import io.amelia.lang.ConfigException;
-import io.amelia.lang.DescriptiveReason;
-import io.amelia.lang.ReportingLevel;
-import io.amelia.lang.UserException;
-import io.amelia.support.Encrypt;
+import io.amelia.foundation.Foundation;
 import io.amelia.support.Objs;
 import io.amelia.support.Streams;
-import io.amelia.support.UserPrincipal;
 
-public class DefaultUsers implements BaseUsers
+public class HoneyUsers extends Users
 {
-	public static final UserCreatorMemory MEMORY = new UserCreatorMemory();
-	public static final UserContext USER_NULL;
-	public static final UserContext USER_ROOT;
-	public static final ReportingLevel[] reportingLevelSeverityArray = new ReportingLevel[] {ReportingLevel.E_ERROR, ReportingLevel.L_SECURITY, ReportingLevel.L_ERROR, ReportingLevel.L_EXPIRED, ReportingLevel.L_DENIED};
-
-	static
-	{
-		try
-		{
-			ConfigRegistry.config.setValueIfAbsent( ConfigKeys.UUID_NULL );
-			ConfigRegistry.config.setValueIfAbsent( ConfigKeys.UUID_ROOT );
-
-			USER_NULL = new UserContext( MEMORY, ConfigRegistry.config.getValue( ConfigKeys.UUID_NULL ), false );
-			USER_ROOT = new UserContext( MEMORY, ConfigRegistry.config.getValue( ConfigKeys.UUID_ROOT ), false );
-		}
-		catch ( ConfigException.Error e )
-		{
-			throw new ApplicationException.Runtime( e );
-		}
-	}
-
-	public static boolean isNullUser( UserPrincipal userPrincipal )
-	{
-		return USER_NULL.uuid().equals( userPrincipal.uuid() );
-	}
-
-	public static boolean isNullUser( UUID uuid )
-	{
-		return USER_NULL.uuid().equals( uuid );
-	}
-
-	public static boolean isRootUser( UserPrincipal userPrincipal )
-	{
-		return USER_ROOT.uuid().equals( userPrincipal.uuid() );
-	}
-
-	public static boolean isRootUser( UUID uuid )
-	{
-		return USER_ROOT.uuid().equals( uuid );
-	}
-
 	volatile Set<UserContext> users = new CopyOnWriteArraySet<>();
 	private boolean isDebugEnabled = ConfigRegistry.config.getValue( ConfigKeys.DEBUG_ENABLED );
 	private volatile Set<UserCreator> userCreators = new CopyOnWriteArraySet<>();
 
-	public DefaultUsers()
-	{
-		userCreators.add( MEMORY );
-	}
-
-	public void addCreator( UserCreator userCreator )
+	@Override
+	public void addUserCreator( UserCreator userCreator )
 	{
 		// UserCreator userCreator = new UserCreatorStorage( name, storageBackend, isDefault );
 		userCreators.add( userCreator );
@@ -98,6 +45,7 @@ public class DefaultUsers implements BaseUsers
 		return createUser( uuid, getDefaultCreator() );
 	}
 
+	@Override
 	public UserContext createUser( @Nonnull UUID uuid, @Nonnull UserCreator userCreator ) throws UserException.Error
 	{
 		if ( !userCreator.isEnabled() )
@@ -107,23 +55,22 @@ public class DefaultUsers implements BaseUsers
 		return userContext;
 	}
 
-	public String generateUuid()
-	{
-		String uuid;
-		do
-			uuid = Encrypt.uuid();
-		while ( userExists( uuid ) );
-		return uuid;
-	}
-
-	public Optional<UserCreator> getUserCreator( String name )
-	{
-		return getUserCreators().filter( userCreator -> name.equalsIgnoreCase( userCreator.name() ) ).findAny();
-	}
-
+	@Override
 	public UserCreator getDefaultCreator()
 	{
 		return getUserCreators().filter( UserCreator::isDefault ).filter( UserCreator::isEnabled ).findAny().orElse( MEMORY );
+	}
+
+	@Override
+	public String getDisplayNameFormat()
+	{
+		return ConfigRegistry.config.getValue( ConfigKeys.DISPLAY_NAME_FORMAT );
+	}
+
+	@Override
+	public String getSingleSignonMessage()
+	{
+		return ConfigRegistry.config.getValue( ConfigKeys.SINGLE_SIGNON_MESSAGE );
 	}
 
 	@Override
@@ -142,9 +89,9 @@ public class DefaultUsers implements BaseUsers
 	{
 		UUID uuid = userResult.uuid();
 
-		if ( Objs.anyMatch( uuid, USER_NULL.uuid(), USER_ROOT.uuid() ) )
+		if ( Objs.anyMatch( uuid, Foundation.getNullEntity().uuid(), Foundation.getRootEntity().uuid() ) )
 		{
-			userResult.setUser( uuid == USER_NULL.uuid() ? USER_NULL : USER_ROOT );
+			userResult.setUser( ( UserContext ) ( uuid == Foundation.getNullEntity().uuid() ? Foundation.getNullEntity() : Foundation.getRootEntity() ) );
 			userResult.setDescriptiveReason( DescriptiveReason.LOGIN_SUCCESS );
 			return;
 		}
@@ -195,6 +142,13 @@ public class DefaultUsers implements BaseUsers
 		return;
 	}
 
+	@Override
+	public Optional<UserCreator> getUserCreator( String name )
+	{
+		return getUserCreators().filter( userCreator -> name.equalsIgnoreCase( userCreator.name() ) ).findAny();
+	}
+
+	@Override
 	public Stream<UserCreator> getUserCreators()
 	{
 		return userCreators.stream();
@@ -206,14 +160,16 @@ public class DefaultUsers implements BaseUsers
 		return users.stream();
 	}
 
-	public boolean isDebugEnabled()
+	@Override
+	public boolean isSingleSignonEnabled()
 	{
-		return isDebugEnabled;
+		return ConfigRegistry.config.getValue( ConfigKeys.SINGLE_SIGNON );
 	}
 
+	@Override
 	void put( UserContext userContext ) throws UserException.Error
 	{
-		if ( Objs.anyMatch( userContext.uuid(), USER_NULL.uuid(), USER_ROOT.uuid() ) )
+		if ( Objs.anyMatch( userContext.uuid(), Foundation.getNullEntity().uuid(), Foundation.getRootEntity().uuid() ) )
 			throw new UserException.Error( userContext, DescriptiveReason.INTERNAL_ERROR );
 		if ( users.stream().anyMatch( user -> user.compareTo( userContext ) == 0 ) )
 			return;
@@ -221,41 +177,28 @@ public class DefaultUsers implements BaseUsers
 		users.add( userContext );
 	}
 
-	public void setDebugEnabled( boolean isDebugEnabled )
+	@Override
+	public void removeUserContext( UserContext userContext )
 	{
-		this.isDebugEnabled = isDebugEnabled;
+		users.remove( userContext );
 	}
 
+	@Override
 	void unload( @Nonnull UUID uuid ) throws UserException.Error
 	{
 		Streams.forEachWithException( users.stream().filter( user -> uuid.equals( user.uuid() ) ), UserContext::unload );
 	}
 
+	@Override
 	void unload() throws UserException.Error
 	{
 		// TODO
 		Streams.forEachWithException( users.stream(), UserContext::unload );
 	}
 
+	@Override
 	public boolean userExists( @Nonnull String uuid )
 	{
 		return getUsers().anyMatch( user -> uuid.equals( user.uuid() ) );
-	}
-
-	public static class ConfigKeys
-	{
-		public static final TypeBase USERS_BASE = new TypeBase( "users" );
-		public static final TypeBase.TypeInteger MAX_LOGINS = new TypeBase.TypeInteger( USERS_BASE, "maxLogins", -1 );
-		public static final TypeBase CREATORS = new TypeBase( USERS_BASE, "userCreators" );
-		public static final TypeBase.TypeString DISPLAY_NAME_FORMAT = new TypeBase.TypeString( USERS_BASE, "displayNameFormat", "${fname} ${name}" );
-		public static final TypeBase.TypeBoolean DEBUG_ENABLED = new TypeBase.TypeBoolean( USERS_BASE, "debugEnabled", false );
-		public static final TypeBase.TypeBoolean SINGLE_SIGNON = new TypeBase.TypeBoolean( USERS_BASE, "singleSignon", false );
-		public static final TypeBase.TypeString SINGLE_SIGNON_MESSAGE = new TypeBase.TypeString( USERS_BASE, "singleSignonMessage", "You logged in from another location." );
-
-		public static final TypeBase.TypeString UUID_NULL = new TypeBase.TypeString( USERS_BASE, "nullUuid", Encrypt.uuid() );
-		public static final TypeBase.TypeString UUID_ROOT = new TypeBase.TypeString( USERS_BASE, "rootUuid", Encrypt.uuid() );
-
-		public static final TypeBase SESSIONS_BASE = new TypeBase( USERS_BASE, "sessions" );
-		public static final TypeBase.TypeInteger SESSIONS_CLEANUP_INTERVAL = new TypeBase.TypeInteger( SESSIONS_BASE, "cleanupInterval", 5 );
 	}
 }
