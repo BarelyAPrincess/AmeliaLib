@@ -22,11 +22,9 @@ import java.util.UUID;
 import javax.annotation.Nonnull;
 
 import io.amelia.bindings.Bindings;
-import io.amelia.bindings.BindingsException;
 import io.amelia.data.ContainerBase;
 import io.amelia.data.parcel.ParcelInterface;
 import io.amelia.data.parcel.ParcelReceiver;
-import io.amelia.events.DefaultEvents;
 import io.amelia.hooks.Hooks;
 import io.amelia.lang.ApplicationException;
 import io.amelia.lang.ExceptionRegistrar;
@@ -35,12 +33,14 @@ import io.amelia.lang.ReportingLevel;
 import io.amelia.lang.StartupException;
 import io.amelia.lang.StartupInterruptException;
 import io.amelia.looper.LooperRouter;
+import io.amelia.permissions.Permissions;
+import io.amelia.plugins.BasePlugins;
 import io.amelia.support.Encrypt;
 import io.amelia.support.EnumColor;
 import io.amelia.support.IO;
 import io.amelia.support.Objs;
 import io.amelia.support.Strs;
-import io.amelia.users.DefaultUsers;
+import io.amelia.users.Users;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -107,84 +107,6 @@ public abstract class BaseApplication implements VendorRegistrar, ExceptionRegis
 		return env;
 	}
 
-	@SuppressWarnings( "unchecked" )
-	public <T extends BasePermissions> T getPermissions()
-	{
-		return ( T ) getPermissions( BasePermissions.class );
-	}
-
-	public <T extends BasePermissions> T getPermissions( Class<T> expectedClass )
-	{
-		try
-		{
-			return Bindings.resolveClassOrFail( expectedClass );
-		}
-		catch ( BindingsException.Error e )
-		{
-			throw new ApplicationException.Runtime( "The Permissions implementation is missing.", e );
-		}
-	}
-
-	@SuppressWarnings( "unchecked" )
-	public <T extends BasePlugins> T getPlugins()
-	{
-		return ( T ) getPlugins( BasePlugins.class );
-	}
-
-	public <T extends BasePlugins> T getPlugins( Class<T> expectedClass )
-	{
-		try
-		{
-			return Bindings.resolveClassOrFail( expectedClass );
-		}
-		catch ( BindingsException.Error e )
-		{
-			throw new ApplicationException.Runtime( "The Plugins implementation is missing.", e );
-		}
-	}
-
-	@SuppressWarnings( "unchecked" )
-	public <T extends DefaultEvents> T getEvents()
-	{
-		return ( T ) getEvents( DefaultEvents.class );
-	}
-
-	public <T extends DefaultEvents> T getEvents( Class<T> expectedClass )
-	{
-		try
-		{
-			return Bindings.resolveClassOrFail( expectedClass );
-		}
-		catch ( BindingsException.Error e )
-		{
-			throw new ApplicationException.Runtime( "The Events implementation is missing.", e );
-		}
-	}
-
-	@SuppressWarnings( "unchecked" )
-	public <T extends DefaultUsers> T getUsers()
-	{
-		return ( T ) getUsers( DefaultUsers.class );
-	}
-
-	public <T extends DefaultUsers> T getUsers( Class<T> expectedClass )
-	{
-		try
-		{
-			return Bindings.resolveClassOrFail( expectedClass );
-		}
-		catch ( BindingsException.Error e )
-		{
-			throw new ApplicationException.Runtime( "The Users implementation is missing.", e );
-		}
-	}
-
-	@Nonnull
-	public UUID uuid()
-	{
-		return env.getString( "uuid" ).map( UUID::fromString ).orElseGet( UUID::randomUUID );
-	}
-
 	public Optional<Integer> getIntegerArgument( String arg )
 	{
 		return Optional.ofNullable( optionSet.valuesOf( arg ) ).filter( l -> l.size() > 0 ).map( l -> ( Integer ) l.get( 0 ) );
@@ -201,6 +123,28 @@ public abstract class BaseApplication implements VendorRegistrar, ExceptionRegis
 		return optionSet;
 	}
 
+	@SuppressWarnings( "unchecked" )
+	public <T extends Permissions> T getPermissions()
+	{
+		return ( T ) getPermissions( Permissions.class );
+	}
+
+	public <T extends Permissions> T getPermissions( Class<T> expectedClass )
+	{
+		return Bindings.resolveClass( expectedClass ).orElseThrowCause( e -> new ApplicationException.Runtime( "The Permissions implementation is missing.", e ) );
+	}
+
+	@SuppressWarnings( "unchecked" )
+	public <T extends BasePlugins> T getPlugins()
+	{
+		return ( T ) getPlugins( BasePlugins.class );
+	}
+
+	public <T extends BasePlugins> T getPlugins( Class<T> expectedClass )
+	{
+		return Bindings.resolveClass( expectedClass ).orElseThrowCause( e -> new ApplicationException.Runtime( "The Plugins implementation is missing.", e ) );
+	}
+
 	public Optional<String> getStringArgument( String arg )
 	{
 		return Optional.ofNullable( optionSet.valuesOf( arg ) ).filter( l -> l.size() > 0 ).map( l -> ( String ) l.get( 0 ) );
@@ -209,6 +153,17 @@ public abstract class BaseApplication implements VendorRegistrar, ExceptionRegis
 	public Optional<List<String>> getStringListArgument( String arg )
 	{
 		return Optional.ofNullable( ( List<String> ) optionSet.valuesOf( arg ) );
+	}
+
+	@SuppressWarnings( "unchecked" )
+	public <T extends Users> T getUsers()
+	{
+		return ( T ) getUsers( Users.class );
+	}
+
+	public <T extends Users> T getUsers( Class<T> expectedClass )
+	{
+		return Bindings.resolveClass( expectedClass ).orElseThrowCause( e -> new ApplicationException.Runtime( "The Users implementation is missing.", e ) );
 	}
 
 	public VendorMeta getVendorMeta()
@@ -231,19 +186,6 @@ public abstract class BaseApplication implements VendorRegistrar, ExceptionRegis
 	public boolean isPrimaryThread()
 	{
 		return primaryThread == Thread.currentThread();
-	}
-
-	public DefaultEvents events()
-	{
-		try
-		{
-			return Bindings.resolveClassOrFail( DefaultEvents.class );
-		}
-		catch ( BindingsException.Error e )
-		{
-			Kernel.getExceptionRegistrar().fatalError( e.getExceptionReport(), true );
-			return null;
-		}
 	}
 
 	@Override
@@ -354,5 +296,11 @@ public abstract class BaseApplication implements VendorRegistrar, ExceptionRegis
 	public void throwStartupException( Exception e ) throws StartupException
 	{
 		throw new StartupException( "There was a problem starting the application", e );
+	}
+
+	@Nonnull
+	public UUID uuid()
+	{
+		return env.getString( "uuid" ).map( UUID::fromString ).orElseGet( UUID::randomUUID );
 	}
 }

@@ -19,17 +19,31 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nonnull;
 
-import io.amelia.foundation.BaseEvents;
+import io.amelia.bindings.Bindings;
 import io.amelia.foundation.Kernel;
 import io.amelia.foundation.RegistrarBase;
+import io.amelia.lang.ApplicationException;
 import io.amelia.lang.DeprecatedDetail;
 import io.amelia.lang.ReportingLevel;
 import io.amelia.support.ConsumerWithException;
 import io.amelia.support.Objs;
 import io.amelia.support.Priority;
 
-public class DefaultEvents implements BaseEvents
+public class Events
 {
+	public static final Kernel.Logger L = Kernel.getLogger( Events.class );
+
+	@SuppressWarnings( "unchecked" )
+	public static <T extends Events> T getInstance()
+	{
+		return ( T ) getInstance( Events.class );
+	}
+
+	public static <T extends Events> T getInstance( Class<T> expectedClass )
+	{
+		return Bindings.resolveClass( expectedClass ).orElseThrowCause( e -> new ApplicationException.Runtime( "The Events implementation is missing.", e ) );
+	}
+
 	private Map<Class<? extends AbstractEvent>, EventHandlers> handlers = new ConcurrentHashMap<>();
 	private Object lock = new Object();
 
@@ -39,7 +53,6 @@ public class DefaultEvents implements BaseEvents
 	 *
 	 * @param event Event details
 	 */
-	@Override
 	public <T extends AbstractEvent> T callEvent( @Nonnull T event )
 	{
 		try
@@ -62,7 +75,6 @@ public class DefaultEvents implements BaseEvents
 	 *
 	 * @throws EventException.Error Thrown if you try to call an async event on a sync thread
 	 */
-	@Override
 	public <T extends AbstractEvent> T callEventWithException( @Nonnull T event ) throws EventException.Error
 	{
 		if ( event.isAsynchronous() )
@@ -141,7 +153,6 @@ public class DefaultEvents implements BaseEvents
 		return eventHandlers;
 	}
 
-	@Override
 	public void listen( @Nonnull final RegistrarBase registrar, @Nonnull final Object listener, @Nonnull final Method method ) throws EventException.Error
 	{
 		final EventHandler eventHandler = method.getAnnotation( EventHandler.class );
@@ -191,7 +202,6 @@ public class DefaultEvents implements BaseEvents
 		} );
 	}
 
-	@Override
 	public void listen( @Nonnull final RegistrarBase registrar, @Nonnull final Object listener )
 	{
 		Objs.notNull( registrar, "Registrar can not be null" );
@@ -216,7 +226,6 @@ public class DefaultEvents implements BaseEvents
 		}
 	}
 
-	@Override
 	public <E extends AbstractEvent> void listen( @Nonnull RegistrarBase registrar, @Nonnull Class<E> event, @Nonnull ConsumerWithException<E, EventException.Error> listener )
 	{
 		listen( registrar, Priority.NORMAL, event, listener );
@@ -230,13 +239,11 @@ public class DefaultEvents implements BaseEvents
 	 * @param event     Event class to register
 	 * @param listener  Consumer that will receive the event
 	 */
-	@Override
 	public <E extends AbstractEvent> void listen( @Nonnull RegistrarBase registrar, @Nonnull Priority priority, @Nonnull Class<E> event, @Nonnull ConsumerWithException<E, EventException.Error> listener )
 	{
 		getEventListeners( event ).register( new RegisteredListener<>( registrar, priority, listener ) );
 	}
 
-	@Override
 	public void unregisterEvents( @Nonnull RegistrarBase registrar )
 	{
 		EventHandlers.unregisterAll( registrar );

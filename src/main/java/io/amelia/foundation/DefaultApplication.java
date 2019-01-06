@@ -10,7 +10,6 @@
 package io.amelia.foundation;
 
 import io.amelia.lang.ApplicationException;
-import io.amelia.logcompat.LogBuilder;
 import io.amelia.looper.LooperRouter;
 import io.amelia.tasks.Tasks;
 
@@ -46,10 +45,10 @@ public abstract class DefaultApplication extends BaseApplication
 			LooperRouter.getMainLooper().postTaskRepeatingLater( () -> Tasks.heartbeat( LooperRouter.getMainLooper().getLastPolledMillis() ), 50L, 50L );
 		if ( currentRunlevel == Runlevel.SHUTDOWN )
 		{
-			LogBuilder.get().info( "Shutting Down Task Manager..." );
+			Foundation.L.info( "Shutting Down Task Manager..." );
 			Tasks.shutdown();
 
-			LogBuilder.get().info( "Saving Configuration..." );
+			Foundation.L.info( "Saving Configuration..." );
 			ConfigRegistry.save();
 
 			try

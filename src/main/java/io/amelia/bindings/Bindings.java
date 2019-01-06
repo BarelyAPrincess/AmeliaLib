@@ -9,6 +9,7 @@
  */
 package io.amelia.bindings;
 
+import java.lang.ref.WeakReference;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -16,14 +17,20 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -33,29 +40,42 @@ import io.amelia.foundation.Foundation;
 import io.amelia.foundation.Kernel;
 import io.amelia.lang.APINotice;
 import io.amelia.support.BiFunctionWithException;
+import io.amelia.support.ConsumerWithException;
 import io.amelia.support.FunctionWithException;
 import io.amelia.support.Namespace;
 import io.amelia.support.Objs;
 import io.amelia.support.QuadFunctionWithException;
 import io.amelia.support.Streams;
 import io.amelia.support.Strs;
+import io.amelia.support.SupplierWithException;
 import io.amelia.support.TriFunctionWithException;
+import io.amelia.support.Voluntary;
+import io.amelia.support.VoluntaryWithCause;
+import io.netty.util.internal.ConcurrentSet;
 
 public class Bindings
 {
 	public static final Kernel.Logger L = Kernel.getLogger( Bindings.class );
-	protected static final BindingMap bindings = BindingMap.empty();
-	protected static final List<BindingResolver> resolvers = new ArrayList<>();
-	protected static final WritableBinding root = new WritableBinding( "" );
+	private static final BindingMap bindings = BindingMap.empty();
+	static final List<BindingResolver> resolvers = new ArrayList<>();
+	private static final WritableBinding root = new WritableBinding( "" );
 
-	static BindingMap getChild( @Nonnull String namespace )
+	@Nullable
+	protected static BindingMap getChild( @Nonnull String namespace )
 	{
-		return bindings.getChild( namespace );
+		if ( Lock.isWriteLockedByCurrentThread() || Lock.isReadLockedByCurrentThread() )
+			return bindings.getChild( namespace );
+		else
+			return Lock.callWithReadLock( () -> Bindings.bindings.getChild( namespace ) );
 	}
 
-	static BindingMap getChildOrCreate( @Nonnull String namespace )
+	@Nonnull
+	protected static BindingMap getChildOrCreate( @Nonnull String namespace )
 	{
-		return bindings.getChildOrCreate( namespace );
+		if ( Lock.isWriteLockedByCurrentThread() || Lock.isReadLockedByCurrentThread() )
+			return bindings.getChildOrCreate( namespace );
+		else
+			return Lock.callWithReadLock( () -> Bindings.bindings.getChildOrCreate( namespace ) );
 	}
 
 	public static ReadableBinding getNamespace( String namespace )
@@ -63,16 +83,17 @@ public class Bindings
 		return new ReadableBinding( namespace );
 	}
 
-	private static List<BindingResolver> getResolvers()
+	private static Stream<BindingResolver> getResolvers()
 	{
 		return getResolvers( null );
 	}
 
-	private static List<BindingResolver> getResolvers( String namespace )
+	private static Stream<BindingResolver> getResolvers( @Nullable String namespace )
 	{
+		namespace = normalizeNamespace( namespace );
+
 		return Lock.callWithReadLock( namespace0 -> {
-			List<BindingResolver> list = new ArrayList<>();
-			namespace0 = normalizeNamespace( namespace0 );
+			return resolvers.stream().sorted( new BindingResolver.Comparator() ).filter( resolver -> namespace0 == null || namespace0.startsWith( resolver.baseNamespace ) );
 
 			/*for ( Map.Entry<String, WeakReference<BoundNamespace>> entry : boundNamespaces.entrySet() )
 				if ( ( namespace == null || namespace.startsWith( entry.getKey() ) ) && entry.getValue().get() != null )
@@ -81,14 +102,6 @@ public class Bindings
 					if ( bindingResolver != null )
 						list.add( bindingResolver );
 				}*/
-
-			resolvers.sort( new BindingResolver.Comparator() );
-
-			for ( BindingResolver bindingResolver : resolvers )
-				if ( namespace0 == null || namespace0.startsWith( bindingResolver.baseNamespace ) )
-					list.add( bindingResolver );
-
-			return list;
 		}, namespace );
 	}
 
@@ -108,12 +121,11 @@ public class Bindings
 	 */
 	public static WritableBinding getSystemNamespace( Class<?> aClass )
 	{
-		// For now we'll assign system namespaces based on the class package, however, in the future we might want to do some additional checking to make sure someone isn't trying to spoof the protected io.amelia package but still allowing out classes to get through.
-
 		Package pack = aClass.getPackage();
 		if ( pack == null )
 			throw new BindingsException.Denied( "We had a problem obtaining the package from class \"" + aClass.getName() + "\"." );
 		String packName = pack.getName();
+		// TODO Pull package from calling class and determine if it's permitted
 		// if ( !packName.startsWith( "io.amelia." ) )
 		// throw new BindingsException.Denied( "Only internal class starting with \"io.amelia\" can be got through this method." );
 		return new WritableBinding( packName );
@@ -164,10 +176,10 @@ public class Bindings
 		} );
 	}
 
-	private static <T> T invokeConstructors( @Nonnull Class<? super T> declaringClass, @Nonnull Predicate<Constructor> constructorPredicate, @Nonnull Object... args ) throws BindingsException.Error
+	private static <T> VoluntaryWithCause<T, BindingsException.Error> invokeConstructors( @Nonnull Class<? super T> declaringClass, @Nonnull Predicate<Constructor> constructorPredicate, @Nonnull Object... args )
 	{
 		if ( declaringClass.isInterface() )
-			return null;
+			return Voluntary.withException( new BindingsException.Error( "Not possible to invoke constructor on interfaces." ) );
 
 		List<Constructor<?>> constructors = Arrays.asList( declaringClass.getDeclaredConstructors() );
 
@@ -196,7 +208,7 @@ public class Bindings
 					result = Bindings.resolveNamespace( Strs.camelToNamespace( parameter.getName() ), parameter.getType(), args );
 
 				if ( result == null )
-					throw new BindingsException.Error( "Could not resolve a value for parameter. {name=" + parameter.getName() + ",type=" + parameter.getType() + "}" );
+					return Voluntary.withException( new BindingsException.Error( "Could not resolve a value for parameter. {name=" + parameter.getName() + ",type=" + parameter.getType() + "}" ) );
 
 				arguments[i] = result;
 			}
@@ -205,24 +217,25 @@ public class Bindings
 			{
 				try
 				{
-					return ( T ) constructor.newInstance( arguments );
+					return Voluntary.ofWithCause( ( T ) constructor.newInstance( arguments ) );
 				}
 				catch ( InstantiationException | IllegalAccessException | InvocationTargetException e )
 				{
+					e.printStackTrace();
 					// Ignore and try next.
 				}
 			}
 		}
 
-		return null;
+		return Voluntary.withException( new BindingsException.Error( "Could not find invoke any constructors, either they are missing or none matched the args provided." ) );
 	}
 
-	public static <T> T invokeFields( @Nonnull Object declaringObject, @Nonnull Predicate<Field> fieldPredicate )
+	public static <T> Voluntary<T> invokeFields( @Nonnull Object declaringObject, @Nonnull Predicate<Field> fieldPredicate )
 	{
 		return invokeFields( declaringObject, fieldPredicate, null );
 	}
 
-	protected static <T> T invokeFields( @Nonnull Object declaringObject, @Nonnull Predicate<Field> fieldPredicate, @Nullable String namespace )
+	protected static <T> Voluntary<T> invokeFields( @Nonnull Object declaringObject, @Nonnull Predicate<Field> fieldPredicate, @Nullable String namespace )
 	{
 		for ( Field field : declaringObject.getClass().getDeclaredFields() )
 			if ( fieldPredicate.test( field ) )
@@ -232,24 +245,24 @@ public class Bindings
 					T obj = ( T ) field.get( declaringObject );
 
 					if ( !field.isAnnotationPresent( DynamicBinding.class ) && !Objs.isEmpty( namespace ) )
-						bindings.getChildOrCreate( namespace ).set( obj );
+						bindings.getChildOrCreate( namespace ).setValue( new BindingReference( obj ) );
 
-					return obj;
+					return Voluntary.of( obj );
 				}
 				catch ( IllegalAccessException | BindingsException.Error error )
 				{
 					error.printStackTrace();
 				}
 
-		return null;
+		return Voluntary.empty();
 	}
 
-	public static <T> T invokeMethods( @Nonnull Object declaringObject, @Nonnull Predicate<Method> methodPredicate )
+	public static <T> Voluntary<T> invokeMethods( @Nonnull Object declaringObject, @Nonnull Predicate<Method> methodPredicate, Object[] objs )
 	{
-		return invokeMethods( declaringObject, methodPredicate, null );
+		return invokeMethods( declaringObject, methodPredicate, null, objs );
 	}
 
-	protected static <T> T invokeMethods( @Nonnull Object declaringObject, @Nonnull Predicate<Method> methodPredicate, @Nullable String namespace )
+	protected static <T> Voluntary<T> invokeMethods( @Nonnull Object declaringObject, @Nonnull Predicate<Method> methodPredicate, @Nullable String namespace, Object[] objs )
 	{
 		Map<Integer, Method> possibleMethods = new TreeMap<>();
 
@@ -262,26 +275,24 @@ public class Bindings
 			try
 			{
 				method.setAccessible( true );
-				T obj = ( T ) method.invoke( declaringObject, resolveParameters( method.getParameters() ) );
+				T obj = ( T ) method.invoke( declaringObject, resolveParameters( method.getParameters(), objs ) );
 
 				if ( !method.isAnnotationPresent( DynamicBinding.class ) && !Objs.isEmpty( namespace ) )
-					bindings.getChildOrCreate( namespace ).set( obj );
+					bindings.getChildOrCreate( namespace ).setValue( new BindingReference( obj ) );
 
-				return obj;
+				return Voluntary.of( obj );
 			}
 			catch ( IllegalAccessException | InvocationTargetException | BindingsException.Error e )
 			{
 				e.printStackTrace();
 			}
 
-		return null;
+		return Voluntary.empty();
 	}
 
 	static String normalizeNamespace( @Nullable String namespace )
 	{
-		if ( namespace == null )
-			return null;
-		return Strs.toAscii( namespace.replaceAll( "[^a-z0-9_.]", "" ) );
+		return namespace == null ? null : Strs.toAscii( namespace.replaceAll( "[^a-z0-9_.]", "" ) );
 	}
 
 	public static String normalizeNamespace( @Nonnull String baseNamespace, @Nullable String namespace )
@@ -312,65 +323,34 @@ public class Bindings
 		resolvers.add( bindingResolver );
 	}
 
-	public static <T> T resolveClass( @Nonnull Class<? super T> expectedClass, @Nonnull Object... args )
+	public static <T> VoluntaryWithCause<T, BindingsException.Error> resolveClass( @Nonnull Class<? super T> expectedClass, @Nonnull Object... args )
 	{
-		try
-		{
-			return resolveClassOrFail( expectedClass, args );
-		}
-		catch ( BindingsException.Error e )
-		{
-			return null;
-		}
+		VoluntaryWithCause<T, BindingsException.Error> result = Voluntary.ofWithCause( getResolvers().map( bindingResolver -> bindingResolver.get( expectedClass, args ) ).filter( Objs::isNotNull ).map( obj -> ( T ) obj ).findAny() );
+
+		if ( !result.isPresent() )
+			result = invokeConstructors( expectedClass, ( constructor ) -> true, args );
+
+		if ( !result.hasErrored() && !result.isPresent() )
+			result = result.withCause( new BindingsException.Error( "Could not resolve class " + expectedClass.getSimpleName() ) );
+
+		return result;
 	}
 
-	public static <T, E extends Exception> T resolveClassOrFail( @Nonnull Class<? super T> expectedClass, @Nonnull Supplier<E> exceptionSupplier, @Nonnull Object... args ) throws E
-	{
-		try
-		{
-			return resolveClassOrFail( expectedClass, args );
-		}
-		catch ( BindingsException.Error e )
-		{
-			throw exceptionSupplier.get();
-		}
-	}
-
-	public static <T> T resolveClassOrFail( @Nonnull Class<? super T> expectedClass, @Nonnull Object... args ) throws BindingsException.Error
-	{
-		for ( BindingResolver bindingResolver : getResolvers() )
-		{
-			Object obj = bindingResolver.get( expectedClass, args );
-			if ( obj != null )
-				return ( T ) obj;
-		}
-
-		T result = Bindings.invokeConstructors( expectedClass, () -> true, args );
-		if ( result != null )
-			return result;
-
-		throw new BindingsException.Error( "Could not resolve class " + expectedClass.getSimpleName() );
-	}
-
-	protected static <T> T resolveNamespace( @Nonnull String namespace, @Nonnull Class<? super T> expectedClass, @Nonnull Object... args )
+	protected static <T> Voluntary<T> resolveNamespace( @Nonnull String namespace, @Nonnull Class<? super T> expectedClass, @Nonnull Object... args )
 	{
 		Objs.notEmpty( namespace );
-
-		for ( BindingResolver bindingResolver : getResolvers( namespace ) )
-		{
-			Object obj = bindingResolver.get( namespace, expectedClass );
-			if ( obj != null )
-				return ( T ) obj;
-		}
-
-		return null;
+		return Voluntary.of( getResolvers( namespace ).map( bindingResolver -> ( T ) bindingResolver.get( namespace, expectedClass ) ).filter( Objs::isNotNull ).findAny() );
 	}
 
-	public static Object[] resolveParameters( @Nonnull Parameter[] parameters ) throws BindingsException.Error
+	/**
+	 * Attempts to resolve the provided parameters in order provided.
+	 */
+	public static Object[] resolveParameters( @Nonnull Parameter[] parameters, @Nullable Object[] args0 ) throws BindingsException.Error
 	{
 		if ( parameters.length == 0 )
 			return new Object[0];
 
+		Map<Class<?>, Object> args = args0 == null ? new HashMap<>() : Arrays.stream( args0 ).collect( Collectors.toMap( Object::getClass, o -> o ) );
 		Object[] parameterObjects = new Object[parameters.length];
 
 		for ( int i = 0; i < parameters.length; i++ )
@@ -384,8 +364,20 @@ public class Bindings
 				obj = root.getObject( ns );
 			}
 
-			if ( obj == null && parameter.isAnnotationPresent( BindingClass.class ) )
-				obj = resolveClass( parameter.getAnnotation( BindingClass.class ).value() );
+			Class<?> classType;
+
+			if ( obj == null )
+			{
+				if ( parameter.isAnnotationPresent( BindingClass.class ) )
+					classType = parameter.getAnnotation( BindingClass.class ).value();
+				else
+					classType = parameter.getType();
+
+				obj = args.entrySet().stream().filter( entry -> classType.isAssignableFrom( entry.getKey() ) ).map( Map.Entry::getValue ).findAny().orElse( null );
+
+				if ( obj == null )
+					obj = resolveClass( parameter.getAnnotation( BindingClass.class ).value() );
+			}
 
 			if ( obj == null )
 				obj = resolveClass( parameter.getType() );
@@ -402,124 +394,187 @@ public class Bindings
 
 	private Bindings()
 	{
-		// Private Access
+		// Static Access
 	}
 
 	protected static class Lock
 	{
-		private static final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+		private static final ReentrantReadWriteLock lock = new ReentrantReadWriteLock( true );
 		private static final java.util.concurrent.locks.Lock readLock = lock.readLock();
 		private static final java.util.concurrent.locks.Lock writeLock = lock.writeLock();
+		private static final Set<WeakReference<Thread>> readLockedThreads = new ConcurrentSet<>();
 
 		protected static <T1, T2, T3, R, E extends Exception> R callWithReadLock( TriFunctionWithException<T1, T2, T3, R, E> function, T1 arg0, T2 arg1, T3 arg2 ) throws E
 		{
-			readLock.lock();
+			readLock();
 			try
 			{
 				return function.apply( arg0, arg1, arg2 );
 			}
 			finally
 			{
-				readLock.unlock();
+				readUnlock();
 			}
 		}
 
 		protected static <T1, T2, R, E extends Exception> R callWithReadLock( BiFunctionWithException<T1, T2, R, E> function, T1 arg0, T2 arg1 ) throws E
 		{
-			readLock.lock();
+			readLock();
 			try
 			{
 				return function.apply( arg0, arg1 );
 			}
 			finally
 			{
-				readLock.unlock();
+				readUnlock();
 			}
 		}
 
 		protected static <T, R, E extends Exception> R callWithReadLock( FunctionWithException<T, R, E> function, T arg0 ) throws E
 		{
-			readLock.lock();
+			readLock();
 			try
 			{
 				return function.apply( arg0 );
 			}
 			finally
 			{
-				readLock.unlock();
+				readUnlock();
+			}
+		}
+
+		protected static <R, E extends Exception> R callWithReadLock( SupplierWithException<R, E> supplier ) throws E
+		{
+			readLock();
+			try
+			{
+				return supplier.get();
+			}
+			finally
+			{
+				readUnlock();
 			}
 		}
 
 		protected static <T1, T2, T3, T4, R, E extends Exception> R callWithWriteLock( QuadFunctionWithException<T1, T2, T3, T4, R, E> function, T1 arg0, T2 arg1, T3 arg2, T4 arg3 ) throws E
 		{
-			writeLock.lock();
+			writeLock();
 			try
 			{
 				return function.apply( arg0, arg1, arg2, arg3 );
 			}
 			finally
 			{
-				writeLock.unlock();
+				writeUnlock();
 			}
 		}
 
 		protected static <T1, T2, T3, R, E extends Exception> R callWithWriteLock( TriFunctionWithException<T1, T2, T3, R, E> function, T1 arg0, T2 arg1, T3 arg2 ) throws E
 		{
-			writeLock.lock();
+			writeLock();
 			try
 			{
 				return function.apply( arg0, arg1, arg2 );
 			}
 			finally
 			{
-				writeLock.unlock();
+				writeUnlock();
 			}
 		}
 
 		protected static <T1, T2, R, E extends Exception> R callWithWriteLock( BiFunctionWithException<T1, T2, R, E> function, T1 arg0, T2 arg1 ) throws E
 		{
-			writeLock.lock();
+			writeLock();
 			try
 			{
 				return function.apply( arg0, arg1 );
 			}
 			finally
 			{
-				writeLock.unlock();
+				writeUnlock();
 			}
 		}
 
 		protected static <T, R, E extends Exception> R callWithWriteLock( FunctionWithException<T, R, E> function, T arg0 ) throws E
 		{
-			writeLock.lock();
+			writeLock();
 			try
 			{
 				return function.apply( arg0 );
 			}
 			finally
 			{
-				writeLock.unlock();
+				writeUnlock();
 			}
 		}
 
-		public void readLock()
+		protected static <T, E extends Exception> void callWithWriteLock( ConsumerWithException<T, E> consumer, T arg0 ) throws E
+		{
+			writeLock();
+			try
+			{
+				consumer.accept( arg0 );
+			}
+			catch ( Exception e )
+			{
+				throw ( E ) e;
+			}
+			finally
+			{
+				writeUnlock();
+			}
+		}
+
+		protected static <T1, T2> void callWithWriteLock( BiConsumer<T1, T2> consumer, T1 arg0, T2 arg1 )
+		{
+			writeLock();
+			try
+			{
+				consumer.accept( arg0, arg1 );
+			}
+			finally
+			{
+				writeUnlock();
+			}
+		}
+
+		public static void readLock()
 		{
 			readLock.lock();
+			readLockedThreads.add( new WeakReference<>( Thread.currentThread() ) );
 		}
 
-		public void readUnlock()
+		public static void readUnlock()
 		{
 			readLock.unlock();
+			readLockedThreads.stream().filter( ref -> Thread.currentThread().equals( ref.get() ) ).forEach( readLockedThreads::remove );
 		}
 
-		public void writeLock()
+		public static boolean isReadLockedByCurrentThread()
 		{
+			return readLockedThreads.stream().filter( ref -> Thread.currentThread().equals( ref.get() ) ).map( WeakReference::get ).findAny().isPresent();
+		}
+
+		public static void writeLock()
+		{
+			if ( isReadLockedByCurrentThread() )
+				throw new RuntimeException( "Read locks can't be upgraded to write locks." );
 			writeLock.lock();
 		}
 
-		public void writeUnlock()
+		public static void writeUnlock()
 		{
 			writeLock.unlock();
+		}
+
+		public static boolean isWriteLockedByCurrentThread()
+		{
+			return lock.isWriteLockedByCurrentThread();
+		}
+
+		public static boolean isWriteLocked()
+		{
+			return lock.isWriteLocked();
 		}
 	}
 }

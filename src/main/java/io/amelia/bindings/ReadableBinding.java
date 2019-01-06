@@ -9,31 +9,25 @@
  */
 package io.amelia.bindings;
 
+import java.util.Optional;
+import java.util.Spliterator;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
-import io.amelia.support.Objs;
+import io.amelia.support.Voluntary;
+import io.amelia.support.VoluntaryWithCause;
 
 public class ReadableBinding
 {
-	final String baseNamespace;
+	final String ourNamespace;
 
-	public ReadableBinding( String baseNamespace )
+	public ReadableBinding( String ourNamespace )
 	{
-		this.baseNamespace = Bindings.normalizeNamespace( baseNamespace );
-	}
-
-	@Nonnull
-	protected BindingMap getBinding( String namespace )
-	{
-		return Bindings.bindings.getChildOrCreate( namespace );
-	}
-
-	@Nonnull
-	protected BindingMap getBinding()
-	{
-		return Bindings.bindings.getChildOrCreate( baseNamespace );
+		this.ourNamespace = Bindings.normalizeNamespace( ourNamespace );
 	}
 
 	/**
@@ -41,28 +35,26 @@ public class ReadableBinding
 	 * <p>
 	 * On top of checking the provided namespace, we also append `facade` and `instance`.
 	 *
-	 * @param namespace The namespace to check
 	 * @param <T>       The {@link FacadeBinding} subclass.
+	 * @param namespace The namespace to check
 	 *
 	 * @return The FacadeService instance, null otherwise.
 	 */
 	@SuppressWarnings( "unchecked" )
-	public <T extends FacadeBinding> T getFacadeBinding( @Nonnull String namespace )
+	public <T extends FacadeBinding> VoluntaryWithCause<T, BindingsException.Error> getFacadeBinding( @Nonnull String namespace )
 	{
-		try
-		{
-			FacadeRegistration<T> facadeRegistration = ( FacadeRegistration<T> ) getFacadeBindingRegistration( namespace );
-			return facadeRegistration == null ? null : facadeRegistration.getHighestPriority();
-		}
-		catch ( ClassCastException e )
-		{
-			return null;
-		}
+		Voluntary<FacadeRegistration> facadeRegistration = getFacadeBindingRegistration( namespace );
+		if ( !facadeRegistration.isPresent() )
+			return VoluntaryWithCause.withException( new BindingsException.Error( "The specified namespace was not resolvable." ) );
+		return VoluntaryWithCause.ofWithCause( ( T ) facadeRegistration.get().getHighestPriority() );
 	}
 
-	public <T extends FacadeBinding> T getFacadeBinding( @Nonnull String namespace, @Nonnull Class<T> expectedClassBinding )
+	public <T extends FacadeBinding> VoluntaryWithCause<T, BindingsException.Error> getFacadeBinding( @Nonnull String namespace, @Nonnull Class<T> expectedClassBinding )
 	{
-		return Objs.ifPresentTest( getFacadeBinding( namespace ), binding -> expectedClassBinding.isAssignableFrom( binding.getClass() ) );
+		VoluntaryWithCause<T, BindingsException.Error> result = getFacadeBinding( namespace );
+		if ( result.isPresent() && !expectedClassBinding.isAssignableFrom( result.get().getClass() ) )
+			return VoluntaryWithCause.withException( new BindingsException.Error( "The specified class did not match the registered facade class. [resultingClass=" + result.get().getClass().getSimpleName() + "]" ) );
+		return result;
 	}
 
 	/**
@@ -72,17 +64,17 @@ public class ReadableBinding
 	 *
 	 * @return facade registration or null
 	 */
-	public FacadeRegistration<FacadeBinding> getFacadeBindingRegistration( @Nonnull String namespace )
+	public Voluntary<FacadeRegistration> getFacadeBindingRegistration( @Nonnull String namespace )
 	{
-		FacadeRegistration facadeRegistration = getObject( namespace, FacadeRegistration.class );
+		Optional<FacadeRegistration> facadeRegistration = getObject( namespace, FacadeRegistration.class ).findAny();
 
-		if ( facadeRegistration == null )
-			facadeRegistration = getObject( namespace + ".facade", FacadeRegistration.class );
+		if ( !facadeRegistration.isPresent() )
+			facadeRegistration = getObject( namespace + ".facade", FacadeRegistration.class ).findAny();
 
-		if ( facadeRegistration == null )
-			facadeRegistration = getObject( namespace + ".instance", FacadeRegistration.class );
+		if ( !facadeRegistration.isPresent() )
+			facadeRegistration = getObject( namespace + ".instance", FacadeRegistration.class ).findAny();
 
-		return facadeRegistration;
+		return Voluntary.of( facadeRegistration );
 	}
 
 	/**
@@ -94,10 +86,10 @@ public class ReadableBinding
 	 */
 	public Stream<FacadeRegistration> getFacadeRegistrations( @Nonnull String namespace )
 	{
-		BindingMap map = getBinding().getChild( namespace );
+		BindingMap map = Bindings.getChild( Bindings.normalizeNamespace( ourNamespace, namespace ) );
 		if ( map == null )
 			return Stream.empty();
-		return map.findValues( FacadeRegistration.class ).map( baseBinding -> ( FacadeRegistration ) baseBinding.getInstance() );
+		return map.findValues( FacadeRegistration.class ).map( baseBinding -> ( FacadeRegistration ) baseBinding.getInstances() );
 	}
 
 	public <T extends FacadeBinding> Stream<T> getFacades( @Nonnull Class<T> facadeService )
@@ -105,45 +97,74 @@ public class ReadableBinding
 		return getFacadeRegistrations( "" ).filter( facadeRegistration -> facadeService.isAssignableFrom( facadeRegistration.getBindingClass() ) ).map( facadeRegistration -> ( T ) facadeRegistration.getHighestPriority() );
 	}
 
-	public <T> T getObject( @Nonnull String namespace, @Nonnull Class<T> objectClass )
+	public <T> Stream<T> getObject( @Nonnull String namespace, @Nonnull Class<T> expectedClass )
 	{
-		try
+		namespace = Bindings.normalizeNamespace( ourNamespace, namespace );
+
+		BindingMap ref = Bindings.getChild( namespace );
+		Stream<T> result;
+
+		if ( ref == null )
 		{
-			return getObjectWithException( namespace, objectClass );
+			Voluntary voluntary = Bindings.resolveNamespace( namespace, expectedClass );
+			result = voluntary.isPresent() ? Stream.empty() : Stream.of( ( T ) voluntary.get() );
 		}
-		catch ( BindingsException.Error error )
+		else
+			result = ref.getValues( expectedClass );
+
+		return result;
+
+		/* return StreamSupport.stream( new Spliterator<T>()
 		{
-			return null;
-		}
+			@Override
+			public int characteristics()
+			{
+				return 0;
+			}
+
+			@Override
+			public long estimateSize()
+			{
+				return 0;
+			}
+
+			@Override
+			public boolean tryAdvance( Consumer<? super T> action )
+			{
+				Bindings.Lock.callWithReadLock( () -> {
+					Object obj = ref == null ?  :ref.getValue();
+
+					if ( obj != null && !expectedClass.isAssignableFrom( obj.getClass() ) )
+						return Voluntary.withException( new BindingsException.Error( "The object returned for namespace `" + namespace + "` wasn't assigned to class `" + expectedClass.getSimpleName() + "`." ) );
+
+					return Voluntary.ofNullable( ( T ) obj );
+				} );
+
+				return false;
+			}
+
+			@Override
+			public Spliterator<T> trySplit()
+			{
+				return null;
+			}
+		}, false ); */
+	}
+
+	public <T> Stream<T> getObject( @Nonnull Class<T> objectClass )
+	{
+		return getObject( ourNamespace, objectClass );
 	}
 
 	@SuppressWarnings( "unchecked" )
-	public <T> T getObject( @Nonnull String namespace ) throws ClassCastException
+	public <T> Stream<T> getObject( @Nonnull String namespace )
 	{
-		// objectClass was not specified, so any subclass of Object is acceptable.
-		return ( T ) getObject( namespace, Object.class );
-	}
-
-	@SuppressWarnings( "unchecked" )
-	public <T> T getObjectWithException( @Nonnull String namespace, @Nonnull Class<T> objectClass ) throws BindingsException.Error
-	{
-		return Bindings.Lock.callWithReadLock( ( namespace0, objectClass0 ) -> {
-			namespace0 = Bindings.normalizeNamespace( baseNamespace, namespace0 );
-
-			BindingMap ref = Bindings.getChild( namespace0 );
-
-			Object obj = ref == null ? Bindings.resolveNamespace( namespace0, objectClass0 ) : ref.getValue();
-
-			if ( obj != null && !objectClass0.isAssignableFrom( obj.getClass() ) )
-				throw new BindingsException.Error( "The object returned for namespace `" + namespace0 + "` wasn't assigned to class `" + objectClass0.getSimpleName() + "`." );
-
-			return ( T ) obj;
-		}, namespace, objectClass );
+		return ( Stream<T> ) getObject( namespace, Object.class );
 	}
 
 	public ReadableBinding getSubNamespace( String namespace )
 	{
-		return Bindings.getNamespace( baseNamespace + "." + namespace );
+		return Bindings.getNamespace( ourNamespace + "." + namespace );
 	}
 
 	/**
@@ -173,6 +194,6 @@ public class ReadableBinding
 	{
 		// TODO Validate writing permission - one such being a check of the calling package
 
-		return new WritableBinding( baseNamespace );
+		return new WritableBinding( ourNamespace );
 	}
 }

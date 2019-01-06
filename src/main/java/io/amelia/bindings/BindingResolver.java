@@ -10,6 +10,7 @@
 package io.amelia.bindings;
 
 import java.lang.reflect.Modifier;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -19,6 +20,7 @@ import javax.annotation.Nonnull;
 import io.amelia.support.Objs;
 import io.amelia.support.StringLengthComparator;
 import io.amelia.support.Strs;
+import io.amelia.support.Voluntary;
 
 /**
  * <pre>
@@ -67,37 +69,37 @@ public abstract class BindingResolver
 		classToClassMappings.put( sourceClass, targetClass );
 	}
 
-	protected <T> T get( @Nonnull String namespace, @Nonnull final String key, @Nonnull Class<T> expectedClass )
+	protected <T> Voluntary<T> get( @Nonnull String namespace, @Nonnull final String key, @Nonnull Class<T> expectedClass, @Nonnull Object... args )
 	{
-		Object obj = null;
+		Voluntary<T> result = Voluntary.empty();
 
 		// TODO WARNING! It's possible that a subclass could crash the application by making looping aliases. We should prevent this!
 		if ( namespaceToNamespaceMappings.containsKey( key ) )
-			obj = get( namespace, namespaceToNamespaceMappings.get( key ), expectedClass );
+			result = get( namespace, namespaceToNamespaceMappings.get( key ), expectedClass );
 
 		// Check for already instigated instances.
-		if ( obj == null && instances.containsKey( key ) )
+		if ( !result.isPresent() && instances.containsKey( key ) )
 			try
 			{
-				obj = instances.get( key );
+				result = Voluntary.of( ( T ) instances.get( key ) );
 			}
 			catch ( ClassCastException e )
 			{
 				// Ignore
 			}
 
-		if ( obj == null && suppliers.containsKey( key ) )
+		if ( !result.isPresent() && suppliers.containsKey( key ) )
 			try
 			{
-				obj = suppliers.get( key );
+				result = Voluntary.of( ( T ) suppliers.get( key ) );
 			}
 			catch ( ClassCastException e )
 			{
 				// Ignore
 			}
 
-		if ( obj == null )
-			obj = Bindings.invokeMethods( this, method -> {
+		if ( !result.isPresent() )
+			result = Bindings.invokeMethods( this, method -> {
 				if ( expectedClass.isAssignableFrom( method.getReturnType() ) )
 				{
 					if ( method.isAnnotationPresent( ProvidesBinding.class ) )
@@ -110,10 +112,10 @@ public abstract class BindingResolver
 					return method.getName().equals( key );
 				}
 				return false;
-			}, namespace );
+			}, namespace, args );
 
-		if ( obj == null )
-			obj = Bindings.invokeFields( this, field -> {
+		if ( !result.isPresent() )
+			result = Bindings.invokeFields( this, field -> {
 				if ( expectedClass.isAssignableFrom( field.getType() ) )
 				{
 					if ( field.isAnnotationPresent( ProvidesBinding.class ) )
@@ -128,14 +130,11 @@ public abstract class BindingResolver
 				return false;
 			}, namespace );
 
-		return ( T ) obj;
+		return result;
 	}
 
-	protected <T> T get( @Nonnull String namespace, @Nonnull Class<T> expectedClass )
+	protected <T> T get( @Nonnull String namespace, @Nonnull Class<T> expectedClass, @Nonnull Object... args )
 	{
-		Objs.notNull( namespace );
-		Objs.notNull( expectedClass );
-
 		// If the requested key is empty, we use the default
 		if ( Objs.isEmpty( namespace ) )
 			if ( Objs.isEmpty( defaultKey ) )
@@ -153,10 +152,10 @@ public abstract class BindingResolver
 		}
 
 		// Convert namespaces to friendly keys
-		Object obj = get( namespace, Strs.toCamelCase( subNamespace ), expectedClass );
+		Object obj = get( namespace, Strs.toCamelCase( subNamespace ), expectedClass, args );
 
 		if ( obj == null )
-			obj = get( namespace, Strs.toCamelCase( namespace ), expectedClass );
+			obj = get( namespace, Strs.toCamelCase( namespace ), expectedClass, args );
 
 		return ( T ) obj;
 	}
@@ -181,7 +180,7 @@ public abstract class BindingResolver
 			obj = get( classToNamespaceMappings.get( expectedClass ), expectedClass, args );
 
 		if ( obj == null )
-			obj = Bindings.invokeMethods( this, method -> expectedClass.isAssignableFrom( method.getReturnType() ) );
+			obj = Bindings.invokeMethods( this, method -> expectedClass.isAssignableFrom( method.getReturnType() ), args );
 
 		if ( obj == null )
 			obj = Bindings.invokeFields( this, field -> expectedClass.isAssignableFrom( field.getType() ) );

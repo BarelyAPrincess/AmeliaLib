@@ -17,12 +17,11 @@ import javax.annotation.Nonnull;
 
 import io.amelia.data.ContainerWithValue;
 import io.amelia.support.Voluntary;
+import io.amelia.support.VoluntaryWithCause;
 
 @SuppressWarnings( "unchecked" )
-public final class BindingMap extends ContainerWithValue<BindingMap, BindingMap.BaseBinding, BindingsException.Error>
+public final class BindingMap extends ContainerWithValue<BindingMap, BindingReference, BindingsException.Error>
 {
-	WeakReference<WritableBinding> owner = null;
-
 	@Nonnull
 	public static BindingMap empty()
 	{
@@ -36,6 +35,8 @@ public final class BindingMap extends ContainerWithValue<BindingMap, BindingMap.
 			throw new RuntimeException( error );
 		}
 	}
+
+	WeakReference<WritableBinding> privatizedOwner = null;
 
 	private BindingMap() throws BindingsException.Error
 	{
@@ -52,41 +53,17 @@ public final class BindingMap extends ContainerWithValue<BindingMap, BindingMap.
 		super( BindingMap::new, parent, key );
 	}
 
-	public Stream<BaseBinding> findValues( Class<?> valueClass )
+	public Stream<BindingReference> findValues( Class<?> valueClass )
 	{
-		return getAllChildren().filter( child -> child.hasValue() && valueClass.isAssignableFrom( child.getValue().get().getObjClass() ) ).map( map -> map.value );
+		return getAllChildren().filter( child -> child.hasValue() && valueClass.isAssignableFrom( child.getValue().get().getObjClass() ) ).flatMap( map -> map.value.getInstances() );
 	}
 
-	public <T> Voluntary<T, BindingsException.Error> getValue( String key, Class<T> cls )
+	public <S> Stream<S> getValues( Class<S> expectedClass )
 	{
-		return getValue( key ).filter( obj -> cls.isAssignableFrom( obj.getClass() ) ).map( obj -> ( T ) obj );
-	}
-
-	public boolean isPrivatized()
-	{
-		return ( owner != null && owner.get() != null || parent != null && parent.isPrivatized() );
-	}
-
-	public void privatize( WritableBinding writableBinding ) throws BindingsException.Denied
-	{
-		if ( isPrivatized() )
-			throw new BindingsException.Denied( "Namespace \"" + getNamespace().getString() + "\" has already been privatized." );
-		// Indented to unprivatize children and notify the potential owners.
-		unprivatize();
-		owner = new WeakReference<>( writableBinding );
-	}
-
-	public <S> void set( @Nonnull Class<S> objClass, @Nonnull Supplier<S> objSupplier ) throws BindingsException.Error
-	{
-		setValue( new BaseBinding( objClass, objSupplier ) );
-	}
-
-	public void set( Object obj ) throws BindingsException.Error
-	{
-		if ( obj == null )
-			setValue( null );
-		else
-			setValue( new BaseBinding( obj ) );
+		BindingReference ref = getValue().orElse( null );
+		if ( ref == null || !expectedClass.isAssignableFrom( ref.getObjClass() ) )
+			return Stream.empty();
+		return ref.getInstances();
 	}
 
 	@Override
@@ -96,11 +73,25 @@ public final class BindingMap extends ContainerWithValue<BindingMap, BindingMap.
 		return new BindingsException.Error( message );
 	}
 
+	public boolean isPrivatized()
+	{
+		return ( privatizedOwner != null && privatizedOwner.get() != null || parent != null && parent.isPrivatized() );
+	}
+
+	public void privatize( WritableBinding writableBinding ) throws BindingsException.Denied
+	{
+		if ( isPrivatized() )
+			throw new BindingsException.Denied( "Namespace \"" + getNamespace().getString() + "\" has already been privatized." );
+		// Indented to unprivatize children and notify the potential owners.
+		unprivatize();
+		privatizedOwner = new WeakReference<>( writableBinding );
+	}
+
 	private void unprivatize()
 	{
 		getChildren().forEach( BindingMap::unprivatize );
-		if ( owner != null && owner.get() != null )
-			owner.get().destroy();
+		if ( privatizedOwner != null && privatizedOwner.get() != null )
+			privatizedOwner.get().destroy();
 	}
 
 	/**
@@ -108,38 +99,7 @@ public final class BindingMap extends ContainerWithValue<BindingMap, BindingMap.
 	 */
 	void unprivatize( WritableBinding writableBinding )
 	{
-		if ( owner != null && owner.get() != null && owner.get() == writableBinding )
-			owner = null;
-	}
-
-	class BaseBinding<S>
-	{
-		final Class<S> objClass;
-		S objInstance = null;
-		Supplier<S> objSupplier = null;
-
-		BaseBinding( @Nonnull S objInstance )
-		{
-			this.objClass = ( Class<S> ) objInstance.getClass();
-			this.objInstance = objInstance;
-		}
-
-		BaseBinding( @Nonnull Class<S> objClass, @Nonnull Supplier<S> objSupplier )
-		{
-			this.objClass = objClass;
-			this.objSupplier = objSupplier;
-		}
-
-		public S getInstance()
-		{
-			if ( objInstance == null )
-				objInstance = objSupplier.get();
-			return objInstance;
-		}
-
-		public Class<S> getObjClass()
-		{
-			return objClass;
-		}
+		if ( privatizedOwner != null && privatizedOwner.get() != null && privatizedOwner.get() == writableBinding )
+			privatizedOwner = null;
 	}
 }

@@ -9,6 +9,9 @@
  */
 package io.amelia.bindings;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 import javax.annotation.Nonnull;
@@ -28,14 +31,14 @@ public class WritableBinding extends ReadableBinding
 
 	public void destroy()
 	{
-		getBinding().unprivatize( this );
+		Bindings.getChildOrCreate( ourNamespace ).privatize( this );
 		this.destroyed = true;
 	}
 
 	@Override
 	public WritableBinding getSubNamespace( String namespace )
 	{
-		return Bindings.getNamespace( baseNamespace + "." + namespace ).writable();
+		return Bindings.getNamespace( ourNamespace + "." + namespace ).writable();
 	}
 
 	public boolean isDestroyed()
@@ -45,7 +48,7 @@ public class WritableBinding extends ReadableBinding
 
 	public boolean isPrivatized()
 	{
-		return !isDestroyed() && getBinding().isPrivatized();
+		return !isDestroyed() && Bindings.getChildOrCreate( ourNamespace ).isPrivatized();
 	}
 
 	/**
@@ -60,12 +63,12 @@ public class WritableBinding extends ReadableBinding
 	 */
 	public void privatize() throws BindingsException.Denied
 	{
-		if ( baseNamespace.startsWith( "io.amelia" ) )
+		if ( ourNamespace.startsWith( "io.amelia" ) )
 			throw new BindingsException.Denied( "Namespace \"io.amelia\" can't privatized as it's reserved for internal use." );
-		if ( Strs.countMatches( baseNamespace, '.' ) < 2 )
+		if ( Strs.countMatches( ourNamespace, '.' ) < 2 )
 			throw new BindingsException.Denied( "Namespaces with less than 3 nodes can't be privatized." );
 
-		Bindings.bindings.getChildOrCreate( baseNamespace ).privatize( this );
+		Bindings.getChildOrCreate( ourNamespace ).privatize( this );
 	}
 
 	public <T extends FacadeBinding> void registerFacadeBinding( @Nonnull Class<T> facadeService, @Nonnull Supplier<T> facadeSupplier ) throws BindingsException.Error
@@ -88,16 +91,16 @@ public class WritableBinding extends ReadableBinding
 		return Bindings.Lock.callWithWriteLock( ( namespace0, facadeService0, facadeSupplier0, facadePriority0 ) -> {
 			namespace0 = Bindings.normalizeNamespace( namespace0 );
 
-			String fullNamespace = Objs.isEmpty( namespace0 ) ? baseNamespace + ".facade" : baseNamespace + "." + namespace0;
+			String fullNamespace = Objs.isEmpty( namespace0 ) ? ourNamespace + ".facade" : ourNamespace + "." + namespace0;
 
-			FacadeRegistration<T> facadeServiceList = getObjectWithException( fullNamespace, FacadeRegistration.class );
+			FacadeRegistration<T> facadeServiceList = getObject( fullNamespace, FacadeRegistration.class ).findAny().orElse( null );
 
 			if ( facadeServiceList == null )
 			{
-				facadeServiceList = new FacadeRegistration<T>( facadeService0 );
-				set( fullNamespace, facadeServiceList );
+				facadeServiceList = new FacadeRegistration<>( facadeService0 );
+				set( fullNamespace, Collections.singletonList( facadeServiceList ) );
 			}
-			else if ( !facadeServiceList.getBindingClass().equals( facadeService0 ) )
+			else if ( !facadeService0.isAssignableFrom( facadeServiceList.getBindingClass() ) )
 				throw new BindingsException.Error( "The facade registered at namespace \"" + namespace0 + "\" does not match the facade already registered." );
 
 			if ( facadeServiceList.isPriorityRegistered( facadePriority0 ) )
@@ -109,14 +112,11 @@ public class WritableBinding extends ReadableBinding
 		}, namespace, facadeService, facadeSupplier, facadePriority );
 	}
 
-	public void set( String namespace, Object obj ) throws BindingsException.Error
+	public <S> void set( String namespace, List<S> obj ) throws BindingsException.Error
 	{
-		namespace = Bindings.normalizeNamespace( namespace );
-
-		if ( !namespace.startsWith( baseNamespace ) )
-			namespace = baseNamespace + "." + namespace;
-
-		getBinding( namespace ).set( obj );
-		getBinding().trimChildren();
+		namespace = Bindings.normalizeNamespace( ourNamespace, namespace );
+		BindingMap map = Bindings.getChildOrCreate( namespace );
+		map.setValue( new BindingReference( obj ) );
+		map.trimChildren();
 	}
 }

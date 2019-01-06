@@ -10,14 +10,15 @@
 package io.amelia.foundation;
 
 import java.io.IOException;
+import java.util.UUID;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import io.amelia.bindings.Bindings;
 import io.amelia.bindings.FacadeRegistration;
-import io.amelia.bindings.FoundationBindingResolver;
 import io.amelia.data.TypeBase;
+import io.amelia.events.Events;
 import io.amelia.events.RunlevelEvent;
 import io.amelia.hooks.Hooks;
 import io.amelia.injection.Libraries;
@@ -27,10 +28,13 @@ import io.amelia.lang.ExceptionReport;
 import io.amelia.lang.StartupException;
 import io.amelia.looper.LooperRouter;
 import io.amelia.looper.MainLooper;
+import io.amelia.permissions.Permissions;
+import io.amelia.support.Encrypt;
 import io.amelia.support.EnumColor;
 import io.amelia.support.IO;
 import io.amelia.support.Objs;
 import io.amelia.support.Timing;
+import io.amelia.users.Users;
 
 /**
  * Used for accessing majority of the Foundation API.<br />
@@ -53,6 +57,8 @@ public final class Foundation
 	private static BaseApplication app = null;
 	private static Runlevel currentRunlevel = Runlevel.INITIALIZATION;
 	private static String currentRunlevelReason = null;
+	private static EntitySubject entityNull;
+	private static EntitySubject entityRoot;
 	private static Runlevel previousRunlevel;
 	private static Object runlevelTimingObject = new Object();
 
@@ -105,15 +111,55 @@ public final class Foundation
 		return previousRunlevel;
 	}
 
+	public static EntitySubject getNullEntity()
+	{
+		return entityNull;
+	}
+
+	public static Permissions getPermissions()
+	{
+		return Bindings.resolveClass( Permissions.class ).orElseThrowCause( e -> new RuntimeException( "Permissions is not implemented!", e ) );
+	}
+
+	public static EntitySubject getRootEntity()
+	{
+		return entityRoot;
+	}
+
 	public static Runlevel getRunlevel()
 	{
 		return currentRunlevel;
+	}
+
+	public static Users getUsers()
+	{
+		return Bindings.resolveClass( Users.class ).orElseThrowCause( e -> new RuntimeException( "Users is not implemented!", e ) );
+	}
+
+	public static boolean isNullEntity( EntityPrincipal entityPrincipal )
+	{
+		return entityNull.uuid().equals( entityPrincipal.uuid() );
+	}
+
+	public static boolean isNullEntity( UUID uuid )
+	{
+		return entityNull.uuid().equals( uuid );
 	}
 
 	public static boolean isPrimaryThread()
 	{
 		// If foundation has yet to be set, then it's anyone's guess which thread is primary and were not willing to take that risk. :(
 		return app == null || app.isPrimaryThread();
+	}
+
+	public static boolean isRootEntity( EntityPrincipal entityPrincipal )
+	{
+		return entityRoot.uuid().equals( entityPrincipal.uuid() );
+	}
+
+	public static boolean isRootEntity( UUID uuid )
+	{
+		return entityRoot.uuid().equals( uuid );
 	}
 
 	public static boolean isRunlevel( Runlevel runlevel )
@@ -126,15 +172,20 @@ public final class Foundation
 	 */
 	private static void onRunlevelChange() throws ApplicationException.Error
 	{
-		app.getEvents().callEventWithException( new RunlevelEvent( previousRunlevel, currentRunlevel ) );
+		Events.getInstance().callEventWithException( new RunlevelEvent( previousRunlevel, currentRunlevel ) );
 
 		app.onRunlevelChange( previousRunlevel, currentRunlevel );
 
 		// Internal runlevel changes happen after this point. Generally progressing the application from each runlevel to the next.
 
-		// TODO Register Foundation Resolver at STARTUP
 		if ( currentRunlevel == Runlevel.STARTUP )
-			Bindings.registerResolver( "io.amelia", new FoundationBindingResolver() );
+		{
+			UUID nullUuid = UUID.fromString( ConfigRegistry.config.getString( ConfigKeys.UUID_NULL ) );
+			UUID rootUuid = UUID.fromString( ConfigRegistry.config.getString( ConfigKeys.UUID_ROOT ) );
+
+			entityNull = Bindings.resolveClass( EntitySubject.class, nullUuid, false ).orElseThrowCause( e -> new ApplicationException.Error( "Failed to create the NULL Entity.", e ) );
+			entityRoot = Bindings.resolveClass( EntitySubject.class, rootUuid, false ).orElseThrowCause( e -> new ApplicationException.Error( "Failed to create the ROOT Entity.", e ) );
+		}
 
 		// Indicates the application has begun the main loop
 		if ( currentRunlevel == Runlevel.MAINLOOP )
@@ -358,7 +409,7 @@ public final class Foundation
 		// Initiate startup procedures.
 		setRunlevel( Runlevel.STARTUP );
 
-		if ( !ConfigRegistry.config.getValue( ConfigKeys.DISABLE_METRICS ) )
+		if ( !ConfigRegistry.config.getBoolean( ConfigKeys.DISABLE_METRICS ) )
 		{
 			// TODO Implement!
 
@@ -397,7 +448,7 @@ public final class Foundation
 		 * </pre>
 		 */
 		public static final TypeBase BINDINGS_FACADES = new TypeBase( "bindings.facades" );
-
+		public static final TypeBase APPLICATION_BASE = ConfigRegistry.ConfigKeys.APPLICATION_BASE;
 		/**
 		 * Specifies a config key for disabling a application metrics.
 		 *
@@ -406,7 +457,10 @@ public final class Foundation
 		 *   disableMetrics: false
 		 * </pre>
 		 */
-		public static final TypeBase.TypeBoolean DISABLE_METRICS = new TypeBase.TypeBoolean( ConfigRegistry.ConfigKeys.APPLICATION_BASE, "disableMetrics", false );
+		public static final TypeBase.TypeBoolean DISABLE_METRICS = new TypeBase.TypeBoolean( APPLICATION_BASE, "disableMetrics", false );
+
+		public static final TypeBase.TypeString UUID_NULL = new TypeBase.TypeString( APPLICATION_BASE, "entityUuidNull", Encrypt.uuid() );
+		public static final TypeBase.TypeString UUID_ROOT = new TypeBase.TypeString( APPLICATION_BASE, "entityUuidRoot", Encrypt.uuid() );
 
 		private ConfigKeys()
 		{
