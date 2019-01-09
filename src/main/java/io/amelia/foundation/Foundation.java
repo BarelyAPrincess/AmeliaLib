@@ -106,6 +106,11 @@ public final class Foundation
 		return currentRunlevelReason;
 	}
 
+	public static Events getEvents()
+	{
+		return Bindings.resolveClass( Events.class ).orElseThrowCause( e -> new RuntimeException( "Events is not implemented!", e ) );
+	}
+
 	public static Runlevel getLastRunlevel()
 	{
 		return previousRunlevel;

@@ -1,6 +1,10 @@
 package io.amelia.database;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.annotation.Nonnull;
 
 import io.amelia.database.drivers.DatabaseDriver;
 import io.amelia.database.drivers.H2Driver;
@@ -10,7 +14,9 @@ import io.amelia.database.drivers.SQLiteDriver;
 import io.amelia.foundation.ConfigData;
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.foundation.Kernel;
+import io.amelia.lang.ApplicationException;
 import io.amelia.lang.StartupException;
+import io.amelia.support.Lists;
 import io.amelia.support.Objs;
 
 /**
@@ -20,21 +26,21 @@ public class DatabaseManager
 {
 	public static final Kernel.Logger L = Kernel.getLogger( DatabaseManager.class );
 
-	private static DatabaseDriver database;
+	private static List<DatabaseManager> instances = new ArrayList<>();
 
-	public static Database getDatabase()
+	public static DatabaseManager getDefault()
 	{
-		if ( database == null )
-			init();
-		return new Database( database );
+		return Lists.compute( instances, DatabaseManager::isDefault, () -> new DatabaseManager( "default" ) );
 	}
 
-	public static void init()
+	public static DatabaseManager getInstance( @Nonnull String id )
 	{
-		database = init( ConfigRegistry.config.getChildOrCreate( "compat.database" ) );
+		if ( "default".equalsIgnoreCase( id ) || id.length() == 0 )
+			throw new ApplicationException.Runtime( "Instance ID must not equal \"default\" or be empty." );
+		return Lists.compute( instances, mgr -> id.equalsIgnoreCase( mgr.id ), () -> new DatabaseManager( id ) );
 	}
 
-	public static DatabaseDriver init( ConfigData section )
+	public static DatabaseDriver makeDatabaseDriver( ConfigData section )
 	{
 		DatabaseDriver databaseDriver = null;
 
@@ -79,6 +85,38 @@ public class DatabaseManager
 		}
 
 		return databaseDriver;
+	}
+
+	private DatabaseDriver database;
+	private String id;
+
+	public DatabaseManager( String id )
+	{
+		this.id = id;
+	}
+
+	public Database getDatabase()
+	{
+		if ( database == null )
+			init();
+		return new Database( database );
+	}
+
+	public DatabaseManager init()
+	{
+		database = makeDatabaseDriver( ConfigRegistry.config.getChildOrCreate( "compat.database" ) );
+		return this;
+	}
+
+	public DatabaseManager init( ConfigData section )
+	{
+		database = makeDatabaseDriver( section );
+		return this;
+	}
+
+	public boolean isDefault()
+	{
+		return "default".equalsIgnoreCase( id );
 	}
 
 	public enum DatabaseDriverType
