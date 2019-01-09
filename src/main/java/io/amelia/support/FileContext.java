@@ -28,12 +28,19 @@ import io.netty.buffer.Unpooled;
 
 public class FileContext
 {
-	private static final Charset DEFAULT_BINARY_CHARSET = Charset.forName( ConfigRegistry.config.getString( ConfigRegistry.ConfigKeys.DEFAULT_BINARY_CHARSET ) );
-	private static final Charset DEFAULT_TEXT_CHARSET = Charset.forName( ConfigRegistry.config.getString( ConfigRegistry.ConfigKeys.DEFAULT_TEXT_CHARSET ) );
+	public static final Charset DEFAULT_BINARY_CHARSET = Charset.forName( ConfigRegistry.config.getString( ConfigRegistry.ConfigKeys.DEFAULT_BINARY_CHARSET ) );
+	public static final Charset DEFAULT_TEXT_CHARSET = Charset.forName( ConfigRegistry.config.getString( ConfigRegistry.ConfigKeys.DEFAULT_TEXT_CHARSET ) );
 
-	private final Map<String, String> values = new TreeMap<>();
+	public static FileContext fromFile( Path path ) throws IOException
+	{
+		FileContext context = new FileContext();
+		context.readFromFile( path );
+		return context;
+	}
+
+	protected final Map<String, String> metaValues = new TreeMap<>();
+	protected ByteBuf content = Unpooled.buffer();
 	private Charset charset = null;
-	private ByteBuf content = Unpooled.buffer();
 	private String contentType = null;
 	private String ext = null;
 	private Path filePath = null;
@@ -43,11 +50,6 @@ public class FileContext
 	private String reqPerm = null;
 	@Maps.Key( "title" )
 	private String title = null;
-
-	public FileContext( Path filePath ) throws IOException
-	{
-		readFromFile( filePath );
-	}
 
 	public Map<String, String> getAnnotations()
 	{
@@ -65,14 +67,6 @@ public class FileContext
 		}
 
 		return charset;
-	}
-
-	public void setCharset( String charset )
-	{
-		if ( Charset.isSupported( charset ) )
-			this.charset = Charset.forName( charset );
-		else
-			Kernel.L.warning( "The charset " + charset + " was set but it's not supported by the JVM!" );
 	}
 
 	@Maps.Key( "charset" )
@@ -126,14 +120,14 @@ public class FileContext
 		return IO.relPath( filePath, relTo );
 	}
 
+	public String getMetaValue( @Nonnull String key )
+	{
+		return metaValues.get( key.toLowerCase() );
+	}
+
 	public String getTitle()
 	{
 		return title;
-	}
-
-	public String getValue( @Nonnull String key )
-	{
-		return values.get( key.toLowerCase() );
 	}
 
 	public boolean hasFilePath()
@@ -141,7 +135,7 @@ public class FileContext
 		return filePath != null && Files.exists( filePath );
 	}
 
-	public void putValue( @Nonnull String key, @Nullable String value )
+	public void putMetaValue( @Nonnull String key, @Nullable String value )
 	{
 		key = key.toLowerCase();
 
@@ -158,9 +152,9 @@ public class FileContext
 		else if ( key.equals( "title" ) )
 			title = value;
 		else if ( Objs.isEmpty( value ) )
-			values.remove( key );
+			metaValues.remove( key );
 		else
-			values.put( key, value );
+			metaValues.put( key, value );
 	}
 
 	public void readFromFile( Path filePath ) throws IOException
@@ -224,7 +218,7 @@ public class FileContext
 							val = val.substring( 1, val.length() - 1 );
 
 						Kernel.L.fine( "Reading annotation " + key + " with value " + val + " for file " + IO.relPath( filePath ) );
-						putValue( key, val );
+						putMetaValue( key, val );
 					}
 					catch ( NullPointerException | ArrayIndexOutOfBoundsException e )
 					{
@@ -252,5 +246,13 @@ public class FileContext
 		{
 			IO.closeQuietly( in );
 		}
+	}
+
+	public void setCharset( String charset )
+	{
+		if ( Charset.isSupported( charset ) )
+			this.charset = Charset.forName( charset );
+		else
+			Kernel.L.warning( "The charset " + charset + " was set but it's not supported by the JVM!" );
 	}
 }

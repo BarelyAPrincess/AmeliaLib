@@ -875,6 +875,28 @@ public class IO
 		return path;
 	}
 
+	public static int getFileSize( InputStream inputStream ) throws IOException
+	{
+		try
+		{
+			return inputStream.available();
+		}
+		finally
+		{
+			closeQuietly( inputStream );
+		}
+	}
+
+	public static int getFileSize( Path path ) throws IOException
+	{
+		return getFileSize( Files.newInputStream( path ) );
+	}
+
+	public static int getFileSize( File file ) throws IOException
+	{
+		return getFileSize( new FileInputStream( file ) );
+	}
+
 	public static long getLastAccess( @Nonnull Path path ) throws IOException
 	{
 		return Files.readAttributes( path, BasicFileAttributes.class ).lastAccessTime().toMillis();

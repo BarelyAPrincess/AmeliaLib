@@ -14,6 +14,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Path;
 
 import io.amelia.support.IO;
 
@@ -24,7 +25,7 @@ public class ApacheConfiguration extends ApacheSection
 
 	}
 
-	public ApacheConfiguration( File source ) throws IOException
+	public ApacheConfiguration( Path source ) throws IOException
 	{
 		if ( source.exists() )
 			if ( source.isFile() )

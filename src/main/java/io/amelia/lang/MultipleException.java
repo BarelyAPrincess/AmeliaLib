@@ -10,8 +10,8 @@
 package io.amelia.lang;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * Used for when multiple exceptions were thrown
@@ -25,8 +25,13 @@ public class MultipleException extends Exception
 		this.exceptions.addAll( exceptions );
 	}
 
-	public List<ExceptionContext> getExceptions()
+	public void addException( ExceptionContext exception )
 	{
-		return Collections.unmodifiableList( exceptions );
+		exceptions.add( exception );
+	}
+
+	public Stream<ExceptionContext> getExceptions()
+	{
+		return exceptions.stream();
 	}
 }

@@ -26,6 +26,8 @@ import io.amelia.lang.ConfigException;
  */
 public class ContentTypes
 {
+	public static final String DEFAULT_CONTENT_TYPE = "application/octet-stream";
+
 	public static void clearType( String ext ) throws ConfigException.Error
 	{
 		getConfigData().destroyChild( ext );

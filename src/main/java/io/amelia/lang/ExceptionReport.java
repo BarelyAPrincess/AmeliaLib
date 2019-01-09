@@ -132,7 +132,7 @@ public final class ExceptionReport
 	 * @param cause            The exception thrown
 	 * @param exceptionContext The EvalContext associated with the eval request
 	 */
-	public final void handleException( @Nonnull Throwable cause, ExceptionContext exceptionContext )
+	public final void handleException( @Nonnull Throwable cause, @Nullable ExceptionContext exceptionContext )
 	{
 		/* Give an IException a chance to self-handle the exception report */
 		if ( cause instanceof ExceptionContext )
@@ -149,8 +149,7 @@ public final class ExceptionReport
 		/* Parse each IException and set hasErrored if one or more IExceptions produced Non-Ignorable Exceptions */
 		if ( cause instanceof MultipleException )
 		{
-			for ( ExceptionContext e : ( ( MultipleException ) cause ).getExceptions() )
-				handleException( ( Throwable ) e, exceptionContext );
+			( ( MultipleException ) cause ).getExceptions().forEach( e -> handleException( ( Throwable ) e, exceptionContext ) );
 			return;
 		}
 

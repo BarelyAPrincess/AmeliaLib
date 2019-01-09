@@ -50,10 +50,10 @@ public class Lists
 		return result;
 	}
 
-	public static <E> E compute( Collection<E> collection, Predicate<E> selectorPredicate )
+	public static <E> E compute( Collection<E> collection, Predicate<E> predicate )
 	{
 		for ( E element : collection )
-			if ( selectorPredicate.test( element ) )
+			if ( predicate.test( element ) )
 				return element;
 		return null;
 	}
