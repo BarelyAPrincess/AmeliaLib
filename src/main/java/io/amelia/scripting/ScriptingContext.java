@@ -34,75 +34,15 @@ import io.amelia.support.Encrypt;
 import io.amelia.support.IO;
 import io.amelia.support.Objs;
 import io.amelia.support.Strs;
-import io.amelia.support.Voluntary;
+import io.amelia.support.VoluntaryWithCause;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
 /**
  * Provides the context to a requested eval of the EvalFactory
  */
-public abstract class ScriptingContext
+public abstract class ScriptingContext<Subclass extends ScriptingContext>
 {
-	public static ScriptingContext fromFile( final File file )
-	{
-		try
-		{
-			return fromFile( new FileInterpreter( file ) );
-		}
-		catch ( IOException e )
-		{
-			ScriptingContext context = new ScriptingContext();
-			context.result.handleException( e, context );
-			return context;
-		}
-	}
-
-	public static ScriptingContext fromFile( final FileInterpreter fi )
-	{
-		ScriptingContext context = fromSource( fi.consumeBytes(), fi.getFilePath() );
-		context.isVirtual = false;
-		context.contentType = fi.getContentType();
-		context.shell = fi.getAnnotations().get( "shell" );
-		return context;
-	}
-
-	public static ScriptingContext fromSource( byte[] source )
-	{
-		return fromSource( source, "<no file>" );
-	}
-
-	public static ScriptingContext fromSource( final byte[] source, final File file )
-	{
-		return fromSource( source, file.getAbsolutePath() );
-	}
-
-	public static ScriptingContext fromSource( final byte[] source, final String filename )
-	{
-		ScriptingContext context = new ScriptingContext();
-		context.isVirtual = true;
-		context.fileName = filename;
-		context.write( source );
-		context.setBaseSource( new String( source, context.charset ) );
-		return context;
-	}
-
-	public static ScriptingContext fromSource( String source )
-	{
-		return fromSource( source, "" );
-	}
-
-	public static ScriptingContext fromSource( final String source, final File file )
-	{
-		return fromSource( source, file.getAbsolutePath() );
-	}
-
-	public static ScriptingContext fromSource( final String source, final String filename )
-	{
-		ScriptingContext context = fromSource( new byte[0], filename );
-		context.write( source.getBytes( context.charset ) );
-		return context;
-	}
-
 	public static List<String> getPreferredExtensions()
 	{
 		return ConfigRegistry.config.getValue( ScriptingFactory.Config.PREFERRED_EXTENSIONS );
@@ -123,24 +63,16 @@ public abstract class ScriptingContext
 	private String shell = "embedded";
 	private String source = null;
 
-	public void addOption( String key, String value )
+	public Subclass addOption( String key, String value )
 	{
 		options.add( new KeyValueDefinedOption( key, value ) );
+		return ( Subclass ) this;
 	}
 
-	public void addOption( ScriptingOption option, String value )
+	public Subclass addOption( ScriptingOption option, String value )
 	{
 		options.add( new ImplDefinedOption( option, value ) );
-	}
-
-	public Optional<DefinedOption> getOption( ScriptingOption scriptingOption )
-	{
-		return getOptions().filter( opt -> opt instanceof ImplDefinedOption && ( ( ImplDefinedOption ) opt ).getOption() == scriptingOption ).findAny();
-	}
-
-	public Stream<DefinedOption> getOptions()
-	{
-		return options.stream();
+		return ( Subclass ) this;
 	}
 
 	public Object eval() throws ScriptingException.Error, ScriptingException.Runtime, MultipleException
@@ -199,31 +131,14 @@ public abstract class ScriptingContext
 		return cacheDirectory;
 	}
 
-	public ScriptingContext setCachePath( Path cache )
-	{
-		this.cacheDirectory = cache;
-		return this;
-	}
-
-	Charset getCharset()
+	public Charset getCharset()
 	{
 		return charset;
-	}
-
-	void setCharset( Charset charset )
-	{
-		this.charset = charset;
 	}
 
 	public String getContentType()
 	{
 		return contentType;
-	}
-
-	public ScriptingContext setContentType( final String contentType )
-	{
-		this.contentType = contentType;
-		return this;
 	}
 
 	protected Path getDefaultCachePath()
@@ -234,6 +149,16 @@ public abstract class ScriptingContext
 	public String getFileName()
 	{
 		return fileName;
+	}
+
+	public Optional<DefinedOption> getOption( ScriptingOption scriptingOption )
+	{
+		return getOptions().filter( opt -> ImplDefinedOption.class.isAssignableFrom( opt.getClass() ) && ( ( ImplDefinedOption ) opt ).getOption() == scriptingOption ).findAny();
+	}
+
+	public Stream<DefinedOption> getOptions()
+	{
+		return options.stream();
 	}
 
 	public Path getPath()
@@ -253,16 +178,6 @@ public abstract class ScriptingContext
 		return scriptBaseClass;
 	}
 
-	public void setFileName( String fileName )
-	{
-		this.fileName = fileName;
-	}
-
-	public void setScriptBaseClass( String scriptBaseClass )
-	{
-		this.scriptBaseClass = scriptBaseClass;
-	}
-
 	public String getScriptClassName()
 	{
 		if ( getScriptPackage() == null )
@@ -277,10 +192,36 @@ public abstract class ScriptingContext
 		return scriptName;
 	}
 
-	public ScriptingContext setScriptName( String scriptName )
+	public String getScriptPackage()
 	{
-		this.scriptName = scriptName;
-		return this;
+		return scriptPackage;
+	}
+
+	public String getScriptSimpleName()
+	{
+		return scriptName == null ? null : scriptName.contains( "." ) ? scriptName.substring( 0, scriptName.lastIndexOf( "." ) ) : scriptName;
+	}
+
+	public abstract ScriptingFactory getScriptingFactory();
+
+	public String getShell()
+	{
+		return shell;
+	}
+
+	public boolean isVirtual()
+	{
+		return isVirtual;
+	}
+
+	public String md5Hash()
+	{
+		return Encrypt.md5Hex( readBytes() );
+	}
+
+	public String read() throws Exception
+	{
+		return read( true, false );
 	}
 
 	/* public SQLModelBuilder model() throws ScriptingException, MultipleException
@@ -316,60 +257,6 @@ public abstract class ScriptingContext
 		scriptingFactory.print( str );
 		return ( SQLModelBuilder ) result.getScript();
 	}*/
-
-	public String getScriptPackage()
-	{
-		return scriptPackage;
-	}
-
-	public ScriptingContext setScriptPackage( String scriptPackage )
-	{
-		this.scriptPackage = scriptPackage;
-		return this;
-	}
-
-	public String getScriptSimpleName()
-	{
-		return scriptName == null ? null : scriptName.contains( "." ) ? scriptName.substring( 0, scriptName.lastIndexOf( "." ) ) : scriptName;
-	}
-
-	public abstract ScriptingFactory getScriptingFactory();
-
-	ScriptingContext setScriptingFactory( final ScriptingFactory factory )
-	{
-		this.scriptingFactory = factory;
-
-		if ( getContentType() == null && getFileName() != null )
-			setContentType( ContentTypes.getContentTypes( getFileName() ).findFirst().orElse( null ) );
-
-		return this;
-	}
-
-	public String getShell()
-	{
-		return shell;
-	}
-
-	public ScriptingContext setShell( String shell )
-	{
-		this.shell = shell;
-		return this;
-	}
-
-	public boolean isVirtual()
-	{
-		return isVirtual;
-	}
-
-	public String md5Hash()
-	{
-		return Encrypt.md5Hex( readBytes() );
-	}
-
-	public String read() throws Exception
-	{
-		return read( true, false );
-	}
 
 	public String read( boolean printErrors ) throws Exception
 	{
@@ -471,7 +358,7 @@ public abstract class ScriptingContext
 		return source;
 	}
 
-	public ScriptingContext setBaseSource( String source )
+	public Subclass setBaseSource( String source )
 	{
 		// TODO Presently debug source files are only created when the entire server is in debug, however, we should make it so developers can turn this feature on per webroot or source file.
 		if ( Kernel.isDevelopment() )
@@ -487,7 +374,71 @@ public abstract class ScriptingContext
 			}
 
 		this.source = source;
-		return this;
+		return ( Subclass ) this;
+	}
+
+	public Subclass setCachePath( Path cache )
+	{
+		this.cacheDirectory = cache;
+		return ( Subclass ) this;
+	}
+
+	public Subclass setCharset( Charset charset )
+	{
+		this.charset = charset;
+		return ( Subclass ) this;
+	}
+
+	public Subclass setContentType( final String contentType )
+	{
+		this.contentType = contentType;
+		return ( Subclass ) this;
+	}
+
+	public Subclass setFileName( String fileName )
+	{
+		this.fileName = fileName;
+		return ( Subclass ) this;
+	}
+
+	public Subclass setScriptBaseClass( String scriptBaseClass )
+	{
+		this.scriptBaseClass = scriptBaseClass;
+		return ( Subclass ) this;
+	}
+
+	public Subclass setScriptName( String scriptName )
+	{
+		this.scriptName = scriptName;
+		return ( Subclass ) this;
+	}
+
+	public Subclass setScriptPackage( String scriptPackage )
+	{
+		this.scriptPackage = scriptPackage;
+		return ( Subclass ) this;
+	}
+
+	public Subclass setScriptingFactory( final ScriptingFactory factory )
+	{
+		this.scriptingFactory = factory;
+
+		if ( getContentType() == null && getFileName() != null )
+			setContentType( ContentTypes.getContentTypes( getFileName() ).findFirst().orElse( null ) );
+
+		return ( Subclass ) this;
+	}
+
+	public Subclass setShell( String shell )
+	{
+		this.shell = shell;
+		return ( Subclass ) this;
+	}
+
+	public Subclass setVirtual( boolean virtual )
+	{
+		isVirtual = virtual;
+		return ( Subclass ) this;
 	}
 
 	@Override
@@ -506,19 +457,14 @@ public abstract class ScriptingContext
 		content.writeBytes( source );
 	}
 
-	public class KeyValueDefinedOption extends DefinedOption
+	public class DefinedOption implements ValueTypesTrait<ApplicationException.Error>
 	{
-		private final String key;
+		String value;
 
-		KeyValueDefinedOption( String key, String value )
+		@Override
+		public VoluntaryWithCause<String, ApplicationException.Error> getValue()
 		{
-			this.key = key;
-			this.value = value;
-		}
-
-		public String getKey()
-		{
-			return key;
+			return VoluntaryWithCause.ofNullableWithCause( value );
 		}
 	}
 
@@ -538,14 +484,19 @@ public abstract class ScriptingContext
 		}
 	}
 
-	public class DefinedOption implements ValueTypesTrait<ApplicationException.Error>
+	public class KeyValueDefinedOption extends DefinedOption
 	{
-		String value;
+		private final String key;
 
-		@Override
-		public Voluntary<String, ApplicationException.Error> getValue()
+		KeyValueDefinedOption( String key, String value )
 		{
-			return Voluntary.ofNullable( value );
+			this.key = key;
+			this.value = value;
+		}
+
+		public String getKey()
+		{
+			return key;
 		}
 	}
 }

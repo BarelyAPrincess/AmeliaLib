@@ -10,6 +10,7 @@
 package io.amelia.scripting;
 
 import java.nio.charset.Charset;
+import java.util.stream.Stream;
 
 import groovy.lang.Script;
 import io.amelia.lang.ExceptionContext;
@@ -37,42 +38,59 @@ public class ScriptingResult
 		this.content = content;
 	}
 
-	@Override
-	public ScriptingResult addException( Exception exception )
+	public ScriptingResult addException( Throwable throwable )
 	{
-		IException.check( exception );
-		if ( exception != null )
-			if ( exception instanceof ScriptingException )
+		if ( throwable != null )
+			if ( throwable instanceof ScriptingException.Error )
 			{
 				// If this EvalException never had it's script trace populated, we handle it here
-				if ( !( ( ScriptingException ) exception ).hasScriptTrace() )
+				if ( !( ( ScriptingException.Error ) throwable ).hasScriptTrace() )
 					if ( context.getScriptingFactory() != null )
-						( ( ScriptingException ) exception ).populateScriptTrace( context.getScriptingFactory().stack() );
-					else if ( context.getRequest() != null )
-						( ( ScriptingException ) exception ).populateScriptTrace( context.getRequest().getScriptingFactory().stack() );
-				caughtExceptions.add( exception );
+						( ( ScriptingException.Error ) throwable ).populateScriptTrace( context.getScriptingFactory().getStack() );
+					else if ( context.getResult() != null )
+						( ( ScriptingException.Error ) throwable ).populateScriptTrace( context.getScriptingFactory().getStack() );
+				exceptionReport.addException( ( ScriptingException.Error ) throwable );
+			}
+			else if ( throwable instanceof ScriptingException.Runtime )
+			{
+				// If this EvalException never had it's script trace populated, we handle it here
+				if ( !( ( ScriptingException.Runtime ) throwable ).hasScriptTrace() )
+					if ( context.getScriptingFactory() != null )
+						( ( ScriptingException.Runtime ) throwable ).populateScriptTrace( context.getScriptingFactory().getStack() );
+					else if ( context.getResult() != null )
+						( ( ScriptingException.Runtime ) throwable ).populateScriptTrace( context.getScriptingFactory().getStack() );
+				exceptionReport.addException( ( ScriptingException.Runtime ) throwable );
 			}
 			else
-				super.addException( exception );
+				exceptionReport.addException( new ScriptingException.Error( throwable ).populateScriptTrace( context.getScriptingFactory().getStack() ) );
 		return this;
 	}
 
-	@Override
 	public ScriptingResult addException( ReportingLevel level, Throwable throwable )
 	{
 		if ( throwable != null )
-			if ( throwable instanceof ScriptingException )
+			if ( throwable instanceof ScriptingException.Error )
 			{
 				// If this EvalException never had it's script trace populated, we handle it here
-				if ( !( ( ScriptingException ) throwable ).hasScriptTrace() )
+				if ( !( ( ScriptingException.Error ) throwable ).hasScriptTrace() )
 					if ( context.getScriptingFactory() != null )
-						( ( ScriptingException ) throwable ).populateScriptTrace( context.getScriptingFactory().stack() );
-					else if ( context.request() != null )
-						( ( ScriptingException ) throwable ).populateScriptTrace( context.request().getScriptingFactory().stack() );
-				caughtExceptions.add( ( ScriptingException ) throwable );
+						( ( ScriptingException.Error ) throwable ).populateScriptTrace( context.getScriptingFactory().getStack() );
+					else if ( context.getResult() != null )
+						( ( ScriptingException.Error ) throwable ).populateScriptTrace( context.getScriptingFactory().getStack() );
+				exceptionReport.addException( level, ( ScriptingException.Error ) throwable );
+			}
+			else if ( throwable instanceof ScriptingException.Runtime )
+			{
+				// If this EvalException never had it's script trace populated, we handle it here
+				if ( !( ( ScriptingException.Runtime ) throwable ).hasScriptTrace() )
+					if ( context.getScriptingFactory() != null )
+						( ( ScriptingException.Runtime ) throwable ).populateScriptTrace( context.getScriptingFactory().getStack() );
+					else if ( context.getResult() != null )
+						( ( ScriptingException.Runtime ) throwable ).populateScriptTrace( context.getScriptingFactory().getStack() );
+				exceptionReport.addException( level, ( ScriptingException.Runtime ) throwable );
 			}
 			else
-				caughtExceptions.add( new ScriptingException( level, throwable ).populateScriptTrace( context.getScriptingFactory().stack() ) );
+				exceptionReport.addException( level, new ScriptingException.Error( throwable ).populateScriptTrace( context.getScriptingFactory().getStack() ) );
 		return this;
 	}
 
@@ -91,19 +109,24 @@ public class ScriptingResult
 		return exceptionReport;
 	}
 
-	public IException[] getExceptions()
+	public Stream<ExceptionContext> getSevereExceptions()
 	{
-		return caughtExceptions.toArray( new IException[0] );
+		return exceptionReport.getSevereExceptions();
+	}
+
+	public Stream<ExceptionContext> getIgnorableExceptions()
+	{
+		return exceptionReport.getIgnorableExceptions();
+	}
+
+	public Stream<ExceptionContext> getExceptions()
+	{
+		return exceptionReport.getExceptions();
 	}
 
 	public Object getObject()
 	{
 		return obj;
-	}
-
-	public void setObject( Object obj )
-	{
-		this.obj = obj;
 	}
 
 	public String getReason()
@@ -113,20 +136,9 @@ public class ScriptingResult
 		return reason;
 	}
 
-	public ScriptingResult setReason( String reason )
-	{
-		this.reason = reason;
-		return this;
-	}
-
 	public Script getScript()
 	{
 		return script;
-	}
-
-	public void setScript( Script script )
-	{
-		this.script = script;
 	}
 
 	public String getString()
@@ -134,9 +146,10 @@ public class ScriptingResult
 		return ( content == null ? "" : content.toString( Charset.defaultCharset() ) );
 	}
 
-	public void handleException( ScriptingContext context, Throwable throwable ) throws EvalSevereError
+	public void handleException( Throwable throwable )
 	{
-
+		exceptionReport.handleException( throwable );
+		setFailure();
 	}
 
 	public boolean hasObject()
@@ -153,6 +166,22 @@ public class ScriptingResult
 	{
 		success = false;
 		return this;
+	}
+
+	public void setObject( Object obj )
+	{
+		this.obj = obj;
+	}
+
+	public ScriptingResult setReason( String reason )
+	{
+		this.reason = reason;
+		return this;
+	}
+
+	public void setScript( Script script )
+	{
+		this.script = script;
 	}
 
 	public ScriptingResult setSuccess()

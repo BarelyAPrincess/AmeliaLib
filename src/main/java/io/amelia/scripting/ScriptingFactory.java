@@ -198,7 +198,7 @@ public class ScriptingFactory
 		{
 			String name;
 			if ( context.isVirtual() )
-				name = "EvalScript" + Encrypt.rand( 8 ) + ".chi";
+				name = "EvalScript" + Encrypt.rand( 8 ) + ".hps";
 			else
 			{
 				String rel = IO.relPath( context.getPath().getParent(), context.webroot().directory() ).replace( '\\', '.' ).replace( '/', '.' );
@@ -387,7 +387,7 @@ public class ScriptingFactory
 		binding.setVariable( key, val );
 	}
 
-	public StackFactory stack()
+	public StackFactory getStack()
 	{
 		return stackFactory;
 	}

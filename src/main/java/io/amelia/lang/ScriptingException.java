@@ -77,7 +77,7 @@ public class ScriptingException
 		{
 			/* Forward this type of exception to the report */
 			if ( exceptionContext instanceof ScriptingContext )
-				populateScriptTrace( ( ( ScriptingContext ) exceptionContext ).getScriptingFactory().stack() );
+				populateScriptTrace( ( ( ScriptingContext ) exceptionContext ).getScriptingFactory().getStack() );
 			exceptionReport.addException( level, this );
 			return level;
 		}
@@ -92,9 +92,10 @@ public class ScriptingException
 			return getCause() != null && getCause().getStackTrace().length > 0 && getCause().getStackTrace()[0].getClassName().startsWith( "org.codehaus.groovy.runtime" );
 		}
 
-		public void populateScriptTrace( StackFactory factory )
+		public Error populateScriptTrace( StackFactory factory )
 		{
 			scriptTrace = factory.examineStackTrace( getCause() == null ? getStackTrace() : getCause().getStackTrace() );
+			return this;
 		}
 	}
 
@@ -148,7 +149,7 @@ public class ScriptingException
 		{
 			/* Forward this type of exception to the report */
 			if ( exceptionContext instanceof ScriptingContext )
-				populateScriptTrace( ( ( ScriptingContext ) exceptionContext ).getScriptingFactory().stack() );
+				populateScriptTrace( ( ( ScriptingContext ) exceptionContext ).getScriptingFactory().getStack() );
 			exceptionReport.addException( level, this );
 			return level;
 		}
@@ -163,9 +164,10 @@ public class ScriptingException
 			return getCause() != null && getCause().getStackTrace().length > 0 && getCause().getStackTrace()[0].getClassName().startsWith( "org.codehaus.groovy.runtime" );
 		}
 
-		public void populateScriptTrace( StackFactory factory )
+		public Runtime populateScriptTrace( StackFactory factory )
 		{
 			scriptTrace = factory.examineStackTrace( getCause() == null ? getStackTrace() : getCause().getStackTrace() );
+			return this;
 		}
 	}
 }
