@@ -30,28 +30,28 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.net.ssl.SSLException;
 
-import io.amelia.http.localization.Localization;
-import io.amelia.http.mappings.DomainMapping;
-import io.amelia.http.mappings.DomainNode;
-import io.amelia.http.ssl.CertificateWrapper;
-import io.amelia.lang.WebrootException;
 import io.amelia.data.TypeBase;
 import io.amelia.data.apache.ApacheConfiguration;
-import io.amelia.data.parcel.ConfigData;
 import io.amelia.database.Database;
+import io.amelia.database.DatabaseManager;
 import io.amelia.database.elegant.ElegantQueryTable;
 import io.amelia.foundation.ConfigData;
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.foundation.Env;
 import io.amelia.foundation.Foundation;
 import io.amelia.foundation.Kernel;
-import io.amelia.tasks.Tasks;
 import io.amelia.http.events.WebrootLoadEvent;
+import io.amelia.http.localization.Localization;
+import io.amelia.http.mappings.DomainMapping;
+import io.amelia.http.mappings.DomainNode;
+import io.amelia.http.mappings.DomainTree;
 import io.amelia.http.routes.Routes;
-import io.amelia.http.session.SessionRegistry;
 import io.amelia.http.session.SessionPersistenceMethod;
+import io.amelia.http.session.SessionRegistry;
+import io.amelia.http.ssl.CertificateWrapper;
 import io.amelia.lang.ConfigException;
 import io.amelia.lang.ExceptionReport;
+import io.amelia.lang.WebrootException;
 import io.amelia.scripting.ScriptBinding;
 import io.amelia.scripting.ScriptingContext;
 import io.amelia.scripting.ScriptingFactory;
@@ -66,14 +66,14 @@ import io.amelia.support.Objs;
 import io.amelia.support.StorageConversions;
 import io.amelia.support.StoragePolicy;
 import io.amelia.support.Strs;
+import io.amelia.tasks.Tasks;
 import io.netty.handler.ssl.SslContext;
 
 public class Webroot
 {
+	public final static TypeBase.TypeString CONFIG_TITLE = new TypeBase.TypeString( "title", "" );
 	// Storage Policy for Webroot Directories
 	private final static StoragePolicy STORAGE_POLICY = new StoragePolicy();
-
-	public final static TypeBase.TypeString CONFIG_TITLE = new TypeBase.TypeString( "title", "" );
 
 	static
 	{
@@ -125,9 +125,9 @@ public class Webroot
 			configurationFile = null;
 			data = ConfigData.empty();
 			webrootTitle = Kernel.getDevMeta().getProductName();
-			database = Database.getDatabase();
+			database = DatabaseManager.getDefault().getDatabase();
 
-			directory = WebrootUtils.createWebrootDirectory( webrootId );
+			directory = WebrootUtils.createWebrootDirectory( webrootId ).toRealPath();
 			localization = new Localization( getLangDirectory() );
 			routes = new Routes( this );
 			env = new Env( directory.resolve( ".env" ) );
@@ -142,7 +142,7 @@ public class Webroot
 	{
 		try
 		{
-			this.directory = directory;
+			this.directory = directory.toRealPath();
 			this.configurationFile = directory.resolve( "config" );
 			this.data = data;
 			this.env = env;
@@ -198,11 +198,11 @@ public class Webroot
 				}
 			}
 
-			if ( Exceptions.tryCatch( () -> Events.callEventWithException( new WebrootLoadEvent( this ) ), WebrootException.Error::new ).isCancelled() )
+			if ( Exceptions.tryCatch( () -> Foundation.getEvents().callEventWithException( new WebrootLoadEvent( this ) ), WebrootException.Error::new ).isCancelled() )
 				throw new WebrootException.Error( String.format( "Webroot '%s' was prevented from loading by an internal event.", webrootId ) );
 
 			if ( data.hasChild( "database" ) )
-				database = new Database( WebrootStorage.initDatabase( data.getChild( "database" ) ) );
+				database = DatabaseManager.getInstance( getWebrootId() ).init( data.getChild( "database" ) ).getDatabase();
 
 			routes = new Routes( this );
 
@@ -211,20 +211,21 @@ public class Webroot
 			data.getStringList( "scripts.on-load" ).ifPresent( onLoadScripts -> {
 				for ( String script : onLoadScripts )
 				{
-					ScriptingResult result = factory.eval( ScriptingContext.fromFile( this, script ).shell( "groovy" ).Webroot( this ) );
+					ScriptingResult result = factory.eval( WebrootScriptingContext.fromWebrootResource( this, script ).setShell( "groovy" ).setWebroot( this ) );
 
-					if ( result.hasExceptions() )
+					ExceptionReport exceptionReport = result.getExceptionReport();
+					if ( exceptionReport.hasExceptions() )
 					{
-						if ( result.hasException( FileNotFoundException.class ) )
+						if ( exceptionReport.hasException( FileNotFoundException.class ) )
 							WebrootRegistry.L.severe( String.format( "Failed to eval onLoadScript '%s' for webroot '%s' because the file was not found.", script, webrootId ) );
 						else
 						{
 							WebrootRegistry.L.severe( String.format( "Exception caught while evaluate onLoadScript '%s' for webroot '%s'", script, webrootId ) );
-							ExceptionReport.printExceptions( result.getExceptions() );
+							exceptionReport.printToLog( WebrootRegistry.L );
 						}
 					}
 					else
-						WebrootRegistry.L.info( String.format( "Finished evaluate onLoadScript '%s' for webroot '%s' with result: %s", script, webrootId, result.getString( true ) ) );
+						WebrootRegistry.L.info( String.format( "Finished evaluate onLoadScript '%s' for webroot '%s' with result: %s", script, webrootId, result.getString() ) );
 				}
 			} );
 
@@ -421,13 +422,13 @@ public class Webroot
 	 */
 	public DomainNode getDomain( String fullDomain )
 	{
-		DomainNode node = WebrootRegistry.getDomain( fullDomain );
+		DomainNode node = DomainTree.parseDomain( fullDomain );
 		return node != null && node.getWebroot() == this ? node : null;
 	}
 
 	public Stream<DomainNode> getDomains()
 	{
-		return WebrootRegistry.getDomainsByWebroot( this );
+		return DomainTree.getChildren().filter( n -> n.getWebroot() == this );
 	}
 
 	public ScriptingFactory getEvalFactory()
@@ -443,11 +444,6 @@ public class Webroot
 	public Map<String, Object> getGlobals()
 	{
 		return binding.getVariables();
-	}
-
-	public String getWebrootId()
-	{
-		return webrootId;
 	}
 
 	public List<String> getIps()
@@ -501,14 +497,12 @@ public class Webroot
 	{
 		Objs.notEmpty( file );
 
-		Path root = getResourceDirectory();
-
-		Path packFile = root.resolve( file );
+		Path packFile = getResourceDirectory().resolve( file );
 
 		if ( Files.isRegularFile( packFile ) )
 			return packFile;
 
-		root = packFile.getParent();
+		Path root = packFile.getParent();
 
 		if ( Files.isDirectory( root ) )
 		{
@@ -568,10 +562,9 @@ public class Webroot
 		return webrootTitle;
 	}
 
-	public void setTitle( String title ) throws ConfigException.Error
+	public String getWebrootId()
 	{
-		data.setValue( CONFIG_TITLE, title );
-		webrootTitle = title;
+		return webrootId;
 	}
 
 	public Path getWebrootPath()
@@ -582,6 +575,12 @@ public class Webroot
 	public boolean hasDefaultSslContext()
 	{
 		return defaultSslContext != null;
+	}
+
+	public boolean isProtectedFilePath( Path path )
+	{
+		// TODO One day sub-directories could be located outside of webroots or contain symlinks, implement a location directive type system.
+		return !path.startsWith( getDirectory() );
 	}
 
 	private void mapDomain( @Nonnull ConfigData domains ) throws WebrootException.Configuration
@@ -641,6 +640,12 @@ public class Webroot
 	public void setGlobal( String key, Object val )
 	{
 		binding.setVariable( key, val );
+	}
+
+	public void setTitle( String title ) throws ConfigException.Error
+	{
+		data.setValue( CONFIG_TITLE, title );
+		webrootTitle = title;
 	}
 
 	@Override

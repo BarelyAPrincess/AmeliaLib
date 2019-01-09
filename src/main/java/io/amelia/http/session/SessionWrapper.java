@@ -14,20 +14,22 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.UUID;
 import java.util.stream.Stream;
 
+import io.amelia.foundation.ConfigRegistry;
 import io.amelia.http.HoneyCookie;
 import io.amelia.http.webroot.Webroot;
+import io.amelia.http.webroot.WebrootRegistry;
 import io.amelia.lang.SessionException;
-import io.amelia.foundation.ConfigRegistry;
-import io.amelia.lang.ApplicationException;
+import io.amelia.permissions.PermissibleEntity;
 import io.amelia.scripting.BindingProvider;
 import io.amelia.scripting.ScriptBinding;
 import io.amelia.scripting.ScriptingFactory;
 import io.amelia.support.Strs;
 import io.amelia.support.Voluntary;
-import io.amelia.support.VoluntaryWithCause;
 import io.amelia.users.UserAttachment;
+import io.amelia.users.UserPermissible;
 import io.netty.handler.codec.http.cookie.Cookie;
 import io.netty.handler.codec.http.cookie.DefaultCookie;
 
@@ -102,9 +104,9 @@ public abstract class SessionWrapper implements BindingProvider, UserAttachment
 		return binding;
 	}
 
-	public abstract Voluntary<Cookie> getCookie( String key );
+	public abstract Voluntary<HoneyCookie> getCookie( String key );
 
-	public abstract Stream<Cookie> getCookies();
+	public abstract Stream<HoneyCookie> getCookies();
 
 	@Override
 	public String getDisplayName()
@@ -118,13 +120,7 @@ public abstract class SessionWrapper implements BindingProvider, UserAttachment
 	}
 
 	@Override
-	public String getId()
-	{
-		return getSession().getId();
-	}
-
-	@Override
-	public final AccountPermissible getPermissible()
+	public final UserPermissible getPermissible()
 	{
 		return session;
 	}
@@ -141,7 +137,7 @@ public abstract class SessionWrapper implements BindingProvider, UserAttachment
 		return factory;
 	}
 
-	protected abstract Voluntary<HoneyCookie, SessionException.Error> getServerCookie( String key );
+	protected abstract Voluntary<HoneyCookie> getServerCookie( String key );
 
 	/**
 	 * Gets the Session
@@ -192,18 +188,6 @@ public abstract class SessionWrapper implements BindingProvider, UserAttachment
 		return session.meta();
 	}
 
-	@Override
-	public void sendMessage( MessageSender sender, Object... objs )
-	{
-		// Do Nothing
-	}
-
-	@Override
-	public void sendMessage( Object... objs )
-	{
-		// Do Nothing
-	}
-
 	protected abstract void sessionStarted();
 
 	public void setGlobal( String key, Object val )
@@ -224,7 +208,7 @@ public abstract class SessionWrapper implements BindingProvider, UserAttachment
 	 */
 	public Session startSession() throws SessionException.Error
 	{
-		session = SessionRegistry.i().startSession( this );
+		session = SessionRegistry.startSession( this );
 		/*
 		 * Create our Binding
 		 */
@@ -240,12 +224,12 @@ public abstract class SessionWrapper implements BindingProvider, UserAttachment
 		 */
 		binding.setVariable( "_SESSION", session.data.data );
 
-		Site site = getWebroot();
+		Webroot webroot = getWebroot();
 
-		if ( site == null )
-			site = SiteModule.i().getDefaultSite();
+		if ( webroot == null )
+			webroot = WebrootRegistry.getDefaultWebroot();
 
-		session.setWebroot( site );
+		session.setWebroot( webroot );
 
 		for ( DefaultCookie cookie : getCookies() )
 			session.putSessionCookie( cookie.getKey(), cookie );
@@ -254,7 +238,7 @@ public abstract class SessionWrapper implements BindingProvider, UserAttachment
 		binding.setVariable( "context", this );
 
 		// Reset __FILE__ Variable
-		binding.setVariable( "__FILE__", site.directoryPublic() );
+		binding.setVariable( "__FILE__", webroot.getPublicDirectory() );
 
 		if ( ConfigRegistry.i().getBoolean( "sessions.rearmTimeoutWithEachRequest" ) )
 			session.rearmTimeout();
@@ -262,6 +246,12 @@ public abstract class SessionWrapper implements BindingProvider, UserAttachment
 		sessionStarted();
 
 		return session;
+	}
+
+	@Override
+	public UUID uuid()
+	{
+		return getSession().uuid();
 	}
 
 	// TODO: Future add of setDomain, setCookieName, setSecure (http verses https)

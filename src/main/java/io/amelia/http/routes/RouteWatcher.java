@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import io.amelia.networking.Networking;
+import io.amelia.net.Networking;
 import io.amelia.data.parcel.Parcel;
 import io.amelia.data.parcel.ParcelLoader;
 import io.amelia.support.FileWatcher;

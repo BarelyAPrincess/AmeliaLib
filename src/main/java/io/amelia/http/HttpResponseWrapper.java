@@ -31,7 +31,7 @@ import io.amelia.http.session.Session;
 import io.amelia.http.webroot.WebrootRegistry;
 import io.amelia.lang.SessionException;
 import io.amelia.logging.LogEvent;
-import io.amelia.networking.Networking;
+import io.amelia.net.Networking;
 import io.amelia.scripting.ScriptingContext;
 import io.amelia.scripting.api.Web;
 import io.amelia.support.EnumColor;
@@ -429,7 +429,7 @@ public class HttpResponseWrapper
 				String stackTrace = Exceptions.getStackTrace( cause );
 
 				if ( request.getScriptingFactory() != null )
-					for ( Entry<String, ScriptingContext> e : request.getScriptingFactory().stack().getScriptTraceHistory().entrySet() )
+					for ( Entry<String, ScriptingContext> e : request.getScriptingFactory().getStack().getScriptTraceHistory().entrySet() )
 						stackTrace = stackTrace.replace( e.getKey(), e.getValue().getFileName() );
 
 				sendError( httpCode, null, "<pre>" + stackTrace + "</pre>" );

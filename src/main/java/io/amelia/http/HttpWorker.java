@@ -19,7 +19,7 @@ import io.amelia.foundation.Foundation;
 import io.amelia.foundation.Kernel;
 import io.amelia.lang.NetworkException;
 import io.amelia.lang.StartupException;
-import io.amelia.networking.NetworkLoader;
+import io.amelia.net.NetworkLoader;
 import io.amelia.support.NIO;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;

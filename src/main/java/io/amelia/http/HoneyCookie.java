@@ -9,70 +9,68 @@
  */
 package io.amelia.http;
 
+import io.netty.handler.codec.http.cookie.Cookie;
 import io.netty.handler.codec.http.cookie.DefaultCookie;
 
-public class HoneyCookie extends DefaultCookie
+public class HoneyCookie
 {
-	private boolean needsUpdating = false;
+	private Cookie cookie;
+	private boolean needsUpdating;
 
-	/**
-	 * Creates a new cookie with the specified name and value.
-	 *
-	 * @param name
-	 * @param value
-	 */
 	public HoneyCookie( String name, String value )
 	{
-		super( name, value );
-	}
-
-	@Override
-	public void setMaxAge( long maxAge )
-	{
-		super.setMaxAge( maxAge );
+		cookie = new DefaultCookie( name, value );
 		needsUpdating = true;
 	}
 
-	@Override
-	public void setWrap( boolean wrap )
+	public HoneyCookie( Cookie cookie )
 	{
-		super.setWrap( wrap );
-		needsUpdating = true;
+		this.cookie = cookie;
 	}
 
-	@Override
-	public void setValue( String value )
+	public Cookie getCookie()
 	{
-		super.setValue( value );
-		needsUpdating = true;
+		return cookie;
 	}
 
-	@Override
-	public void setSecure( boolean secure )
+	public String getDomain()
 	{
-		super.setSecure( secure );
-		needsUpdating = true;
+		return cookie.domain();
 	}
 
-	@Override
-	public void setPath( String path )
+	public long getMaxAge()
 	{
-		super.setPath( path );
-		needsUpdating = true;
+		return cookie.maxAge();
 	}
 
-	@Override
-	public void setDomain( String domain )
+	public String getName()
 	{
-		super.setDomain( domain );
-		needsUpdating = true;
+		return cookie.name();
 	}
 
-	@Override
-	public void setHttpOnly( boolean httpOnly )
+	public String getPath()
 	{
-		super.setHttpOnly( httpOnly );
-		needsUpdating = true;
+		return cookie.path();
+	}
+
+	public String getValue()
+	{
+		return cookie.value();
+	}
+
+	public boolean getWrap()
+	{
+		return cookie.wrap();
+	}
+
+	public boolean isHttpOnly()
+	{
+		return cookie.isHttpOnly();
+	}
+
+	public boolean isSecure()
+	{
+		return cookie.isSecure();
 	}
 
 	public boolean needsUpdating()
@@ -80,8 +78,58 @@ public class HoneyCookie extends DefaultCookie
 		return needsUpdating;
 	}
 
-	public void unsetNeedsUpdating()
+	public HoneyCookie setDomain( String domain )
+	{
+		cookie.setDomain( domain );
+		needsUpdating = true;
+		return this;
+	}
+
+	public HoneyCookie setHttpOnly( boolean httpOnly )
+	{
+		cookie.setHttpOnly( httpOnly );
+		needsUpdating = true;
+		return this;
+	}
+
+	public HoneyCookie setMaxAge( long maxAge )
+	{
+		cookie.setMaxAge( maxAge );
+		needsUpdating = true;
+		return this;
+	}
+
+	public HoneyCookie setPath( String path )
+	{
+		cookie.setPath( path );
+		needsUpdating = true;
+		return this;
+	}
+
+	public HoneyCookie setSecure( boolean secure )
+	{
+		cookie.setSecure( secure );
+		needsUpdating = true;
+		return this;
+	}
+
+	public HoneyCookie setValue( String value )
+	{
+		cookie.setValue( value );
+		needsUpdating = true;
+		return this;
+	}
+
+	public HoneyCookie setWrap( boolean wrap )
+	{
+		cookie.setWrap( wrap );
+		needsUpdating = true;
+		return this;
+	}
+
+	public HoneyCookie unsetNeedsUpdating()
 	{
 		needsUpdating = false;
+		return this;
 	}
 }

@@ -24,7 +24,7 @@ import java.util.stream.Stream;
 
 import io.amelia.http.ssl.CertificateWrapper;
 import io.amelia.lang.WebrootException;
-import io.amelia.networking.Networking;
+import io.amelia.net.Networking;
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.http.webroot.Webroot;
 import io.amelia.support.Http;

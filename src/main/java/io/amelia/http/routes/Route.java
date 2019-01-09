@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import io.amelia.http.webroot.Webroot;
-import io.amelia.networking.Networking;
+import io.amelia.net.Networking;
 import io.amelia.support.Objs;
 import io.amelia.support.Strs;
 

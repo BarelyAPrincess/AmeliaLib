@@ -22,6 +22,7 @@ dependencies {
 	compile project( ':AmeliaCommonLib' )
 	compile project( ':AmeliaScriptingLib' )
 	compile project( ':AmeliaStorageLib' )
+	compile project( ':AmeliaLogLib' )
 
 	compile group: 'io.netty', name: 'netty-all', version: '4.1.24.Final'
 

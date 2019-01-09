@@ -29,18 +29,24 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.stream.Stream;
 
+import javax.annotation.Nonnull;
+import javax.security.auth.login.AccountException;
+
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.foundation.DevMetaProvider;
+import io.amelia.foundation.EntityPrincipal;
 import io.amelia.foundation.Kernel;
 import io.amelia.http.mappings.DomainMapping;
+import io.amelia.http.mappings.DomainTree;
 import io.amelia.http.session.Session;
 import io.amelia.http.session.SessionContext;
+import io.amelia.http.session.SessionRegistry;
 import io.amelia.http.session.SessionWrapper;
 import io.amelia.http.webroot.Webroot;
 import io.amelia.http.webroot.WebrootRegistry;
-import io.amelia.lang.ApplicationException;
-import io.amelia.networking.NetworkLoader;
-import io.amelia.networking.Networking;
+import io.amelia.logging.LogEvent;
+import io.amelia.net.NetworkLoader;
+import io.amelia.net.Networking;
 import io.amelia.support.DateAndTime;
 import io.amelia.support.EnumColor;
 import io.amelia.support.Http;
@@ -50,6 +56,12 @@ import io.amelia.support.NIO;
 import io.amelia.support.Objs;
 import io.amelia.support.Strs;
 import io.amelia.support.Voluntary;
+import io.amelia.users.DescriptiveReason;
+import io.amelia.users.UserContext;
+import io.amelia.users.UserException;
+import io.amelia.users.UserResult;
+import io.amelia.users.Users;
+import io.amelia.users.auth.UserAuthenticator;
 import io.netty.channel.Channel;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaders;
@@ -59,7 +71,6 @@ import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.handler.codec.http.cookie.Cookie;
-import io.netty.handler.codec.http.cookie.DefaultCookie;
 import io.netty.handler.codec.http.cookie.ServerCookieDecoder;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.util.CharsetUtil;
@@ -86,7 +97,7 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 	/**
 	 * Cookie Cache
 	 */
-	final Set<DefaultCookie> cookies = new HashSet<>();
+	final Set<HoneyCookie> cookies = new HashSet<HoneyCookie>();
 	/**
 	 * The Get Map
 	 */
@@ -118,7 +129,7 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 	/**
 	 * Server Cookie Cache
 	 */
-	final Set<Cookie> serverCookies = new HashSet<>();
+	final Set<HoneyCookie> serverCookies = new HashSet<>();
 	/**
 	 * Is this a SSL request
 	 */
@@ -173,7 +184,7 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 			this.domainMapping = WebrootRegistry.getDefaultWebroot().getDefaultMapping();
 		else if ( NIO.isValidIPv4( host ) || NIO.isValidIPv6( host ) )
 		{
-			Stream<DomainMapping> domains = WebrootRegistry.getDomainMappingsByIp( host );
+			Stream<DomainMapping> domains = DomainTree.getDomainMappingByIp( host );
 			domainMapping = domains.count() == 0 ? null : domains.findFirst().orElse( null );
 		}
 		else
@@ -181,7 +192,7 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 			if ( "localhost".equals( host ) && !getIpAddress().startsWith( "127" ) && !getIpAddress().equals( getLocalIpAddress() ) )
 				throw new HttpError( 418 );
 
-			this.domainMapping = WebrootRegistry.getDomainMapping( host );
+			this.domainMapping = DomainTree.parseDomain( host ).getDomainMapping();
 		}
 
 		if ( domainMapping == null )
@@ -191,16 +202,15 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 		{
 			String uri = getUri();
 			int inx = uri.indexOf( "/", 2 );
-			String siteId = uri.substring( 2, inx == -1 ? uri.length() - 2 : inx );
+			String webrootId = uri.substring( 2, inx == -1 ? uri.length() - 2 : inx );
 			String newUri = inx == -1 ? "/" : uri.substring( inx );
 
-			Webroot webroot = WebrootRegistry.getWebrootById( siteId );
-			if ( !siteId.equals( "wisp" ) && webroot != null )
-			{
-				// Get the declared default domain mapping, the first if otherwise
-				domainMapping = webroot.getDefaultMapping();
-				setUri( newUri );
-			}
+			if ( !webrootId.equals( "wisp" ) )
+				WebrootRegistry.getWebrootById( webrootId ).ifPresent( webroot -> {
+					// Get the declared default domain mapping, the first if otherwise
+					domainMapping = webroot.getDefaultMapping();
+					setUri( newUri );
+				} );
 		}
 
 		// log.log( Level.INFO, "SiteId: " + webroot.getSiteId() + ", ParentDomain: " + rootDomain + ", ChildDomain: " + childDomain );
@@ -232,12 +242,12 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 		if ( var1 != null )
 			try
 			{
-				Set<DefaultCookie> var2 = ServerCookieDecoder.LAX.decode( var1 );
-				for ( DefaultCookie cookie : var2 )
-					if ( cookie.name().startsWith( "_ws" ) )
+				ServerCookieDecoder.LAX.decode( var1 ).stream().map( HoneyCookie::new ).forEach( cookie -> {
+					if ( cookie.getName().startsWith( "_ws" ) )
 						serverCookies.add( cookie );
 					else
 						cookies.add( cookie );
+				} );
 			}
 			catch ( IllegalArgumentException | NullPointerException e )
 			{
@@ -313,11 +323,6 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 		return Objs.castToInt( obj );
 	}
 
-	public Stream<Entry<String, String>> getArguments()
-	{
-		return Stream.concat( Stream.concat( getMap.entrySet().stream(), postMap.entrySet().stream() ), rewriteMap.entrySet().stream() );
-	}
-
 	public Set<String> getArgumentKeys()
 	{
 		Set<String> keys = new HashSet<>();
@@ -331,6 +336,11 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 	{
 		Object obj = getArgument( key, "-1" );
 		return Objs.castToLong( obj );
+	}
+
+	public Stream<Entry<String, String>> getArguments()
+	{
+		return Stream.concat( Stream.concat( getMap.entrySet().stream(), postMap.entrySet().stream() ), rewriteMap.entrySet().stream() );
 	}
 
 	public HttpAuthenticator getAuth()
@@ -366,13 +376,13 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 	}
 
 	@Override
-	public Voluntary<DefaultCookie> getCookie( String key )
+	public Voluntary<HoneyCookie> getCookie( String key )
 	{
-		return Voluntary.of( cookies.stream().filter( cookie -> key.equalsIgnoreCase( cookie.name() ) ).findFirst() );
+		return Voluntary.of( cookies.stream().filter( cookie -> key.equalsIgnoreCase( cookie.getName() ) ).findFirst() );
 	}
 
 	@Override
-	public Stream<DefaultCookie> getCookies()
+	public Stream<HoneyCookie> getCookies()
 	{
 		return cookies.stream();
 	}
@@ -380,12 +390,6 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 	public DomainMapping getDomainMapping()
 	{
 		return domainMapping;
-	}
-
-	void setDomainMapping( DomainMapping domainMapping )
-	{
-		Objs.notNull( domainMapping );
-		this.domainMapping = domainMapping;
 	}
 
 	public String getFullDomain()
@@ -646,12 +650,12 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 	}
 
 	@Override
-	protected Voluntary<Cookie, ApplicationException.Error> getServerCookie( String key )
+	protected Voluntary<HoneyCookie> getServerCookie( String key )
 	{
 		return Voluntary.of( serverCookies.stream().filter( cookie -> key.equalsIgnoreCase( cookie.name() ) ).findAny().orElse( null ) );
 	}
 
-	public Stream<Cookie> getServerCookies()
+	public Stream<HoneyCookie> getServerCookies()
 	{
 		return serverCookies.stream();
 	}
@@ -733,24 +737,19 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 		return uri;
 	}
 
-	void setUri( String uri )
-	{
-		this.uri = uri.startsWith( "/" ) ? uri : "/" + uri;
-	}
-
 	public String getUserAgent()
 	{
 		return getHeader( "User-Agent" );
 	}
 
-	public Webroot getWebroot()
-	{
-		return domainMapping.getWebroot();
-	}
-
 	public String getWebSocketLocation( HttpObject req )
 	{
 		return ( isSecure() ? "wss://" : "ws://" ) + getHost() + "/~wisp/ws";
+	}
+
+	public Webroot getWebroot()
+	{
+		return domainMapping.getWebroot();
 	}
 
 	public boolean hasArgument( String key )
@@ -1002,22 +1001,20 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 	}
 
 	@Override
-	public void sendMessage( MessageSender sender, Object... objs )
-	{
-		// Do Nothing
-	}
-
-	@Override
-	public void sendMessage( Object... objs )
-	{
-		// Do Nothing
-	}
-
-	@Override
 	public void sessionStarted()
 	{
 		getBinding().setVariable( "request", this );
 		getBinding().setVariable( "response", getResponse() );
+	}
+
+	public void setDomainMapping( @Nonnull DomainMapping domainMapping )
+	{
+		this.domainMapping = domainMapping;
+	}
+
+	public void setUri( String uri )
+	{
+		this.uri = uri.startsWith( "/" ) ? uri : "/" + uri;
 	}
 
 	protected boolean validateLogins() throws HttpError
@@ -1026,11 +1023,11 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 
 		if ( getArgument( "logout" ) != null )
 		{
-			AccountResult result = getSession().logout();
+			UserResult result = getSession().logout();
 
-			if ( result.isSuccess() )
+			if ( result.getReportingLevel().isSuccess() )
 			{
-				getResponse().sendLoginPage( result.getMessage() );
+				getResponse().sendLoginPage( result.getDescriptiveReason().getReasonMessage() );
 				return true;
 			}
 		}
@@ -1053,20 +1050,20 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 			try
 			{
 				if ( !ssl )
-					AccountManager.getLogger().warning( "It is highly recommended that account logins are submitted over SSL. Without SSL, passwords are at great risk." );
+					Users.L.warning( "It is highly recommended that account logins are submitted over SSL. Without SSL, passwords are at great risk." );
 
-				if ( !nonceProcessed() && ConfigRegistry.i().getBoolean( "accounts.requireLoginWithNonce" ) )
-					throw new AccountException( AccountDescriptiveReason.NONCE_REQUIRED, locId, username );
+				if ( !nonceProcessed() && ConfigRegistry.config.getBoolean( "accounts.requireLoginWithNonce" ).orElse( true ) )
+					throw new UserException.Error( new EntityPrincipal( username ), DescriptiveReason.NONCE_REQUIRED );
 
-				AccountResult result = getSession().loginWithException( AccountAuthenticator.PASSWORD, locId, username, password );
-				Account acct = result.getAccount();
+				UserResult result = getSession().loginWithException( UserAuthenticator.PASSWORD, username, password );
+				UserContext acct = result.getUser();
 
 				session.remember( remember );
 
-				SessionModule.getLogger().info( EnumColor.GREEN + "Successful Login: [id='" + acct.getId() + "',siteId='" + ( acct.getLocation() == null ? null : acct.getLocation().getId() ) + "',authenticator='plaintext']" );
+				SessionRegistry.L.info( EnumColor.GREEN + "Successful Login: [uuid='" + acct.uuid().toString() + "',webrootId='" + getWebroot().getWebrootId() + "',authenticator='plaintext']" );
 
-				if ( getSite().getLoginPost() != null )
-					getResponse().sendRedirect( getSite().getLoginPost() );
+				if ( getWebroot().getLoginPost() != null )
+					getResponse().sendRedirect( getWebroot().getLoginPost() );
 				else
 					getResponse().sendLoginPage( "Your have been successfully logged in!", "success" );
 			}
@@ -1119,7 +1116,7 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 		// Will we ever be using a session on more than one domains?
 		if ( !getRootDomain().isEmpty() && session.getSessionCookie() != null && !session.getSessionCookie().getDomain().isEmpty() )
 			if ( !session.getSessionCookie().getDomain().endsWith( getRootDomain() ) )
-				NetworkLoader.L.warning( "The webroot `" + getSite().getId() + "` specifies the session cookie domain as `" + session.getSessionCookie().getDomain() + "` but the request was made on domain `" + getRootDomain() + "`. The session will not remain persistent." );
+				NetworkLoader.L.warning( "The webroot `" + getWebroot().getWebrootId() + "` specifies the session cookie domain as `" + session.getSessionCookie().getDomain() + "` but the request was made on domain `" + getRootDomain() + "`. The session will not remain persistent." );
 
 		return false;
 	}

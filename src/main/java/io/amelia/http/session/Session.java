@@ -10,7 +10,6 @@
 package io.amelia.http.session;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Splitter;
 
 import java.net.HttpCookie;
 import java.util.ArrayList;
@@ -24,24 +23,35 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 
-import io.amelia.http.HoneyCookie;
-import io.amelia.http.Nonce;
-import io.amelia.http.webroot.Webroot;
-import io.amelia.http.webroot.WebrootRegistry;
-import io.amelia.lang.SessionException;
 import io.amelia.data.parcel.Parcel;
 import io.amelia.foundation.ConfigRegistry;
+import io.amelia.foundation.Foundation;
+import io.amelia.http.HoneyCookie;
+import io.amelia.http.Nonce;
+import io.amelia.http.events.SessionDestroyEvent;
+import io.amelia.http.webroot.Webroot;
+import io.amelia.http.webroot.WebrootRegistry;
+import io.amelia.lang.ParcelableException;
+import io.amelia.lang.SessionException;
+import io.amelia.permissions.PermissibleEntity;
 import io.amelia.support.DateAndTime;
 import io.amelia.support.EnumColor;
 import io.amelia.support.Objs;
+import io.amelia.support.Strs;
 import io.amelia.support.WeakReferenceList;
+import io.amelia.users.Kickable;
+import io.amelia.users.UserException;
+import io.amelia.users.UserPermissible;
+import io.amelia.users.UserResult;
+import io.amelia.users.auth.UserAuthenticator;
+import io.netty.handler.codec.http.cookie.Cookie;
 import io.netty.handler.codec.http.cookie.DefaultCookie;
 
 /**
  * This class is used to carry data that is to be persistent from request to request.
  * If you need to sync data across requests then we recommend using Session Vars for Security.
  */
-public final class Session extends AccountPermissible implements Kickable
+public final class Session extends UserPermissible implements Kickable
 {
 	/**
 	 * The underlying data for this session<br>
@@ -96,7 +106,7 @@ public final class Session extends AccountPermissible implements Kickable
 	 */
 	private long timeout = 0;
 	/**
-	 * The site this session is bound to
+	 * The wenroot this session is bound to
 	 */
 	private Webroot webroot;
 
@@ -108,7 +118,7 @@ public final class Session extends AccountPermissible implements Kickable
 
 		sessionKey = data.sessionName;
 		timeout = data.timeout;
-		knownIps.addAll( Splitter.on( "|" ).splitToList( data.ipAddress ) );
+		Strs.split( data.ipAddress, "|" ).forEach( knownIps::add );
 		webroot = WebrootRegistry.getWebrootById( data.site );
 
 		if ( webroot == null )
@@ -118,7 +128,6 @@ public final class Session extends AccountPermissible implements Kickable
 		}
 
 		timeout = data.timeout;
-
 
 		if ( timeout > 0 && timeout < DateAndTime.epoch() )
 			throw SessionException.error( String.format( "The session '%s' expired at epoch '%s', might have expired while offline or this is a bug!", sessionId, timeout ) );
@@ -162,15 +171,15 @@ public final class Session extends AccountPermissible implements Kickable
 		if ( SessionRegistry.isDebug() )
 			SessionRegistry.L.info( EnumColor.DARK_AQUA + "Session Destroyed `" + this + "`" );
 
-		Events.callEvent( new SessionDestroyEvent( this, reasonCode ) );
+		Foundation.getEvents().callEvent( new SessionDestroyEvent( this, reasonCode ) );
 
 		// Account Auth Section
 		if ( "token".equals( getVariable( "auth" ) ) )
 		{
-			Objs.notNull( getVariable( "acctId" ) );
+			Objs.notNull( getVariable( "uuid" ) );
 			Objs.notNull( getVariable( "token" ) );
 
-			AccountAuthenticator.TOKEN.deleteToken( getVariable( "acctId" ), getVariable( "token" ) );
+			UserAuthenticator.TOKEN.deleteToken( getVariable( "uuid" ), getVariable( "token" ) );
 		}
 
 		SessionRegistry.sessions.remove( this );
@@ -198,9 +207,9 @@ public final class Session extends AccountPermissible implements Kickable
 	}
 
 	@Override
-	protected void failedLogin( AccountResult result )
+	protected void failedLogin( UserResult result )
 	{
-		// Do Nothing
+
 	}
 
 	/**
@@ -269,6 +278,12 @@ public final class Session extends AccountPermissible implements Kickable
 		if ( nonce == null )
 			initNonce();
 		return nonce;
+	}
+
+	@Override
+	public PermissibleEntity getPermissible()
+	{
+		return null;
 	}
 
 	public HoneyCookie getSessionCookie()
@@ -342,7 +357,7 @@ public final class Session extends AccountPermissible implements Kickable
 	}
 
 	@Override
-	public AccountResult kick( String reason )
+	public UserResult kick( String reason )
 	{
 		if ( isInvalidated )
 			throw new IllegalStateException( "This session has been invalidated" );
@@ -388,7 +403,7 @@ public final class Session extends AccountPermissible implements Kickable
 			assert sessionId != null && !sessionId.isEmpty();
 
 			sessionKey = getWebroot().getSessionKey();
-			sessionCookie = new DefaultCookie( getWebroot().getSessionKey(), sessionId );
+			sessionCookie = new HoneyCookie( getWebroot().getSessionKey(), sessionId );
 			sessionCookie.setDomain( "." + domain );
 			sessionCookie.setPath( "/" );
 			sessionCookie.setHttpOnly( true );
@@ -396,24 +411,26 @@ public final class Session extends AccountPermissible implements Kickable
 		}
 
 		/**
-		 * Check if our current session cookie key does not match the key used by the Site.
+		 * Check if our current session cookie key does not match the present key used by the webroot.
 		 * If so, we move the old session to the general cookie array and set it as expired.
 		 * This usually forces the browser to delete the old session cookie.
 		 */
-		if ( !sessionCookie.getKey().equals( getLocation().getSessionKey() ) )
+		if ( !sessionCookie.getName().equals( getWebroot().getSessionKey() ) )
 		{
-			String oldKey = sessionCookie.getKey();
-			sessionCookie.setKey( getLocation().getSessionKey() );
-			sessionCookies.put( oldKey, new HttpCookie( oldKey, "" ).setExpiration( 0 ) );
+			String oldKey = sessionCookie.getName();
+			sessionCookies.add( sessionCookie.setMaxAge( 0 ) );
+
+			sessionCookie.setName( getWebroot().getSessionKey() );
+			sessionCookies.add( oldKey, new HttpCookie( oldKey, "" ).setExpiration( 0 ) );
 		}
 	}
 
-	void putSessionCookie( String key, HttpCookie cookie )
+	void putSessionCookie( String key, Cookie cookie )
 	{
 		if ( isInvalidated )
 			throw new IllegalStateException( "This session has been invalidated" );
 
-		sessionCookies.put( key, cookie );
+		sessionCookies.add( new HoneyCookie( cookie ) );
 	}
 
 	public void rearmTimeout()
@@ -431,19 +448,19 @@ public final class Session extends AccountPermissible implements Kickable
 		{
 			defaultTimeout = SessionRegistry.getDefaultTimeoutWithLogin();
 
-			if ( UtilObjects.isTrue( getVariable( "remember", "false" ) ) )
+			if ( Objs.isTrue( getVariable( "remember", "false" ) ) )
 				defaultTimeout = SessionRegistry.getDefaultTimeoutWithRememberMe();
 
-			if ( ConfigRegistry.i().getBoolean( "allowNoTimeoutPermission" ) && checkPermission( "com.chiorichan.noTimeout" ).isTrue() )
+			if ( ConfigRegistry.config.getBoolean( "http.session.allowNoSessionTimeoutPermission" ).orElse( true ) && checkPermission( "io.amelia.noSessionTimeout" ).isTrue() )
 				defaultTimeout = Integer.MAX_VALUE;
 		}
 
-		timeout = Timings.epoch() + defaultTimeout + Math.min( requestCnt, 6 ) * 600;
+		timeout = DateAndTime.epoch() + defaultTimeout + Math.min( requestCnt, 6 ) * 600;
 
 		data.timeout = timeout;
 
 		if ( sessionCookie != null )
-			sessionCookie.setExpiration( timeout );
+			sessionCookie.setMaxAge( timeout );
 	}
 
 	/**
@@ -542,13 +559,20 @@ public final class Session extends AccountPermissible implements Kickable
 		if ( isInvalidated )
 			throw new IllegalStateException( "This session has been invalidated" );
 
-		SessionRegistry.L.info( String.format( "Setting session variable `%s` with value '%s'", key, value ) );
+		try
+		{
+			SessionRegistry.L.info( String.format( "Setting session variable `%s` with value '%s'", key, value ) );
 
-		if ( value == null )
-			data.data.remove( key );
+			if ( value == null )
+				data.data.destroyChild( key );
 
-		data.data.put( key, value );
-		dataChangeHistory.add( key );
+			data.data.setValue( key, value );
+			dataChangeHistory.add( key );
+		}
+		catch ( ParcelableException.Error e )
+		{
+			e.printStackTrace();
+		}
 	}
 
 	public void setWebroot( @Nonnull Webroot webroot )
@@ -561,7 +585,7 @@ public final class Session extends AccountPermissible implements Kickable
 	}
 
 	@Override
-	public void successfulLogin() throws AccountException
+	public void successfulLogin() throws UserException.Error
 	{
 		if ( isInvalidated )
 			throw new IllegalStateException( "This session has been invalidated" );
@@ -571,9 +595,9 @@ public final class Session extends AccountPermissible implements Kickable
 
 		try
 		{
-			getAccount().meta().getContext().credentials().makeResumable( this );
+			getEntity().getLastUsedCredentials().saveCredentialsToSession( this );
 		}
-		catch ( AccountException e )
+		catch ( UserException.Error e )
 		{
 			SessionRegistry.L.severe( "We had a problem making the current login resumable!", e );
 		}

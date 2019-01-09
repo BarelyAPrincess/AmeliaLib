@@ -10,44 +10,75 @@
 package io.amelia.support;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
+import io.amelia.foundation.ConfigRegistry;
+import io.amelia.foundation.Kernel;
 import io.amelia.http.HttpError;
 import io.amelia.http.HttpRequestWrapper;
-import io.amelia.networking.Networking;
-import io.amelia.foundation.Kernel;
+import io.amelia.http.mappings.DomainMapping;
+import io.amelia.http.routes.Route;
+import io.amelia.http.routes.RouteResult;
+import io.amelia.http.routes.Routes;
+import io.amelia.http.webroot.WebrootRegistry;
+import io.amelia.net.Networking;
 import io.amelia.scripting.ScriptingContext;
-import io.amelia.support.FileContext;
-import io.amelia.support.Objs;
-import io.amelia.support.Pair;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
 public class HttpRequestContext extends FileContext
 {
 	private String action = null;
-	private boolean fwRequest = false;
+	private boolean fwRequest;
 	private boolean isDirectoryRequest = false;
 	private Map<String, String> rewriteParams = new TreeMap<>();
 	private HttpResponseStatus status = HttpResponseStatus.OK;
 
-	public HttpRequestContext( HttpRequestWrapper request ) throws IOException, HttpError
+	public String getAction()
 	{
-		super();
+		return action;
+	}
 
+	public Map<String, String> getRewriteParams()
+	{
+		return rewriteParams;
+	}
+
+	public HttpResponseStatus getStatus()
+	{
+		return status;
+	}
+
+	public boolean isDirectoryRequest()
+	{
+		return isDirectoryRequest;
+	}
+
+	public boolean isFrameworkRequest()
+	{
+		return fwRequest;
+	}
+
+	public void readFromHttpRequest( HttpRequestWrapper request ) throws IOException, HttpError
+	{
 		List<String> preferredExtensions = ScriptingContext.getPreferredExtensions();
 		Routes routes = request.getWebroot().getRoutes();
 		String uri = request.getUri();
-		File dest = null;
+		Path dest = null;
 
 		fwRequest = uri.startsWith( "wisp" );
 		if ( fwRequest )
 		{
-			DomainMapping defaultMapping = SiteManager.instance().getDefaultSite().getDefaultMapping();
+			DomainMapping defaultMapping = WebrootRegistry.getDefaultWebroot().getDefaultMapping();
 			request.setDomainMapping( defaultMapping );
 			request.setUri( uri.substring( 5 ) );
-			routes = defaultMapping.getSite().getRoutes();
+			routes = defaultMapping.getWebroot().getRoutes();
 		}
 		else
 		{
@@ -81,8 +112,9 @@ public class HttpRequestContext extends FileContext
 				/* Assume file action */
 				Map<String, String> rewrites = routeResult.getRewrites();
 				rewriteParams.putAll( rewrites );
-				annotations.putAll( route.getParams() );
-				dest = new File( request.getDomainMapping().directory(), route.getParam( "file" ) );
+				for ( Map.Entry<String, String> entry : route.getParams().entrySet() )
+					putMetaValue( entry.getKey(), entry.getValue() );
+				dest = request.getDomainMapping().directory().resolve( route.getParam( "file" ) );
 
 				if ( rewrites.containsKey( "action" ) )
 					action = rewrites.get( "action" );
@@ -95,50 +127,46 @@ public class HttpRequestContext extends FileContext
 					action = actions.stream().collect( Collectors.joining( "/" ) );
 				}
 
-				if ( !dest.exists() )
-					returnErrorOrThrowException( HttpResponseStatus.NOT_FOUND, "The route [%s] file [%s] does not exist.", route.getId(), dest.getAbsolutePath() );
+				if ( Files.notExists( dest ) )
+					returnErrorOrThrowException( HttpResponseStatus.NOT_FOUND, "The route [%s] file [%s] does not exist.", route.getId(), IO.relPath( dest ) );
 			}
 			else
 				returnErrorOrThrowException( HttpResponseStatus.INTERNAL_SERVER_ERROR, "The route [%s] has no action available, this is either a bug or one was not specified.", route.getId() );
 		}
 		else
 		{
-			dest = new File( request.getDomainMapping().directory(), uri );
+			dest = request.getDomainMapping().directory().resolve( uri );
 
-			if ( dest.exists() && dest.getName().startsWith( "index." ) && AppConfig.get().getBoolean( "advanced.security.disallowDirectIndexFiles", true ) )
-				throw new HttpError( HttpResponseStatus.FORBIDDEN, "Accessing index files by name is disallowed!" );
+			if ( Files.exists( dest ) && dest.getFileName().startsWith( "index." ) && ConfigRegistry.config.getBoolean( "advanced.security.disallowDirectIndexFiles" ).orElse( true ) )
+				throw new HttpError( HttpResponseStatus.FORBIDDEN, "Accessing index files by name is prohibited!" );
 
-			if ( dest.exists() && dest.getName().contains( ".controller." ) )
-				throw new HttpError( HttpResponseStatus.FORBIDDEN, "Accessing controller files by name is disallowed!" );
+			if ( Files.exists( dest ) && dest.getFileName().toString().contains( ".controller." ) )
+				throw new HttpError( HttpResponseStatus.FORBIDDEN, "Accessing controller files by name is prohibited!" );
 		}
 
 		/* If our destination does not exist, try to determine if the uri simply contains server side options or is a filename with extension */
-		if ( !dest.exists() )
-			if ( dest.getParentFile().exists() && dest.getParentFile().isDirectory() )
+		if ( Files.notExists( dest ) )
+			if ( Files.isDirectory( dest.getParent() ) )
 			{
-				FileFilter fileFilter = new WildcardFileFilter( dest.getName() + ".*" );
-				File[] files = dest.getParentFile().listFiles( fileFilter );
+				final String searchA = dest.getFileName().toString() + ".";
+				List<Path> results = Files.list( dest.getParent() ).filter( path -> path.startsWith( searchA ) ).collect( Collectors.toList() );
 
-				if ( files != null && files.length > 0 )
-				{
-					/* First check is any files with the specified name prefix exist */
-					for ( File f : files )
-						if ( f.exists() )
+				if ( results.size() > 0 )
+					for ( Path file : results )
+					{
+						String name = file.getFileName().toString();
+						String ext = name.substring( name.indexOf( ".", dest.getFileName().toString().length() ) + 1 ).toLowerCase();
+						if ( preferredExtensions.contains( ext ) )
 						{
-							String name = f.getName();
-							String ext = name.substring( name.indexOf( ".", dest.getName().length() ) + 1 ).toLowerCase();
-							if ( preferredExtensions.contains( ext ) )
-							{
-								dest = f;
-								break;
-							}
-							else
-								dest = f;
+							dest = file;
+							break;
 						}
-				}
+						else
+							dest = file;
+					}
 				else if ( uri.contains( "_" ) )
 				{
-					/* Second check the server-side options, e.g., http://images.example.com/logo_x150.jpg = images/logo.jpg and resize to 150px wide. */
+					/* Second check the server-side options, e.g., http://example.com/images/logo_x150.jpg = images/logo.jpg and resize to 150px wide. */
 					String conditionExt;
 					String newUri = uri;
 					if ( newUri.contains( "." ) && newUri.lastIndexOf( "." ) > newUri.lastIndexOf( "_" ) )
@@ -150,39 +178,36 @@ public class HttpRequestContext extends FileContext
 						conditionExt = null;
 
 					List<String> opts = new ArrayList<>();
-					File newFile;
+					Path newFile;
 
 					do
 					{
 						opts.add( newUri.substring( newUri.lastIndexOf( "_" ) + 1 ) );
 						newUri = newUri.substring( 0, newUri.lastIndexOf( "_" ) );
 
-						newFile = new File( request.getDomainMapping().directory(), conditionExt == null ? newUri : newUri + "." + conditionExt );
-						if ( newFile.exists() )
+						newFile = request.getDomainMapping().directory().resolve( conditionExt == null ? newUri : newUri + "." + conditionExt );
+						if ( Files.exists( newFile ) )
 							break;
 						else if ( conditionExt == null )
 						{
-							fileFilter = new WildcardFileFilter( newUri + ".*" );
-							files = dest.getParentFile().listFiles( fileFilter );
-
-							if ( files != null && files.length > 0 )
-								for ( File f : files )
-									if ( f.exists() )
-									{
-										String ext = f.getName().substring( newUri.length() + 1 ).toLowerCase();
-										if ( preferredExtensions.contains( ext ) )
-										{
-											newFile = f;
-											break;
-										}
-										else
-											newFile = f;
-									}
+							final String searchB = newUri + ".";
+							results = Files.list( dest.getParent() ).filter( path -> path.startsWith( searchB ) ).collect( Collectors.toList() );
+							for ( Path file : results )
+							{
+								String ext = file.getFileName().toString().substring( newUri.length() + 1 ).toLowerCase();
+								if ( preferredExtensions.contains( ext ) )
+								{
+									newFile = file;
+									break;
+								}
+								else
+									newFile = file;
+							}
 						}
 					}
-					while ( newUri.contains( "_" ) && !newFile.exists() );
+					while ( newUri.contains( "_" ) && Files.notExists( newFile ) );
 
-					if ( newFile.exists() )
+					if ( Files.exists( newFile ) )
 					{
 						dest = newFile;
 						rewriteParams.putAll( opts.stream().map( o -> {
@@ -196,7 +221,7 @@ public class HttpRequestContext extends FileContext
 								return new Pair<>( o.substring( 0, o.indexOf( "~" ) ), o.substring( o.indexOf( "~" ) + 1 ) );
 							if ( o.substring( 0, 1 ).matches( "[a-z]" ) )
 							{
-								String key = UtilStrings.regexCapture( o, "([a-z]+).*" );
+								String key = Strs.regexCapture( o, "([a-z]+).*" );
 								return new Pair<>( key, o.substring( key.length() ) );
 							}
 							return null;
@@ -208,46 +233,44 @@ public class HttpRequestContext extends FileContext
 		/* TODO Implement new file destination subroutines here! */
 
 		/* If the specified file exists and is a directory, try to resolve the index file. */
-		if ( dest.exists() && dest.isDirectory() )
+		if ( Files.isDirectory( dest ) )
 		{
-			FileFilter fileFilter = new WildcardFileFilter( "index.*" );
-			Map<String, File> maps = UtilIO.mapExtensions( dest.listFiles( fileFilter ) );
-
-			File selectedFile = null;
+			Map<String, List<Path>> maps = Files.list( dest ).filter( path -> path.startsWith( "index." ) ).collect( Collectors.groupingBy( IO::getFileExtension ) );
+			Path selectedFile = null;
 
 			if ( maps.size() > 0 )
 			{
 				for ( String ext : preferredExtensions )
 					if ( maps.containsKey( ext.toLowerCase() ) )
 					{
-						selectedFile = maps.get( ext.toLowerCase() );
+						selectedFile = Lists.first( maps.get( ext.toLowerCase() ) ).orElse( null );
 						break;
 					}
 				if ( selectedFile == null )
-					selectedFile = new ArrayList<>( maps.values() ).get( 0 );
+					selectedFile = Lists.first( Lists.first( maps.values() ).orElseGet( ArrayList::new ) ).orElse( null );
 			}
 
 			if ( selectedFile != null )
 			{
-				request.enforceTrailingSlash();
-				uri = uri + "/" + selectedFile.getName();
-				dest = new File( request.getDomainMapping().directory(), uri );
+				request.enforceTrailingSlash( true );
+				uri = uri + "/" + selectedFile.getFileName();
+				dest = request.getDomainMapping().directory().resolve( uri );
 			}
-			else if ( AppConfig.get().getBoolean( "server.allowDirectoryListing" ) )
+			else if ( ConfigRegistry.config.getBoolean( "server.allowDirectoryListing" ).orElse( false ) )
 			{
-				request.enforceTrailingSlash();
+				request.enforceTrailingSlash( true );
 				isDirectoryRequest = true;
 				return;
 			}
 			else
-				throw new HttpError( 403, "Directory Listing is Disallowed" );
+				throw new HttpError( 403, "Directory Listing is Prohibited" );
 		}
 
 		/* Search for Controllers */
-		if ( !dest.exists() )
+		if ( Files.notExists( dest ) )
 		{
-			String newUri = UtilStrings.trimAll( uri, '/' );
-			File newFile;
+			String newUri = Strs.trimAll( uri, '/' );
+			Path newFile;
 
 			if ( newUri.contains( "/" ) )
 			{
@@ -256,93 +279,58 @@ public class HttpRequestContext extends FileContext
 					action = Arrays.stream( new String[] {newUri.substring( newUri.lastIndexOf( "/" ) + 1 ), action} ).filter( s -> !Objs.isEmpty( s ) ).collect( Collectors.joining( "/" ) );
 					newUri = newUri.substring( 0, newUri.lastIndexOf( "/" ) );
 
-					newFile = new File( request.getDomainMapping().directory(), newUri );
-					File parentFile = newFile.getParentFile();
-					String fileName = newFile.getName();
+					newFile = request.getDomainMapping().directory().resolve( newUri );
+					Path parentFile = newFile.getParent();
+					String fileName = newFile.getFileName().toString();
 
-					if ( parentFile.exists() )
+					if ( Files.exists( parentFile ) )
 					{
-						FileFilter fileFilter = new WildcardFileFilter( fileName + ".controller.*" );
-						File[] files = parentFile.listFiles( fileFilter );
-
-						if ( files != null && files.length > 0 )
-							for ( File f : files )
-								if ( f.exists() )
-								{
-									String ext = f.getName().substring( ( fileName + ".controller." ).length() ).toLowerCase();
-									if ( preferredExtensions.contains( ext ) )
-									{
-										newFile = f;
-										break;
-									}
-									else
-										newFile = f;
-								}
-
-						File indexDirectory = new File( parentFile, fileName );
-						if ( indexDirectory.isDirectory() )
+						for ( Path file : Files.list( parentFile ).filter( path -> path.startsWith( fileName + ".controller." ) ).collect( Collectors.toList() ) )
 						{
-							fileFilter = new WildcardFileFilter( "index.controller.*" );
-							files = indexDirectory.listFiles( fileFilter );
+							String ext = file.getFileName().toString().substring( ( fileName + ".controller." ).length() ).toLowerCase();
+							if ( preferredExtensions.contains( ext ) )
+							{
+								newFile = file;
+								break;
+							}
+							else
+								newFile = file;
+						}
 
-							if ( files != null && files.length > 0 )
-								for ( File f : files )
-									if ( f.exists() )
-									{
-										String ext = f.getName().substring( ( fileName + ".controller." ).length() ).toLowerCase();
-										if ( preferredExtensions.contains( ext ) )
-										{
-											newFile = f;
-											break;
-										}
-										else
-											newFile = f;
-									}
+						Path indexDirectory = parentFile.resolve( fileName );
+						if ( Files.isDirectory( indexDirectory ) )
+						{
+							for ( Path file : Files.list( indexDirectory ).filter( path -> path.startsWith( "index.controller." ) ).collect( Collectors.toList() ) )
+							{
+								String ext = file.getFileName().toString().substring( "index.controller.".length() ).toLowerCase();
+								if ( preferredExtensions.contains( ext ) )
+								{
+									newFile = file;
+									break;
+								}
+								else
+									newFile = file;
+							}
 						}
 					}
 				}
-				while ( newUri.contains( "/" ) && !newFile.exists() );
+				while ( newUri.contains( "/" ) && Files.notExists( newFile ) );
 
-				if ( newFile.exists() )
+				if ( Files.exists( newFile ) )
 					dest = newFile;
 				else
 					action = null;
 			}
 		}
 
-		if ( dest.exists() && !dest.isDirectory() )
+		if ( Files.isRegularFile( dest ) )
 		{
-			if ( Objs.isEmpty( action ) && dest.getName().contains( ".controller." ) )
-				request.enforceTrailingSlash();
+			if ( Objs.isEmpty( action ) && dest.getFileName().toString().contains( ".controller." ) )
+				request.enforceTrailingSlash( true );
 			readFromFile( dest );
 		}
 		else
 			status = HttpResponseStatus.NOT_FOUND;
-	}
-
-	public String getAction()
-	{
-		return action;
-	}
-
-	public Map<String, String> getRewriteParams()
-	{
-		return rewriteParams;
-	}
-
-	public HttpResponseStatus getStatus()
-	{
-		return status;
-	}
-
-	public boolean isDirectoryRequest()
-	{
-		return isDirectoryRequest;
-	}
-
-	public boolean isFrameworkRequest()
-	{
-		return fwRequest;
 	}
 
 	public void returnErrorOrThrowException( HttpResponseStatus code, Throwable t, String message, Object... objs ) throws HttpError
@@ -374,7 +362,7 @@ public class HttpRequestContext extends FileContext
 	{
 		String overrides = "";
 
-		for ( Map.Entry<String, String> o : annotations.entrySet() )
+		for ( Map.Entry<String, String> o : metaValues.entrySet() )
 		{
 			String l = o.getValue();
 			if ( l != null )
@@ -399,6 +387,6 @@ public class HttpRequestContext extends FileContext
 
 		// String cachedFileStr = ( cachedFile == null ) ? "N/A" : cachedFile.getAbsolutePath();
 
-		return "WebInterpreter[content=" + data.writerIndex() + " bytes,contentType=" + getContentType() + ",overrides=[" + overrides + "],rewrites=[" + rewrites + "]]";
+		return "WebInterpreter[content=" + content.writerIndex() + " bytes,contentType=" + getContentType() + ",overrides=[" + overrides + "],rewrites=[" + rewrites + "]]";
 	}
 }

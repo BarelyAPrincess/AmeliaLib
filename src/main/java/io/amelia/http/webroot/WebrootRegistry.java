@@ -15,20 +15,22 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 
-import io.amelia.http.mappings.DomainNode;
-import io.amelia.http.mappings.DomainTree;
-import io.amelia.lang.WebrootException;
 import io.amelia.data.TypeBase;
-import io.amelia.storage.HoneyStorageProvider;
 import io.amelia.foundation.ConfigData;
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.foundation.Env;
 import io.amelia.foundation.Kernel;
+import io.amelia.http.mappings.DomainNode;
+import io.amelia.http.mappings.DomainTree;
+import io.amelia.lang.ApplicationException;
+import io.amelia.lang.WebrootException;
+import io.amelia.storage.HoneyStorageProvider;
 import io.amelia.support.IO;
 import io.amelia.support.StorageConversions;
 import io.amelia.support.Streams;
@@ -101,22 +103,12 @@ public class WebrootRegistry
 
 	public static Webroot getDefaultWebroot()
 	{
-		return getWebrootById( "default" );
+		return getWebrootById( "default" ).orElseThrow( ApplicationException.Runtime::new );
 	}
 
-	public static DomainNode getDomain( String fullDomain )
+	public static Optional<Webroot> getWebrootById( @Nonnull String id )
 	{
-		return DomainTree.parseDomain( fullDomain );
-	}
-
-	public static Stream<DomainNode> getDomainsByWebroot( Webroot webroot )
-	{
-		return DomainTree.getChildren().filter( n -> n.getWebroot() == webroot );
-	}
-
-	public static Webroot getWebrootById( @Nonnull String id )
-	{
-		return null;
+		return WEBROOTS.stream().filter( webroot -> id.equalsIgnoreCase( webroot.getWebrootId() ) ).findFirst();
 	}
 
 	static void reload()
@@ -139,6 +131,12 @@ public class WebrootRegistry
 		WEBROOTS.clear();
 	}
 
+	public enum Backend
+	{
+		FILE,
+		SQL
+	}
+
 	public static class Config
 	{
 		public static final TypeBase WEBROOTS = new TypeBase( ConfigRegistry.ConfigKeys.APPLICATION_BASE, "webroots" );
@@ -149,11 +147,5 @@ public class WebrootRegistry
 		{
 			// Static Access
 		}
-	}
-
-	public enum Backend
-	{
-		FILE,
-		SQL
 	}
 }

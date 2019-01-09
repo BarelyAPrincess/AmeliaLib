@@ -42,7 +42,7 @@ import java.util.List;
 
 import io.amelia.support.Voluntary;
 import io.amelia.lang.NetworkException;
-import io.amelia.networking.Networking;
+import io.amelia.net.Networking;
 import io.amelia.support.Encrypt;
 import io.amelia.support.Exceptions;
 import io.amelia.support.IO;

@@ -12,8 +12,7 @@ package io.amelia.lang;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import io.amelia.networking.packets.RawPacket;
-import io.amelia.lang.ApplicationException;
+import io.amelia.net.packets.RawPacket;
 import io.amelia.support.SupplierWithException;
 
 public class NetworkException

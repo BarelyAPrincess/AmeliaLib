@@ -13,7 +13,6 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -29,7 +28,7 @@ import io.amelia.http.session.adapters.FileAdapter;
 import io.amelia.http.session.adapters.SqlAdapter;
 import io.amelia.http.webroot.Webroot;
 import io.amelia.lang.SessionException;
-import io.amelia.networking.Networking;
+import io.amelia.net.Networking;
 import io.amelia.storage.HoneyStorageProvider;
 import io.amelia.foundation.ConfigData;
 import io.amelia.foundation.ConfigRegistry;
@@ -58,7 +57,7 @@ public class SessionRegistry
 	public static final String PATH_SESSIONS = "__sessions";
 	public final static Kernel.Logger L = Kernel.getLogger( SessionRegistry.class );
 
-	private final static List<Session> sessions = new CopyOnWriteArrayList<>();
+	protected final static List<Session> sessions = new CopyOnWriteArrayList<>();
 	private static SessionAdapterImpl datastore = null;
 	private static boolean isCleanupRunning = false;
 
@@ -141,7 +140,7 @@ public class SessionRegistry
 		/*
 		 * This schedules the Session Manager with the Scheduler to run every 5 minutes (by default) to cleanup sessions.
 		 */
-		Tasks.scheduleAsyncRepeatingTask( Foundation.getApplication(), 0L, Ticks.MINUTE * ConfigRegistry.config.getValue( Networking.Config.SESSION_CLEANUP_INTERVAL ), SessionRegistry::sessionCleanup );
+		Tasks.scheduleAsyncRepeatingTask( Foundation.getApplication(), 0L, Ticks.MINUTE * ConfigRegistry.config.getValue( Networking.ConfigKeys.SESSION_CLEANUP_INTERVAL ), SessionRegistry::sessionCleanup );
 	}
 
 	/**
@@ -151,7 +150,7 @@ public class SessionRegistry
 	 */
 	public static String getDefaultSessionName()
 	{
-		return "_ws" + Strs.capitalizeWordsFully( ConfigRegistry.config.getValue( Networking.Config.SESSION_COOKIE_NAME ) ).replace( " ", "" );
+		return "_ws" + Strs.capitalizeWordsFully( ConfigRegistry.config.getValue( Networking.ConfigKeys.SESSION_COOKIE_NAME ) ).replace( " ", "" );
 	}
 
 	/**
@@ -161,7 +160,7 @@ public class SessionRegistry
 	 */
 	public static int getDefaultTimeout()
 	{
-		return ConfigRegistry.config.getValue( Networking.Config.SESSION_TIMEOUT_DEFAULT );
+		return ConfigRegistry.config.getValue( Networking.ConfigKeys.SESSION_TIMEOUT_DEFAULT );
 	}
 
 	/**
@@ -171,7 +170,7 @@ public class SessionRegistry
 	 */
 	public static int getDefaultTimeoutWithLogin()
 	{
-		return ConfigRegistry.config.getValue( Networking.Config.SESSION_TIMEOUT_LOGIN );
+		return ConfigRegistry.config.getValue( Networking.ConfigKeys.SESSION_TIMEOUT_LOGIN );
 	}
 
 	/**
@@ -181,7 +180,7 @@ public class SessionRegistry
 	 */
 	public static int getDefaultTimeoutWithRememberMe()
 	{
-		return ConfigRegistry.config.getValue( Networking.Config.SESSION_TIMEOUT_EXTENDED );
+		return ConfigRegistry.config.getValue( Networking.ConfigKeys.SESSION_TIMEOUT_EXTENDED );
 	}
 
 	/**
@@ -191,7 +190,7 @@ public class SessionRegistry
 	 */
 	public static boolean isDebug()
 	{
-		return ConfigRegistry.config.getValue( Networking.Config.SESSION_DEBUG );
+		return ConfigRegistry.config.getValue( Networking.ConfigKeys.SESSION_DEBUG );
 	}
 
 	/**
@@ -275,7 +274,7 @@ public class SessionRegistry
 			else
 				knownIps.addAll( session.getIpAddresses() );
 
-		int maxPerIp = ConfigRegistry.config.getValue( Networking.Config.SESSION_MAX_PER_IP );
+		int maxPerIp = ConfigRegistry.config.getValue( Networking.ConfigKeys.SESSION_MAX_PER_IP );
 
 		for ( String ip : knownIps )
 		{

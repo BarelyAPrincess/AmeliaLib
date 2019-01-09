@@ -28,6 +28,21 @@ public final class DomainTree
 		return domains.values().stream().flatMap( l -> l.stream() ).flatMap( DomainNode::getChildrenRecursive0 );
 	}
 
+	public static Stream<DomainMapping> getDomainMappingByIp( String ip )
+	{
+		return getChildren().map( DomainNode::getDomainMapping ).filter( m -> m != null && m.getConfig( "ip" ) != null && ( m.getConfig( "ip" ).equals( ip ) || m.getConfig( "ip" ).matches( ip ) ) );
+	}
+
+	public static Stream<DomainMapping> getDomainMappings()
+	{
+		return getChildren().map( DomainNode::getDomainMapping );
+	}
+
+	public static Stream<DomainMapping> getDomainMappingsById( String id )
+	{
+		return getChildren().map( DomainNode::getDomainMapping ).filter( m -> m != null && m.getConfig( "id" ) != null && ( m.getConfig( "id" ).equals( id ) || m.getConfig( "id" ).matches( id ) ) );
+	}
+
 	public static Stream<DomainRoot> getDomains( String tld )
 	{
 		return domains.values().stream().flatMap( l -> l.stream() ).filter( n -> tld.matches( n.getTld() ) );
@@ -52,7 +67,7 @@ public final class DomainTree
 		List<DomainRoot> list = domains.compute( root.setGlue( "_" ).getString( true ), ( k, v ) -> v == null ? new ArrayList<>() : v );
 
 		String first = child.getStringFirst();
-		DomainNode node = Lists.findOrNew( list, v -> v.getNodeName().equals( first ), new DomainRoot( root.getString(), first ) );
+		DomainNode node = Lists.findOrNew( list, domainRoot -> first.equals( domainRoot.getNodeName() ), new DomainRoot( root.getString(), first ) );
 
 		if ( child.getNodeCount() > 1 )
 			for ( String s : child.subArray( 1 ) )

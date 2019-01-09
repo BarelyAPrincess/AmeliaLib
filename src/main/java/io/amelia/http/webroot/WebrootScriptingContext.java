@@ -21,69 +21,125 @@ import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 
 import io.amelia.http.HttpRequestWrapper;
-import io.amelia.lang.ReportingLevel;
 import io.amelia.lang.ScriptingException;
 import io.amelia.scripting.ScriptingContext;
 import io.amelia.scripting.ScriptingFactory;
+import io.amelia.support.FileContext;
 import io.amelia.support.IO;
 import io.amelia.support.Objs;
 
-public class WebrootScriptingContext extends ScriptingContext
+public class WebrootScriptingContext extends ScriptingContext<WebrootScriptingContext>
 {
 	public static WebrootScriptingContext empty()
 	{
-
+		return new WebrootScriptingContext();
 	}
 
-	public static WebrootScriptingContext fromFile( final Webroot webroot, final String file )
+	public static WebrootScriptingContext fromCause( Throwable cause, Path file )
 	{
-		// We block absolute file paths for both unix-like and windows
-		if ( file.startsWith( File.separator ) || file.matches( "[A-Za-z]:\\.*" ) )
-			throw new SecurityException( "To protect system resources, this page has been blocked from accessing an absolute file path." );
-		if ( file.startsWith( ".." + File.separator ) )
-			throw new SecurityException( "To protect system resources, this page has been blocked from accessing a protected file path." );
+		return fromCause( new ScriptingException.Runtime( String.format( "Could not locate the file '%s'", file ), cause ) ).setFileName( file.toString() );
+	}
+
+	public static WebrootScriptingContext fromCause( Throwable cause )
+	{
+		WebrootScriptingContext scriptingContext = empty();
+		scriptingContext.getResult().handleException( cause );
+		return scriptingContext;
+	}
+
+	public static WebrootScriptingContext fromFile( final Path file )
+	{
 		try
 		{
-			return fromFile( webroot.resourceFile( file ) );
+			return fromFile( FileContext.fromFile( file ) );
 		}
-		catch ( IOException e )
+		catch ( IOException cause )
 		{
-			WebrootScriptingContext context = empty();
-			context.setFileName( file );
-			context.setWebroot( webroot );
-			context.getResult().addException( new ScriptingException( ReportingLevel.E_IGNORABLE, String.format( "Could not locate the file '%s' within webroot '%s'", file, site.getId() ), e ) );
-			return context;
+			return fromCause( cause, file );
 		}
+	}
+
+	public static WebrootScriptingContext fromFile( final FileContext fileContext )
+	{
+		WebrootScriptingContext context = fromSource( fileContext.getContentBytes(), fileContext.getFilePath() );
+		context.setVirtual( false );
+		context.setContentType( fileContext.getContentType() );
+		context.setShell( fileContext.getAnnotations().get( "shell" ) );
+		return context;
+	}
+
+	public static WebrootScriptingContext fromFile( final Webroot webroot, final Path file )
+	{
+		if ( webroot.isProtectedFilePath( webroot.getDirectory().resolve( file ) ) )
+			throw new SecurityException( "This page has been blocked from accessing a protected system file path." );
+		return fromFile( webroot.getDirectory().resolve( file ) ).setWebroot( webroot );
 	}
 
 	public static WebrootScriptingContext fromPackage( final Webroot webroot, final String pack )
 	{
-		ScriptingContext context;
+		WebrootScriptingContext scriptingContext;
 
 		try
 		{
-			File packFile = webroot.resourcePackage( pack );
-			FileInterpreter fi = new FileInterpreter( packFile );
-			context = ScriptingContext.fromFile( fi );
+			Path packFile = webroot.getResourcePackage( pack );
+			FileContext fileContext = FileContext.fromFile( packFile );
+			scriptingContext = WebrootScriptingContext.fromFile( fileContext );
 		}
-		catch ( IOException e )
+		catch ( IOException cause )
 		{
-			context = ScriptingContext.fromSource( "", pack );
-			context.getResult().addException( new ScriptingException( ReportingLevel.E_IGNORABLE, String.format( "Could not locate the package '%s' within webroot '%s'", pack, webroot.getId() ), e ) );
+			scriptingContext = WebrootScriptingContext.fromSource( "", pack );
+			scriptingContext.getResult().addException( new ScriptingException.Runtime( String.format( "Could not locate the package '%s' within webroot '%s'", pack, webroot.getWebrootId() ), cause ) );
 		}
 
-		context.site( webroot );
+		scriptingContext.setWebroot( webroot );
 
-		return context;
+		return scriptingContext;
 	}
 
 	public static WebrootScriptingContext fromPackageWithException( final Webroot webroot, final String pack ) throws IOException
 	{
-		File packFile = webroot.resourcePackage( pack );
-		FileInterpreter fi = new FileInterpreter( packFile );
-		WebrootScriptingContext context = fromFile( fi );
-		context.setWebroot( webroot );
+		Path packFile = webroot.getResourcePackage( pack );
+		FileContext fileContext = FileContext.fromFile( packFile );
+		WebrootScriptingContext scriptingContext = fromFile( fileContext );
+		scriptingContext.setWebroot( webroot );
 
+		return scriptingContext;
+	}
+
+	public static WebrootScriptingContext fromSource( byte[] source )
+	{
+		return fromSource( source, "<no file>" );
+	}
+
+	public static WebrootScriptingContext fromSource( final byte[] source, final Path file )
+	{
+		return fromSource( source, file.toString() );
+	}
+
+	public static WebrootScriptingContext fromSource( final byte[] source, final String filename )
+	{
+		WebrootScriptingContext context = new WebrootScriptingContext();
+		context.setVirtual( true );
+		context.setFileName( filename );
+		context.write( source );
+		context.setBaseSource( new String( source, context.getCharset() ) );
+		return context;
+	}
+
+	public static WebrootScriptingContext fromSource( String source )
+	{
+		return fromSource( source, "" );
+	}
+
+	public static WebrootScriptingContext fromSource( final String source, final File file )
+	{
+		return fromSource( source, file.getAbsolutePath() );
+	}
+
+	public static WebrootScriptingContext fromSource( final String source, final String filename )
+	{
+		WebrootScriptingContext context = fromSource( new byte[0], filename );
+		context.write( source.getBytes( context.getCharset() ) );
 		return context;
 	}
 
@@ -131,11 +187,13 @@ public class WebrootScriptingContext extends ScriptingContext
 			if ( finalPath == null )
 				throw new ScriptingException.Runtime( String.format( "Could not find script '%s' from webroot '%s' resource directory '%s'.", IO.relPath( resourcePath ), webroot.getWebrootId(), IO.relPath( webroot.getResourcePath() ) ) );
 
-			return fromScriptInterpreter( finalPath );
+			return fromFile( finalPath );
 		}
 		catch ( Throwable cause )
 		{
-			return new WebrootScriptingContext( cause );
+			WebrootScriptingContext scriptingContext = empty();
+			scriptingContext.getResult().handleException( cause );
+			return scriptingContext;
 		}
 	}
 
@@ -153,16 +211,16 @@ public class WebrootScriptingContext extends ScriptingContext
 		return webroot.getCacheDirectory();
 	}
 
-	@Override
-	public ScriptingFactory getScriptingFactory()
-	{
-		return request.getScriptingFactory();
-	}
-
 	public HttpRequestWrapper getRequest()
 	{
 		Objs.notNull( request );
 		return request;
+	}
+
+	@Override
+	public ScriptingFactory getScriptingFactory()
+	{
+		return request.getScriptingFactory();
 	}
 
 	public Webroot getWebroot()
@@ -171,8 +229,9 @@ public class WebrootScriptingContext extends ScriptingContext
 		return webroot;
 	}
 
-	public void setWebroot( Webroot webroot )
+	public WebrootScriptingContext setWebroot( Webroot webroot )
 	{
 		this.webroot = webroot;
+		return this;
 	}
 }
