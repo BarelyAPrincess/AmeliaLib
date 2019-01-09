@@ -9,9 +9,11 @@
  */
 package io.amelia.logging;
 
+import java.util.List;
 import java.util.logging.Level;
 
 /**
+ *
  */
 public class LogEvent implements ILogEvent
 {
@@ -30,7 +32,13 @@ public class LogEvent implements ILogEvent
 	}
 
 	@Override
-	public void exceptions( Throwable... throwables )
+	public void exception( Throwable throwable )
+	{
+		record.exception( throwable );
+	}
+
+	@Override
+	public void exceptions( List<Throwable> throwables )
 	{
 		record.exceptions( throwables );
 	}

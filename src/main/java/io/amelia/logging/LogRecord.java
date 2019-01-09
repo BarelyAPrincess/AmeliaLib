@@ -20,7 +20,6 @@ import io.amelia.lang.ExceptionContext;
 import io.amelia.logcompat.LogBuilder;
 import io.amelia.support.EnumColor;
 import io.amelia.support.Exceptions;
-import io.amelia.support.Strs;
 
 class LogRecord implements ILogEvent
 {
@@ -33,21 +32,25 @@ class LogRecord implements ILogEvent
 	}
 
 	@Override
-	public void exceptions( Throwable... throwables )
+	public void exception( Throwable throwable )
 	{
-		for ( Throwable t : throwables )
+		if ( throwable instanceof ExceptionContext )
 		{
-			if ( t instanceof ExceptionContext )
-			{
-				if ( ( ( ExceptionContext ) t ).getReportingLevel().isEnabled() )
-					log( Level.SEVERE, EnumColor.NEGATIVE + "" + EnumColor.RED + t.getClass().getSimpleName() + ": " + t.getMessage() );
-			}
-			else
-				log( Level.SEVERE, EnumColor.NEGATIVE + "" + EnumColor.RED + t.getClass().getSimpleName() + ": " + t.getMessage() );
-
-			if ( Kernel.isDevelopment() )
-				log( Level.SEVERE, EnumColor.NEGATIVE + "" + EnumColor.RED + Exceptions.getStackTrace( t ) );
+			if ( ( ( ExceptionContext ) throwable ).getReportingLevel().isEnabled() )
+				log( Level.SEVERE, EnumColor.NEGATIVE + "" + EnumColor.RED + throwable.getClass().getSimpleName() + ": " + throwable.getMessage() );
 		}
+		else
+			log( Level.SEVERE, EnumColor.NEGATIVE + "" + EnumColor.RED + throwable.getClass().getSimpleName() + ": " + throwable.getMessage() );
+
+		if ( Kernel.isDevelopment() )
+			log( Level.SEVERE, EnumColor.NEGATIVE + "" + EnumColor.RED + Exceptions.getStackTrace( throwable ) );
+	}
+
+	@Override
+	public void exceptions( List<Throwable> throwables )
+	{
+		for ( Throwable throwable : throwables )
+			exception( throwable );
 	}
 
 	@Override

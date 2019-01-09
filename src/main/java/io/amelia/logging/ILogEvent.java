@@ -9,6 +9,7 @@
  */
 package io.amelia.logging;
 
+import java.util.List;
 import java.util.logging.Level;
 
 /**
@@ -16,7 +17,9 @@ import java.util.logging.Level;
  */
 public interface ILogEvent
 {
-	void exceptions( Throwable... throwables );
+	void exception( Throwable throwable );
+
+	void exceptions( List<Throwable> throwables );
 
 	void flush();
 
