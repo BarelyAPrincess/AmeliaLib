@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -107,8 +107,8 @@ public class HoneyPermissions extends Permissions
 	/**
 	 * Check if specified entity has specified permission
 	 *
-	 * @param entity entity object
-	 * @param perm   permission string to check against
+	 * @param entity    entity object
+	 * @param namespace permission string to check against
 	 *
 	 * @return true on success false otherwise
 	 */
@@ -159,7 +159,7 @@ public class HoneyPermissions extends Permissions
 
 		boolean created = true;
 
-		for ( String node : namespace.getNodes() )
+		for ( String node : namespace.getNames() )
 		{
 			if ( current.hasChild( node ) )
 			{
@@ -353,7 +353,7 @@ public class HoneyPermissions extends Permissions
 	@Override
 	public Voluntary<Permission> getNode( PermissionNamespace namespace )
 	{
-		String[] nodes = namespace.getNodes();
+		String[] nodes = namespace.getNames();
 
 		if ( nodes.length < 1 )
 			return Voluntary.empty();
@@ -619,8 +619,8 @@ public class HoneyPermissions extends Permissions
 	{
 		synchronized ( this )
 		{
+			backend = backends.stream().filter( backend -> backend.getAliasName().equals( backendName ) ).findFirst().orElseThrow( () -> new IllegalArgumentException( "Backend " + backendName + " not found!" ) );
 			reset();
-			backend = PermissionBackend.getBackend( backendName );
 			backend.initialize();
 
 			loadData();
