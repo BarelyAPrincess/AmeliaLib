@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -18,11 +18,12 @@ import io.amelia.lang.NonceException;
 import io.amelia.lang.ParcelableException;
 import io.amelia.support.DateAndTime;
 import io.amelia.support.Encrypt;
+import io.amelia.support.http.HttpNonce;
 
 /**
  * Provides NONCE persistence and checking
  */
-public class Nonce
+public class Nonce implements HttpNonce
 {
 	private long created = DateAndTime.epoch();
 	private String key;
@@ -39,32 +40,45 @@ public class Nonce
 		sessionId = sess.getSessionId();
 	}
 
+	@Override
 	public String key()
 	{
 		return key;
 	}
 
-	Parcel getData()
+	@Override
+	public Parcel getData()
 	{
 		return data;
 	}
 
-	public void putAll( Map<String, String> values ) throws ParcelableException.Error
+	@Override
+	public void putAll( Map<String, String> values )
 	{
 		for ( Map.Entry<String, String> entry : values.entrySet() )
 		{
 			String key = entry.getKey();
 			if ( key.contains( data.getOptions().getSeparator() ) )
 				key = key.replace( data.getOptions().getSeparator(), data.getOptions().getSeparatorReplacement() );
-			data.setValue( key, entry.getValue() );
+			put( key, entry.getValue() );
 		}
 	}
 
-	public void put( String key, String val ) throws ParcelableException.Error
+	@Override
+	public void put( String key, String val )
 	{
-		data.setValue( key, value );
+		try
+		{
+			data.setValue( key, value );
+		}
+		catch ( ParcelableException.Error e )
+		{
+			// Should never happen!
+			e.printStackTrace();
+		}
 	}
 
+	@Override
 	public String query()
 	{
 		return key + "=" + value;
@@ -76,6 +90,7 @@ public class Nonce
 		return "<input type=\"hidden\" name=\"" + key + "\" value=\"" + value + "\" />";
 	}
 
+	@Override
 	public boolean validate( String token )
 	{
 		try
@@ -106,6 +121,7 @@ public class Nonce
 			throw new NonceException( "The NONCE has an invalid timestamp" );
 	}
 
+	@Override
 	public String value()
 	{
 		return value;

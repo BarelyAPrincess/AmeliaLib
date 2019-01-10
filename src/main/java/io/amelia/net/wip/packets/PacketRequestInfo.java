@@ -2,17 +2,16 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.net.packets;
+package io.amelia.net.wip.packets;
 
 import java.util.function.Supplier;
 
-import io.amelia.lang.NetworkException;
-import io.amelia.net.udp.UDPPacketHandler;
+import io.amelia.net.wip.udp.UDPPacketHandler;
 import io.netty.buffer.ByteBuf;
 
 public class PacketRequestInfo extends PacketRequest<PacketRequestInfo, Object>
@@ -26,7 +25,7 @@ public class PacketRequestInfo extends PacketRequest<PacketRequestInfo, Object>
 	}
 
 	@Override
-	public void validate() throws NetworkException.PacketValidation
+	public void validate() throws PacketValidationException
 	{
 
 	}

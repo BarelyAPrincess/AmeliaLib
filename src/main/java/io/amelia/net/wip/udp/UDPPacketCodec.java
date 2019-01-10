@@ -2,19 +2,19 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.net.udp;
+package io.amelia.net.wip.udp;
 
 import java.net.DatagramPacket;
 import java.util.List;
 
-import io.amelia.net.packets.RawPacket;
+import io.amelia.net.wip.packets.RawPacket;
 import io.amelia.lang.NetworkException;
-import io.amelia.net.NetworkLoader;
+import io.amelia.net.wip.NetworkLoader;
 import io.amelia.support.DateAndTime;
 import io.amelia.support.NIO;
 import io.amelia.support.Objs;

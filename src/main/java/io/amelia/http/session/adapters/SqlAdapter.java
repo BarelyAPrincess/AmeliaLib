@@ -2,14 +2,13 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
 package io.amelia.http.session.adapters;
 
-import com.chiorichan.permission.PermissionDispatcher;
 import com.google.common.collect.Lists;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
@@ -17,15 +16,16 @@ import com.google.gson.Gson;
 import java.util.List;
 import java.util.Map;
 
-import io.amelia.http.session.SessionWrapper;
-import io.amelia.lang.SessionException;
+import io.amelia.database.Database;
+import io.amelia.database.DatabaseManager;
+import io.amelia.database.elegant.ElegantQuerySelect;
 import io.amelia.http.session.SessionAdapterImpl;
 import io.amelia.http.session.SessionData;
 import io.amelia.http.session.SessionRegistry;
+import io.amelia.http.session.SessionWrapper;
 import io.amelia.lang.DatabaseException;
-import io.amelia.storage.Database;
-import io.amelia.storage.StorageModule;
-import io.amelia.storage.elegant.ElegantQuerySelect;
+import io.amelia.lang.SessionException;
+import io.amelia.permissions.Permissions;
 import io.amelia.support.DateAndTime;
 import io.amelia.support.Timing;
 
@@ -38,10 +38,10 @@ public class SqlAdapter implements SessionAdapterImpl
 	}
 
 	@Override
-	List<SessionData> getSessions() throws SessionException.Error
+	public List<SessionData> getSessions() throws SessionException.Error
 	{
 		List<SessionData> data = Lists.newArrayList();
-		Database sql = StorageModule.i().getDatabase();
+		Database sql = DatabaseManager.getDefault().getDatabase();
 
 		if ( sql == null )
 			throw new SessionException.Error( "Sessions can't be stored in a SQL Database without a properly configured server database." );
@@ -52,7 +52,7 @@ public class SqlAdapter implements SessionAdapterImpl
 		{
 			// Attempt to delete all expired sessions before we try and load them.
 			int expired = sql.table( "sessions" ).delete().where( "timeout" ).moreThan( 0 ).where( "timeout" ).lessThan( DateAndTime.epoch() ).executeWithException().count();
-			PermissionDispatcher.getLogger().info( String.format( "SqlSession removed %s expired sessions from the datastore!", expired ) );
+			Permissions.L.info( String.format( "SqlSession removed %s expired sessions from the datastore!", expired ) );
 
 			ElegantQuerySelect select = sql.table( "sessions" ).select().execute();
 
@@ -63,7 +63,7 @@ public class SqlAdapter implements SessionAdapterImpl
 					{
 						data.add( new SqlSessionData( select ) );
 					}
-					catch ( SessionException e )
+					catch ( SessionException.Error e )
 					{
 						e.printStackTrace();
 					}
@@ -72,10 +72,10 @@ public class SqlAdapter implements SessionAdapterImpl
 		}
 		catch ( DatabaseException e )
 		{
-			SessionRegistry.getLogger().warning( "There was a problem reloading saved sessions.", e );
+			SessionRegistry.L.warning( "There was a problem reloading saved sessions.", e );
 		}
 
-		PermissionDispatcher.getLogger().info( "SqlSession loaded " + data.size() + " sessions from the datastore in " + Timing.finish( this ) + "ms!" );
+		SessionRegistry.L.info( "SqlSession loaded " + data.size() + " sessions from the datastore in " + Timing.finish( this ) + "ms!" );
 
 		return data;
 	}
@@ -94,18 +94,18 @@ public class SqlAdapter implements SessionAdapterImpl
 			this.sessionId = sessionId;
 
 			ipAddress = wrapper.getIpAddress();
-			site = wrapper.getWebroot().getId();
+			webroot = wrapper.getWebroot().getWebrootId();
 
 			save();
 		}
 
 		@Override
-		void destroy() throws SessionException.Error
+		protected void destroy() throws SessionException.Error
 		{
 			try
 			{
-				if ( StorageModule.i().getDatabase().table( "sessions" ).delete().where( "sessionId" ).matches( sessionId ).executeWithException().count() < 1 )
-					SessionRegistry.getLogger().severe( "Failed to remove the session '" + sessionId + "' from the database, no results." );
+				if ( DatabaseManager.getDefault().getDatabase().table( "sessions" ).delete().where( "sessionId" ).matches( sessionId ).executeWithException().count() < 1 )
+					SessionRegistry.L.severe( "Failed to remove the session '" + sessionId + "' from the database, no results." );
 			}
 			catch ( DatabaseException e )
 			{
@@ -122,7 +122,7 @@ public class SqlAdapter implements SessionAdapterImpl
 				sessionName = rs.getString( "sessionName" );
 			sessionId = rs.getString( "sessionId" );
 
-			site = rs.getString( "sessionSite" );
+			webroot = rs.getString( "sessionSite" );
 
 			if ( !rs.getString( "data" ).isEmpty() )
 				data = new Gson().fromJson( rs.getString( "data" ), new TypeToken<Map<String, String>>()
@@ -132,11 +132,11 @@ public class SqlAdapter implements SessionAdapterImpl
 		}
 
 		@Override
-		void reload() throws SessionException.Error
+		protected void reload() throws SessionException.Error
 		{
 			try
 			{
-				ElegantQuerySelect select = StorageModule.i().getDatabase().table( "sessions" ).select().where( "sessionId" ).matches( sessionId ).executeWithException();
+				ElegantQuerySelect select = DatabaseManager.getDefault().getDatabase().table( "sessions" ).select().where( "sessionId" ).matches( sessionId ).executeWithException();
 				// rs = Loader.getDatabase().query( "SELECT * FROM `sessions` WHERE `sessionId` = '" + sessionId + "'" );
 				if ( select.count() < 1 )
 					return;
@@ -144,31 +144,31 @@ public class SqlAdapter implements SessionAdapterImpl
 			}
 			catch ( DatabaseException e )
 			{
-				throw new SessionException( e );
+				throw new SessionException.Error( e );
 			}
 		}
 
 		@Override
-		void save() throws SessionException.Error
+		protected void save() throws SessionException.Error
 		{
 			try
 			{
 				String dataJson = new Gson().toJson( data );
-				Database db = StorageModule.i().getDatabase();
+				Database db = DatabaseManager.getDefault().getDatabase();
 
 				if ( db == null )
-					throw new SessionException( "Sessions can't be stored in a SQL Database without a properly configured server database." );
+					throw new SessionException.Error( "Sessions can't be stored in a SQL Database without a properly configured server database." );
 
 				ElegantQuerySelect select = db.table( "sessions" ).select().where( "sessionId" ).matches( sessionId ).executeWithException();
 				// query( "SELECT * FROM `sessions` WHERE `sessionId` = '" + sessionId + "';" );
 
 				if ( select.count() < 1 )
-					db.table( "sessions" ).insert().value( "sessionId", sessionId ).value( "timeout", timeout ).value( "ipAddress", ipAddress ).value( "sessionName", sessionName ).value( "sessionSite", site ).value( "data", dataJson ).executeWithException();
-					// sql.queryUpdate( "INSERT INTO `sessions` (`sessionId`, `timeout`, `ipAddress`, `sessionName`, `sessionSite`, `data`) VALUES ('" + sessionId + "', '" + timeout + "', '" + ipAddress + "', '" + sessionName + "', '" + site + "', '"
+					db.table( "sessions" ).insert().value( "sessionId", sessionId ).value( "timeout", timeout ).value( "ipAddress", ipAddress ).value( "sessionName", sessionName ).value( "sessionSite", webroot ).value( "data", dataJson ).executeWithException();
+					// sql.queryUpdate( "INSERT INTO `sessions` (`sessionId`, `timeout`, `ipAddress`, `sessionName`, `sessionSite`, `data`) VALUES ('" + sessionId + "', '" + timeout + "', '" + ipAddress + "', '" + sessionName + "', '" + webroot + "', '"
 					// + dataJson + "');" );
 				else
-					db.table( "sessions" ).update().value( "timeout", timeout ).value( "ipAddress", ipAddress ).value( "sessionName", sessionName ).value( "sessionSite", site ).value( "data", dataJson ).where( "sessionId" ).matches( sessionId ).executeWithException();
-				// sql.queryUpdate( "UPDATE `sessions` SET `data` = '" + dataJson + "', `timeout` = '" + timeout + "', `sessionName` = '" + sessionName + "', `ipAddress` = '" + ipAddress + "', `sessionSite` = '" + site + "' WHERE `sessionId` = '"
+					db.table( "sessions" ).update().value( "timeout", timeout ).value( "ipAddress", ipAddress ).value( "sessionName", sessionName ).value( "sessionSite", webroot ).value( "data", dataJson ).where( "sessionId" ).matches( sessionId ).executeWithException();
+				// sql.queryUpdate( "UPDATE `sessions` SET `data` = '" + dataJson + "', `timeout` = '" + timeout + "', `sessionName` = '" + sessionName + "', `ipAddress` = '" + ipAddress + "', `sessionSite` = '" + webroot + "' WHERE `sessionId` = '"
 				// + sessionId + "';" );
 			}
 			catch ( DatabaseException e )

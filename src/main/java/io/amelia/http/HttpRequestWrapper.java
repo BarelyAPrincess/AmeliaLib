@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -11,7 +11,6 @@ package io.amelia.http;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.lang.ref.WeakReference;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
@@ -25,30 +24,27 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
-import javax.security.auth.login.AccountException;
 
-import io.amelia.foundation.ConfigRegistry;
 import io.amelia.foundation.DevMetaProvider;
-import io.amelia.foundation.EntityPrincipal;
 import io.amelia.foundation.Kernel;
 import io.amelia.http.mappings.DomainMapping;
 import io.amelia.http.mappings.DomainTree;
 import io.amelia.http.session.Session;
 import io.amelia.http.session.SessionContext;
-import io.amelia.http.session.SessionRegistry;
 import io.amelia.http.session.SessionWrapper;
 import io.amelia.http.webroot.Webroot;
 import io.amelia.http.webroot.WebrootRegistry;
+import io.amelia.lang.HttpCode;
+import io.amelia.lang.HttpError;
 import io.amelia.logging.LogEvent;
-import io.amelia.net.NetworkLoader;
 import io.amelia.net.Networking;
+import io.amelia.net.wip.NetworkLoader;
+import io.amelia.scripting.HttpScriptingRequest;
 import io.amelia.support.DateAndTime;
-import io.amelia.support.EnumColor;
 import io.amelia.support.Http;
 import io.amelia.support.HttpRequestContext;
 import io.amelia.support.Maps;
@@ -56,12 +52,9 @@ import io.amelia.support.NIO;
 import io.amelia.support.Objs;
 import io.amelia.support.Strs;
 import io.amelia.support.Voluntary;
-import io.amelia.users.DescriptiveReason;
-import io.amelia.users.UserContext;
-import io.amelia.users.UserException;
+import io.amelia.support.http.HttpServerKey;
+import io.amelia.support.http.HttpVariableMap;
 import io.amelia.users.UserResult;
-import io.amelia.users.Users;
-import io.amelia.users.auth.UserAuthenticator;
 import io.netty.channel.Channel;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaders;
@@ -70,7 +63,6 @@ import io.netty.handler.codec.http.HttpObject;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.QueryStringDecoder;
-import io.netty.handler.codec.http.cookie.Cookie;
 import io.netty.handler.codec.http.cookie.ServerCookieDecoder;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.util.CharsetUtil;
@@ -78,26 +70,12 @@ import io.netty.util.CharsetUtil;
 /**
  * Wraps the Netty HttpRequest and provides shortcut methods
  */
-public class HttpRequestWrapper extends SessionWrapper implements SessionContext
+public class HttpRequestWrapper extends SessionWrapper implements SessionContext, HttpScriptingRequest
 {
-	private static final Map<Thread, WeakReference<HttpRequestWrapper>> references = new ConcurrentHashMap<>();
-
-	public static HttpRequestWrapper getRequest()
-	{
-		if ( !references.containsKey( Thread.currentThread() ) || references.get( Thread.currentThread() ).get() == null )
-			throw new IllegalStateException( "Thread '" + Thread.currentThread().getName() + "' does not seem to currently link to any existing HTTP requests, please try again or notify an administrator." );
-		return references.get( Thread.currentThread() ).get();
-	}
-
-	private static void putRequest( HttpRequestWrapper request )
-	{
-		references.put( Thread.currentThread(), new WeakReference<>( request ) );
-	}
-
 	/**
 	 * Cookie Cache
 	 */
-	final Set<HoneyCookie> cookies = new HashSet<HoneyCookie>();
+	final Set<HoneyCookie> cookies = new HashSet<>();
 	/**
 	 * The Get Map
 	 */
@@ -170,7 +148,7 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 		this.ssl = ssl;
 		this.log = log;
 
-		putRequest( this );
+		HttpScriptingRequest.putHttpScriptingRequest( this );
 
 		// Set Time of this Request
 		requestTime = DateAndTime.epoch();
@@ -260,6 +238,7 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 		initServerVars();
 	}
 
+	@Override
 	public void enforceTrailingSlash( boolean enforce )
 	{
 		if ( enforce )
@@ -286,6 +265,7 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 		// Do Nothing
 	}
 
+	@Override
 	public String getArgument( String key )
 	{
 		String val = getMap.get( key );
@@ -299,30 +279,35 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 		return val;
 	}
 
+	@Override
 	public String getArgument( String key, String def )
 	{
 		String val = getArgument( key );
 		return val == null ? def : val;
 	}
 
+	@Override
 	public boolean getArgumentBoolean( String key )
 	{
 		String rtn = getArgument( key, "0" ).toLowerCase();
 		return Objs.isTrue( rtn );
 	}
 
+	@Override
 	public double getArgumentDouble( String key )
 	{
 		Object obj = getArgument( key, "-1.0" );
 		return Objs.castToDouble( obj );
 	}
 
+	@Override
 	public int getArgumentInt( String key )
 	{
 		Object obj = getArgument( key, "-1" );
 		return Objs.castToInt( obj );
 	}
 
+	@Override
 	public Set<String> getArgumentKeys()
 	{
 		Set<String> keys = new HashSet<>();
@@ -332,12 +317,14 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 		return keys;
 	}
 
+	@Override
 	public long getArgumentLong( String key )
 	{
 		Object obj = getArgument( key, "-1" );
 		return Objs.castToLong( obj );
 	}
 
+	@Override
 	public Stream<Entry<String, String>> getArguments()
 	{
 		return Stream.concat( Stream.concat( getMap.entrySet().stream(), postMap.entrySet().stream() ), rewriteMap.entrySet().stream() );
@@ -350,6 +337,7 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 		return auth;
 	}
 
+	@Override
 	public String getBaseUrl()
 	{
 		String url = getRootDomain();
@@ -365,11 +353,13 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 		return channel;
 	}
 
+	@Override
 	public String getChildDomain()
 	{
 		return domainMapping.getChildDomain();
 	}
 
+	@Override
 	public int getContentLength()
 	{
 		return contentSize;
@@ -392,66 +382,79 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 		return domainMapping;
 	}
 
+	@Override
 	public String getFullDomain()
 	{
 		return getFullDomain( null, ssl );
 	}
 
+	@Override
 	public String getFullDomain( boolean ssl )
 	{
 		return getFullDomain( null, ssl );
 	}
 
+	@Override
 	public String getFullDomain( String subdomain )
 	{
 		return getFullDomain( subdomain, ssl );
 	}
 
+	@Override
 	public String getFullDomain( String subdomain, boolean ssl )
 	{
 		return getFullDomain( subdomain, ssl ? "https://" : "http://" );
 	}
 
+	@Override
 	public String getFullDomain( String subdomain, String prefix )
 	{
 		return prefix + ( Objs.isEmpty( subdomain ) ? getHostDomain() : subdomain + "." + getRootDomain() ) + "/";
 	}
 
+	@Override
 	public String getFullUrl()
 	{
 		return getFullUrl( null, ssl );
 	}
 
+	@Override
 	public String getFullUrl( boolean ssl )
 	{
 		return getFullUrl( null, ssl );
 	}
 
+	@Override
 	public String getFullUrl( String subdomain )
 	{
 		return getFullUrl( subdomain, ssl );
 	}
 
+	@Override
 	public String getFullUrl( String subdomain, boolean ssl )
 	{
 		return getFullDomain( subdomain, ssl ) + getUri();
 	}
 
+	@Override
 	public String getFullUrl( String subdomain, String prefix )
 	{
 		return getFullDomain( subdomain, prefix ) + getUri().substring( 1 );
 	}
 
+	@Override
 	public Map<String, Object> getGetMap()
 	{
 		return parseMapArrays( getGetMapRaw() );
 	}
 
+	@Override
 	public Map<String, String> getGetMapRaw()
 	{
 		return getMap;
 	}
 
+	@Override
 	public String getHeader( CharSequence key )
 	{
 		try
@@ -469,11 +472,13 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 		return http.headers();
 	}
 
+	@Override
 	public String getHost()
 	{
 		return Http.hostnameNormalize( http.headers().get( "Host" ) );
 	}
 
+	@Override
 	public String getHostDomain()
 	{
 		if ( http.headers().contains( "Host" ) )
@@ -481,6 +486,12 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 		return null;
 	}
 
+	public HttpRequestContext getHttpContext()
+	{
+		return handler.getHttpRequestContext();
+	}
+
+	@Override
 	public HttpVersion getHttpVersion()
 	{
 		return http.protocolVersion();
@@ -491,6 +502,7 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 	 *
 	 * @return the remote connections IP address
 	 */
+	@Override
 	public InetAddress getInetAddr()
 	{
 		return getInetAddr( true );
@@ -503,6 +515,7 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 	 *
 	 * @return the remote connections IP address
 	 */
+	@Override
 	public InetAddress getInetAddr( boolean detectCDN )
 	{
 		if ( detectCDN && http.headers().contains( "CF-Connecting-IP" ) )
@@ -539,6 +552,7 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 	 *
 	 * @return the remote connections IP address as a string
 	 */
+	@Override
 	public String getIpAddress( boolean detectCDN )
 	{
 		// TODO Implement other CDNs
@@ -548,16 +562,19 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 		return ( ( InetSocketAddress ) channel.remoteAddress() ).getAddress().getHostAddress();
 	}
 
+	@Override
 	public String getLocalHostName()
 	{
 		return ( ( InetSocketAddress ) channel.localAddress() ).getHostName();
 	}
 
+	@Override
 	public String getLocalIpAddress()
 	{
 		return ( ( InetSocketAddress ) channel.localAddress() ).getAddress().getHostAddress();
 	}
 
+	@Override
 	public int getLocalPort()
 	{
 		return ( ( InetSocketAddress ) channel.localAddress() ).getPort();
@@ -568,21 +585,25 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 		return http;
 	}
 
+	@Override
 	public String getParameter( String key )
 	{
 		return null;
 	}
 
+	@Override
 	public Map<String, Object> getPostMap()
 	{
 		return parseMapArrays( getPostMapRaw() );
 	}
 
+	@Override
 	public Map<String, String> getPostMapRaw()
 	{
 		return postMap;
 	}
 
+	@Override
 	public String getQuery()
 	{
 		if ( getMap.isEmpty() )
@@ -590,11 +611,13 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 		return "?" + Strs.join( getMap, "&", "=", "null" );
 	}
 
+	@Override
 	public String getRemoteHostname()
 	{
 		return ( ( InetSocketAddress ) channel.remoteAddress() ).getHostName();
 	}
 
+	@Override
 	public int getRemotePort()
 	{
 		return ( ( InetSocketAddress ) channel.remoteAddress() ).getPort();
@@ -602,19 +625,22 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 
 	public HttpRequestContext getRequestContext()
 	{
-		return handler.getRequestContext();
+		return handler.getHttpRequestContext();
 	}
 
+	@Override
 	public String getRequestHost()
 	{
 		return getHeader( "Host" );
 	}
 
+	@Override
 	public Map<String, Object> getRequestMap() throws Exception
 	{
 		return parseMapArrays( getRequestMapRaw() );
 	}
 
+	@Override
 	public Map<String, String> getRequestMapRaw() throws Exception
 	{
 		Map<String, String> requestMap = new TreeMap<>();
@@ -624,6 +650,7 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 		return requestMap;
 	}
 
+	@Override
 	public long getRequestTime()
 	{
 		return requestTime;
@@ -634,52 +661,61 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 		return response;
 	}
 
+	@Override
 	public Map<String, String> getRewriteMap()
 	{
 		return rewriteMap;
 	}
 
+	@Override
 	public String getRootDomain()
 	{
 		return domainMapping.getRootDomain();
 	}
 
+	@Override
 	public HttpVariableMap getServer()
 	{
 		return vars;
 	}
 
 	@Override
-	protected Voluntary<HoneyCookie> getServerCookie( String key )
+	public Voluntary<HoneyCookie> getServerCookie( String key )
 	{
-		return Voluntary.of( serverCookies.stream().filter( cookie -> key.equalsIgnoreCase( cookie.name() ) ).findAny().orElse( null ) );
+		return Voluntary.of( serverCookies.stream().filter( cookie -> key.equalsIgnoreCase( cookie.getName() ) ).findAny().orElse( null ) );
 	}
 
+	@Override
 	public Stream<HoneyCookie> getServerCookies()
 	{
 		return serverCookies.stream();
 	}
 
+	@Override
 	public String getTopDomain()
 	{
 		return getFullDomain( null, ssl );
 	}
 
+	@Override
 	public String getTopDomain( boolean ssl )
 	{
 		return getFullDomain( null, ssl );
 	}
 
+	@Override
 	public String getTopDomain( String subdomain )
 	{
 		return getFullDomain( subdomain, ssl );
 	}
 
+	@Override
 	public String getTopDomain( String subdomain, boolean ssl )
 	{
 		return getTopDomain( subdomain, ssl ? "https://" : "http://" );
 	}
 
+	@Override
 	public String getTopDomain( String subdomain, String prefix )
 	{
 		return prefix + ( Objs.isEmpty( subdomain ) ? "" : subdomain + "." ) + getRootDomain() + "/";
@@ -695,6 +731,7 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 		return uploadedFiles;
 	}
 
+	@Override
 	public String getUri()
 	{
 		if ( uri == null )
@@ -737,6 +774,7 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 		return uri;
 	}
 
+	@Override
 	public String getUserAgent()
 	{
 		return getHeader( "User-Agent" );
@@ -747,11 +785,13 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 		return ( isSecure() ? "wss://" : "ws://" ) + getHost() + "/~wisp/ws";
 	}
 
+	@Override
 	public Webroot getWebroot()
 	{
 		return domainMapping.getWebroot();
 	}
 
+	@Override
 	public boolean hasArgument( String key )
 	{
 		return getMap.containsKey( key ) || postMap.containsKey( key ) || rewriteMap.containsKey( key );
@@ -818,33 +858,39 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 	 *
 	 * @return Was the request made with AJAX
 	 */
+	@Override
 	public boolean isAjaxRequest()
 	{
 		return getHeader( "X-requested-with" ) != null && getHeader( "X-requested-with" ).equals( "XMLHttpRequest" );
 	}
 
+	@Override
 	public boolean isCDN()
 	{
 		// TODO Implement additional CDN detection methods
 		return http.headers().contains( "CF-Connecting-IP" );
 	}
 
+	@Override
 	public boolean isSecure()
 	{
 		// TODO Is this reliable or should we respond based on the ssl param?
 		return channel.pipeline().get( SslHandler.class ) != null;
 	}
 
+	@Override
 	public boolean isWebsocketRequest()
 	{
 		return "/~wisp/ws".equals( getUri() );
 	}
 
+	@Override
 	public HttpMethod method()
 	{
 		return http.method();
 	}
 
+	@Override
 	public String methodString()
 	{
 		return http.method().toString();
@@ -977,6 +1023,7 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 	}
 
 	// XXX Better Implement
+	@Override
 	public void requireLogin() throws IOException
 	{
 		requireLogin( null );
@@ -990,6 +1037,7 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 	 *
 	 * @throws IOException
 	 */
+	@Override
 	public void requireLogin( String permission ) throws IOException
 	{
 		if ( !getSession().hasLogin() )
@@ -1034,23 +1082,26 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 
 		// TODO Implement One Time Login Tokens
 
-		String locId = session.getLocation().getId();
+		String webrootId = session.getWebroot().getWebrootId();
 		String username = getArgument( "user" );
 		String password = getArgument( "pass" );
 		boolean remember = getArgumentBoolean( "remember" );
 		String target = getArgument( "target" );
 
-		String loginPost = target == null || target.isEmpty() ? this.getWebroot().getConfig().getString( "scripts.login-post", "/" ) : target;
+		String loginPost = target == null || target.isEmpty() ? getWebroot().getLoginPost() : target;
 
 		if ( loginPost.isEmpty() )
 			loginPost = "/";
 
 		if ( username != null && password != null )
 		{
+			return false;
+			// throw new UserException.Runtime( Foundation.getNullEntity(), DescriptiveReason.FEATURE_NOT_IMPLEMENTED );
+			/*
 			try
 			{
 				if ( !ssl )
-					Users.L.warning( "It is highly recommended that account logins are submitted over SSL. Without SSL, passwords are at great risk." );
+					Users.L.warning( "It's highly recommended that logins are submitted over SSL. Without SSL, passwords are at great risk." );
 
 				if ( !nonceProcessed() && ConfigRegistry.config.getBoolean( "accounts.requireLoginWithNonce" ).orElse( true ) )
 					throw new UserException.Error( new EntityPrincipal( username ), DescriptiveReason.NONCE_REQUIRED );
@@ -1090,7 +1141,7 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 				AccountManager.getLogger().severe( "Login has thrown an internal server error", t );
 				getResponse().sendLoginPage( AccountDescriptiveReason.INTERNAL_ERROR.getMessage(), null, target );
 			}
-			return true;
+			return true;*/
 		}
 		else if ( session.hasLogin() )
 		{

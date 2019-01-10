@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -17,10 +17,12 @@ import java.util.Map.Entry;
 import java.util.UUID;
 import java.util.stream.Stream;
 
+import io.amelia.data.parcel.ParcelCarrier;
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.http.HoneyCookie;
 import io.amelia.http.webroot.Webroot;
 import io.amelia.http.webroot.WebrootRegistry;
+import io.amelia.lang.ParcelException;
 import io.amelia.lang.SessionException;
 import io.amelia.permissions.PermissibleEntity;
 import io.amelia.scripting.BindingProvider;
@@ -29,9 +31,9 @@ import io.amelia.scripting.ScriptingFactory;
 import io.amelia.support.Strs;
 import io.amelia.support.Voluntary;
 import io.amelia.users.UserAttachment;
+import io.amelia.users.UserContext;
+import io.amelia.users.UserEntity;
 import io.amelia.users.UserPermissible;
-import io.netty.handler.codec.http.cookie.Cookie;
-import io.netty.handler.codec.http.cookie.DefaultCookie;
 
 /**
  * Acts as a bridge between the session and the end user.
@@ -104,14 +106,20 @@ public abstract class SessionWrapper implements BindingProvider, UserAttachment
 		return binding;
 	}
 
+	@Override
+	public UserContext getContext()
+	{
+		return session.getContext();
+	}
+
 	public abstract Voluntary<HoneyCookie> getCookie( String key );
 
 	public abstract Stream<HoneyCookie> getCookies();
 
 	@Override
-	public String getDisplayName()
+	public UserEntity getEntity()
 	{
-		return getSession().getDisplayName();
+		return session.getEntity();
 	}
 
 	public Object getGlobal( String key )
@@ -119,8 +127,7 @@ public abstract class SessionWrapper implements BindingProvider, UserAttachment
 		return binding.getVariable( key );
 	}
 
-	@Override
-	public final UserPermissible getPermissible()
+	public UserPermissible getPermissible()
 	{
 		return session;
 	}
@@ -128,7 +135,7 @@ public abstract class SessionWrapper implements BindingProvider, UserAttachment
 	@Override
 	public PermissibleEntity getPermissibleEntity()
 	{
-		return getSession().getPermissibleEntity();
+		return session.getPermissibleEntity();
 	}
 
 	@Override
@@ -151,13 +158,11 @@ public abstract class SessionWrapper implements BindingProvider, UserAttachment
 		return session;
 	}
 
-	@Override
 	public String getVariable( String key )
 	{
 		return getSession().getVariable( key );
 	}
 
-	@Override
 	public String getVariable( String key, String def )
 	{
 		return getSession().getVariable( key, def );
@@ -165,27 +170,27 @@ public abstract class SessionWrapper implements BindingProvider, UserAttachment
 
 	public abstract Webroot getWebroot();
 
+	@Override
+	public void handleParcel( ParcelCarrier parcelCarrier ) throws ParcelException.Error
+	{
+		SessionRegistry.L.warning( "Received a parcel via SessionWrapper " + name() + ", however, we are unable to process it. " + parcelCarrier.toString() );
+		// Ignored
+	}
+
 	public final boolean hasSession()
 	{
 		return session != null;
 	}
 
-	@Override
-	public AccountInstance i()
-	{
-		return session.i();
-	}
-
-	@Override
 	public boolean isInitialized()
 	{
 		return session.isInitialized();
 	}
 
 	@Override
-	public AccountMeta meta()
+	public String name()
 	{
-		return session.meta();
+		return getSession().getName();
 	}
 
 	protected abstract void sessionStarted();
@@ -195,7 +200,6 @@ public abstract class SessionWrapper implements BindingProvider, UserAttachment
 		binding.setVariable( key, val );
 	}
 
-	@Override
 	public void setVariable( String key, String value )
 	{
 		getSession().setVariable( key, value );
@@ -212,7 +216,7 @@ public abstract class SessionWrapper implements BindingProvider, UserAttachment
 		/*
 		 * Create our Binding
 		 */
-		binding = new ScriptBinding( new HashMap<String, Object>( session.getGlobals() ) );
+		binding = new ScriptBinding( new HashMap<>( session.getGlobals() ) );
 
 		/*
 		 * Create our EvalFactory
@@ -231,8 +235,7 @@ public abstract class SessionWrapper implements BindingProvider, UserAttachment
 
 		session.setWebroot( webroot );
 
-		for ( DefaultCookie cookie : getCookies() )
-			session.putSessionCookie( cookie.getKey(), cookie );
+		getCookies().forEach( cookie -> session.putSessionCookie( cookie.getName(), cookie ) );
 
 		// Reference Context
 		binding.setVariable( "context", this );
@@ -240,7 +243,7 @@ public abstract class SessionWrapper implements BindingProvider, UserAttachment
 		// Reset __FILE__ Variable
 		binding.setVariable( "__FILE__", webroot.getPublicDirectory() );
 
-		if ( ConfigRegistry.i().getBoolean( "sessions.rearmTimeoutWithEachRequest" ) )
+		if ( ConfigRegistry.config.getBoolean( SessionRegistry.ConfigKeys.SESSIONS_REARM_TIMEOUT ) )
 			session.rearmTimeout();
 
 		sessionStarted();

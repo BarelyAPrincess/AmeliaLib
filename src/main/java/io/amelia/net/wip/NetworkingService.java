@@ -7,12 +7,16 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.lang;
+package io.amelia.net.wip;
 
-public class NonceException extends NetworkException.Error
+import io.amelia.bindings.FacadeBinding;
+import io.amelia.lang.ApplicationException;
+
+public class NetworkingService implements FacadeBinding
 {
-	public NonceException( String msg )
+	@Override
+	public void destroy() throws ApplicationException.Error
 	{
-		super( msg );
+
 	}
 }

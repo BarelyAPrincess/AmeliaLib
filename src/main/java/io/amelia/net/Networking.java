@@ -2,18 +2,21 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
 package io.amelia.net;
+
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import java.security.Security;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.Executors;
 
 import io.amelia.data.TypeBase;
 import io.amelia.foundation.Kernel;
@@ -28,7 +31,7 @@ public class Networking
 {
 	public static final Kernel.Logger L = Kernel.getLogger( Networking.class );
 
-	public static final EventLoopGroup IO_LOOP_GROUP = new NioEventLoopGroup( 1000 );
+	public static final EventLoopGroup IO_LOOP_GROUP = new NioEventLoopGroup( 0, Executors.newCachedThreadPool( new ThreadFactoryBuilder().setNameFormat( "Netty Client IO #%d" ).setDaemon( true ).build() ) );
 	public static final Set<NetworkService> NETWORK_SERVICE_LIST = new ConcurrentSet<>();
 	private static SslRegistry sslRegistry;
 

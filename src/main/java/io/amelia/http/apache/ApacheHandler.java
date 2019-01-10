@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -21,7 +21,7 @@ import io.amelia.foundation.Foundation;
 import io.amelia.foundation.Kernel;
 import io.amelia.http.HttpHandler;
 import io.amelia.http.HttpRequestWrapper;
-import io.amelia.http.webroot.BaseWebroot;
+import io.amelia.http.webroot.Webroot;
 import io.amelia.support.HttpRequestContext;
 import io.amelia.support.Version;
 
@@ -56,9 +56,9 @@ public class ApacheHandler
 			String[] args = kv.getArguments();
 
 			HttpRequestWrapper request = handler.getRequest();
-			HttpRequestContext context = handler.getRequestContext();
+			HttpRequestContext context = handler.getHttpRequestContext();
 
-			BaseWebroot site = handler.getWebroot();
+			Webroot site = handler.getWebroot();
 
 			switch ( key )
 			{
@@ -74,7 +74,7 @@ public class ApacheHandler
 					// TODO Implement detection of common Apache modules the server can imitate, e.g., mod_rewrite, mod_ssl, etc.
 					kv.isSection();
 					kv.hasArguments( 1, "<plugin>" );
-					if ( Plugins.getPluginByNameWithoutException( args[0] ) != null || Plugins.getPluginByClassnameWithoutException( args[0] ) != null )
+					if ( Foundation.getPlugins().getPluginByName( args[0] ).isPresent() || Foundation.getPlugins().getPluginByClassname( args[0] ).isPresent() )
 						if ( !handleDirectives( ( ApacheSection ) kv, handler ) )
 							def = false;
 					break;
@@ -188,7 +188,7 @@ public class ApacheHandler
 						throw new ApacheDirectiveException( "The directive 'Option' has been forbidden here", kv );
 					break;
 				case "VirtualHost":
-					throw new ApacheDirectiveException( "You can not define a new site using the VirtualHost directive here, site configs are located within the webroot." );
+					throw new ApacheDirectiveException( "You can not define a new webroot using the VirtualHost directive here, webroot configs are located within the webroot." );
 				case "Proxy":
 				case "ProxyMatch":
 				case "ProxyPass":
@@ -201,7 +201,6 @@ public class ApacheHandler
 			// Order deny,allow
 			// Deny from all
 			// Allow from 208.113.134.190
-
 
 		}
 
@@ -331,6 +330,11 @@ public class ApacheHandler
 			return params;
 		}
 
+		public String name()
+		{
+			return key;
+		}
+
 		public void setParams( String params )
 		{
 			if ( this == overrides.overrideNonfatal )
@@ -347,11 +351,6 @@ public class ApacheHandler
 				throw new IllegalArgumentException( "The '" + name() + "' does not support value arguments, only Nonfatal and Options do." );
 
 			this.params = params;
-		}
-
-		public String name()
-		{
-			return key;
 		}
 	}
 

@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2017 Joel Greene <joel.greene@penoaks.com>
- * Copyright (c) 2017 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -19,7 +19,7 @@ import javax.net.ssl.SSLEngine;
 
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.lang.NetworkException;
-import io.amelia.net.NetworkManager;
+import io.amelia.net.Networking;
 import io.amelia.net.web.WebService;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
@@ -79,7 +79,7 @@ public class SniNegotiator extends ByteToMessageDecoder
 	{
 		try
 		{
-			List<String> contents = ConfigRegistry.config.getValueOrThrow( WebService.ConfigKeys.ENABLED_CIPHER_SUITES );
+			List<String> contents = ConfigRegistry.config.getStringList( WebService.ConfigKeys.ENABLED_CIPHER_SUITES );
 
 			for ( String line : contents )
 			{
@@ -94,7 +94,7 @@ public class SniNegotiator extends ByteToMessageDecoder
 		}
 		catch ( Throwable e )
 		{
-			NetworkManager.L.severe( "Failed to load \"net.enabled-cipher-suites\" configuration list.", e );
+			Networking.L.severe( "Failed to load \"net.enabled-cipher-suites\" configuration list.", e );
 		}
 
 		if ( enabledCipherSuites.size() == 0 )
@@ -120,7 +120,7 @@ public class SniNegotiator extends ByteToMessageDecoder
 				hostname = IDN.toASCII( hostname, IDN.ALLOW_UNASSIGNED ).toLowerCase( Locale.US );
 			this.hostname = hostname;
 
-			selectedContext = SslRegistry.instance().map( hostname );
+			selectedContext = Networking.getSslRegistry().map( hostname );
 
 			if ( handshaker )
 			{
@@ -132,7 +132,7 @@ public class SniNegotiator extends ByteToMessageDecoder
 					for ( String cipher : enabledCipherSuites )
 						if ( !supportedCipherSuites.contains( cipher ) )
 						{
-							NetworkManager.L.severe( String.format( "The SSL/TLS cipher suite '%s' is not supported by SSL Provider %s", cipher, SslContext.defaultServerProvider().name() ) );
+							Networking.L.severe( String.format( "The SSL/TLS cipher suite '%s' is not supported by SSL Provider %s", cipher, SslContext.defaultServerProvider().name() ) );
 							enabledCipherSuites.remove( cipher );
 						}
 

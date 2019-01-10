@@ -2,12 +2,12 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.net.udp;
+package io.amelia.net.wip.udp;
 
 import org.bouncycastle.openssl.PEMDecryptorProvider;
 import org.bouncycastle.openssl.PEMEncryptedKeyPair;
@@ -29,16 +29,17 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiConsumer;
 
-import io.amelia.net.packets.PacketRequest;
+import io.amelia.net.wip.NetworkWorker;
+import io.amelia.net.wip.packets.PacketRequest;
 import io.amelia.foundation.ConfigData;
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.foundation.Foundation;
 import io.amelia.foundation.Kernel;
+import io.amelia.net.wip.packets.PacketValidationException;
 import io.amelia.tasks.Tasks;
 import io.amelia.lang.NetworkException;
 import io.amelia.lang.StartupException;
-import io.amelia.net.NetworkLoader;
-import io.amelia.net.NetworkWorker;
+import io.amelia.net.wip.NetworkLoader;
 import io.amelia.net.Networking;
 import io.amelia.support.DateAndTime;
 import io.amelia.support.IO;
@@ -51,7 +52,7 @@ import io.netty.channel.socket.DatagramPacket;
 import io.netty.channel.socket.InternetProtocolFamily;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 
-public class UDPWorker implements NetworkWorker
+public class UDPWorker implements NetworkWorker<UDPWorker>
 {
 	private final List<PacketContainer> awaiting = new CopyOnWriteArrayList<>();
 	private NioDatagramChannel channel = null;
@@ -61,7 +62,6 @@ public class UDPWorker implements NetworkWorker
 		return null;
 	}
 
-	@Override
 	public String getId()
 	{
 		return "udp";
@@ -126,7 +126,7 @@ public class UDPWorker implements NetworkWorker
 		return channel != null && channel.isConnected();
 	}
 
-	public <R> void sendPacket( PacketRequest packet, BiConsumer<PacketRequest, R> received ) throws NetworkException.PacketValidation
+	public <R> void sendPacket( PacketRequest packet, BiConsumer<PacketRequest, R> received ) throws PacketValidationException
 	{
 		// Confirm that the UDPWorker has been started.
 		if ( !isStarted() )
@@ -269,7 +269,8 @@ public class UDPWorker implements NetworkWorker
 	@Override
 	public UDPWorker stop() throws NetworkException.Error
 	{
-		NIO.closeQuietly( channel );
+		channel.close();
+		// NIO.closeQuietly( channel );
 		return this;
 	}
 

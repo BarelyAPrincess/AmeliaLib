@@ -2,37 +2,39 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
 package io.amelia.http.session.adapters;
 
-import com.chiorichan.permission.PermissionDispatcher;
 import com.google.common.collect.Lists;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 
-import io.amelia.http.session.SessionWrapper;
-import io.amelia.lang.SessionException;
+import io.amelia.data.parcel.Parcel;
+import io.amelia.data.parcel.ParcelLoader;
 import io.amelia.foundation.Kernel;
-import io.amelia.http.session.SessionRegistry;
 import io.amelia.http.session.SessionAdapterImpl;
 import io.amelia.http.session.SessionData;
+import io.amelia.http.session.SessionRegistry;
+import io.amelia.http.session.SessionWrapper;
+import io.amelia.lang.ParcelableException;
+import io.amelia.lang.SessionException;
 import io.amelia.support.IO;
 import io.amelia.support.Objs;
+import io.amelia.support.Streams;
 import io.amelia.support.Timing;
-import io.amelia.support.data.Parcel;
-import io.amelia.support.data.ParcelLoader;
 
 public class FileAdapter implements SessionAdapterImpl
 {
-	private static File sessionsDirectory = null;
+	private static Path sessionsDirectory = null;
 
-	public static File getSessionsDirectory()
+	public static Path getSessionsDirectory()
 	{
 		if ( sessionsDirectory == null )
 			sessionsDirectory = Kernel.getPath( SessionRegistry.PATH_SESSIONS );
@@ -54,31 +56,26 @@ public class FileAdapter implements SessionAdapterImpl
 
 		Timing.start( this );
 
-		File[] files = getSessionsDirectory().listFiles( file -> file.isFile() && file.getName().endsWith( ".json" ) );
+		try
+		{
+			Streams.forEachWithException( Files.list( getSessionsDirectory() ).filter( file -> Files.isRegularFile( file ) && file.getFileName().endsWith( ".json" ) ), file -> data.add( new FileSessionData( file ) ) );
+		}
+		catch ( IOException e )
+		{
+			// Ignorable?
+			e.printStackTrace();
+		}
 
-		if ( files == null )
-			return data;
-
-		for ( File f : files )
-			try
-			{
-				data.add( new FileSessionData( f ) );
-			}
-			catch ( SessionException.Error e )
-			{
-				e.printStackTrace();
-			}
-
-			SessionRegistry.L.info( "FileSession loaded " + data.size() + " sessions from the datastore in " + Timing.finish( this ) + "ms!" );
+		SessionRegistry.L.info( "FileSession loaded " + data.size() + " sessions from the backend in " + Timing.finish( this ) + "ms!" );
 
 		return data;
 	}
 
 	class FileSessionData extends SessionData
 	{
-		File file;
+		Path file;
 
-		FileSessionData( File file ) throws SessionException.Error
+		FileSessionData( Path file ) throws SessionException.Error
 		{
 			super( FileAdapter.this, true );
 			this.file = file;
@@ -92,7 +89,7 @@ public class FileAdapter implements SessionAdapterImpl
 			this.sessionId = sessionId;
 
 			ipAddress = wrapper.getIpAddress();
-			site = wrapper.getWebroot() == null ? null : wrapper.getWebroot().getId();
+			webroot = wrapper.getWebroot() == null ? null : wrapper.getWebroot().getWebrootId();
 
 			save();
 		}
@@ -100,33 +97,47 @@ public class FileAdapter implements SessionAdapterImpl
 		@Override
 		protected void destroy() throws SessionException.Error
 		{
-			file.delete();
+			try
+			{
+				Files.delete( file );
+			}
+			catch ( IOException e )
+			{
+				e.printStackTrace();
+			}
 		}
 
 		private void readSession() throws SessionException.Error
 		{
-			if ( file == null || !file.exists() )
+			if ( file == null || Files.notExists( file ) )
 				return;
 
-			Parcel parcel = ParcelLoader.decodeJson( file );
+			try
+			{
+				Parcel parcel = ParcelLoader.decodeJson( file );
 
-			timeout = parcel.getLong( "timeout" ).filter( value -> value > timeout ).orElse( timeout );
+				timeout = parcel.getLong( "timeout" ).filter( value -> value > timeout ).orElse( timeout );
 
-			ipAddress = parcel.getString( "ipAddress" ).orElse( null );
+				ipAddress = parcel.getString( "ipAddress" ).orElse( null );
 
-			sessionName = parcel.getString( "sessionName" ).filter( Objs::isNotEmpty ).orElse( sessionName );
+				sessionName = parcel.getString( "sessionName" ).filter( Objs::isNotEmpty ).orElse( sessionName );
 
-			sessionId = parcel.getString( "sessionId" ).orElse( sessionId );
+				sessionId = parcel.getString( "sessionId" ).orElse( sessionId );
 
-			site = parcel.getString( "site" ).orElse( null );
+				webroot = parcel.getString( "webroot" ).orElse( null );
 
-			data = parcel.hasChild( "data" ) ? parcel.getChild( "data" ) : new Parcel();
+				data = parcel.getChildOrCreate( "data" );
 
-			/*if ( !parcel.getString( "data", "" ).isEmpty() )
-				data = new Gson().fromJson( parcel.getString( "data" ), new TypeToken<Map<String, String>>()
-				{
-					private static final long serialVersionUID = -1734352198651744570L;
-				}.getType() );*/
+				/*if ( !parcel.getString( "data", "" ).isEmpty() )
+					data = new Gson().fromJson( parcel.getString( "data" ), new TypeToken<Map<String, String>>()
+					{
+						private static final long serialVersionUID = -1734352198651744570L;
+					}.getType() );*/
+			}
+			catch ( IOException | ParcelableException.Error e )
+			{
+				throw new SessionException.Error( "There was an exception thrown while trying to read the session.", e );
+			}
 		}
 
 		@Override
@@ -140,23 +151,23 @@ public class FileAdapter implements SessionAdapterImpl
 		{
 			// String dataJson = new Gson().toJson( data );
 
-			if ( file == null || !file.exists() )
-				file = new File( getSessionsDirectory(), sessionId + ".json" );
-
-			Parcel parcel = new Parcel();
-
-			parcel.setValue( "sessionName", sessionName );
-			parcel.setValue( "sessionId", sessionId );
-			parcel.setValue( "timeout", timeout );
-			parcel.setValue( "ipAddress", ipAddress );
-			parcel.setValue( "site", site );
-			parcel.setValue( "data", data );
+			if ( file == null || Files.notExists( file ) )
+				file = getSessionsDirectory().resolve( sessionId + ".json" );
 
 			try
 			{
-				IO.writeStringToFile( ParcelLoader.encodeJson( parcel ), file );
+				Parcel parcel = Parcel.empty();
+
+				parcel.setValue( "sessionName", sessionName );
+				parcel.setValue( "sessionId", sessionId );
+				parcel.setValue( "timeout", timeout );
+				parcel.setValue( "ipAddress", ipAddress );
+				parcel.setValue( "webroot", webroot );
+				parcel.setValue( "data", data );
+
+				IO.writeStringToPath( ParcelLoader.encodeJson( parcel ), file );
 			}
-			catch ( IOException e )
+			catch ( IOException | ParcelableException.Error e )
 			{
 				throw new SessionException.Error( "There was an exception thrown while trying to save the session.", e );
 			}

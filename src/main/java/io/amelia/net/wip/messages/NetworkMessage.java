@@ -2,22 +2,22 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.net.messages;
+package io.amelia.net.wip.messages;
 
 import java.util.Objects;
 
+import io.amelia.data.ContainerBase;
+import io.amelia.data.parcel.Parcel;
 import io.amelia.lang.NetworkException;
-import io.amelia.net.NetworkLoader;
-import io.amelia.net.udp.UDPWorker;
+import io.amelia.net.wip.NetworkLoader;
+import io.amelia.net.wip.udp.UDPWorker;
 import io.amelia.support.Encrypt;
 import io.amelia.support.NIO;
-import io.amelia.support.data.Parcel;
-import io.amelia.support.data.StackerBase;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
@@ -31,7 +31,7 @@ import io.netty.buffer.Unpooled;
 public abstract class NetworkMessage
 {
 	private final Parcel dataLastReceived;
-	private final Parcel dataToBeCommitted = new Parcel();
+	private final Parcel dataToBeCommitted = Parcel.empty();
 	private long messageComittedTime = -1;
 	private int messageCount = 0;
 	private String messageId;
@@ -64,11 +64,11 @@ public abstract class NetworkMessage
 		messageId = NIO.decodeStringFromByteBuf( encoded );
 		originId = NIO.decodeStringFromByteBuf( encoded );
 
-		dataLastReceived = new Parcel();
+		dataLastReceived = Parcel.empty();
 
 		// dataLastReceived = ParcelLoader.decodeJson( NIO.readByteBufToInputStream( encoded ) );
 
-		dataLastReceived.addFlag( StackerBase.Flag.READ_ONLY );
+		dataLastReceived.addFlag( ContainerBase.Flags.READ_ONLY );
 	}
 
 	protected abstract void beforeCommit();
@@ -76,7 +76,7 @@ public abstract class NetworkMessage
 	protected ByteBuf commit()
 	{
 		if ( isCommitted() )
-			throw NetworkException.ignorable( "Message is already committed!" );
+			throw new NetworkException.Ignorable( "Message is already committed!" );
 
 		setMessageLifecycle( MessageLifecycle.COMMITTED );
 
@@ -116,18 +116,6 @@ public abstract class NetworkMessage
 		return messageState;
 	}*/
 
-	private void setMessageLifecycle( MessageLifecycle messageLifecycle )
-	{
-		if ( this.messageLifecycle == messageLifecycle )
-			return;
-		if ( this.messageLifecycle == MessageLifecycle.COMMITTED && messageLifecycle == MessageLifecycle.CREATED )
-			throw NetworkException.ignorable( "Message can't be uncommitted!" );
-		if ( this.messageLifecycle == MessageLifecycle.COMMITTED )
-			throw NetworkException.ignorable( "Message is finished!" );
-
-		this.messageLifecycle = messageLifecycle;
-	}
-
 	public Parcel getOriginDataMap()
 	{
 		return dataLastReceived;
@@ -157,6 +145,18 @@ public abstract class NetworkMessage
 	{
 		// Only fires on ORIGIN
 		messageLifecycle = MessageLifecycle.COMMITTED;
+	}
+
+	private void setMessageLifecycle( MessageLifecycle messageLifecycle )
+	{
+		if ( this.messageLifecycle == messageLifecycle )
+			return;
+		if ( this.messageLifecycle == MessageLifecycle.COMMITTED && messageLifecycle == MessageLifecycle.CREATED )
+			throw new NetworkException.Ignorable( "Message can't be uncommitted!" );
+		if ( this.messageLifecycle == MessageLifecycle.COMMITTED )
+			throw new NetworkException.Ignorable( "Message is finished!" );
+
+		this.messageLifecycle = messageLifecycle;
 	}
 
 	protected enum MessageLifecycle

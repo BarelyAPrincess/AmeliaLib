@@ -2,19 +2,18 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
 package io.amelia.http.session;
 
-import io.amelia.lang.SessionException;
 import io.amelia.data.parcel.Parcel;
+import io.amelia.data.parcel.ParcelLoader;
+import io.amelia.lang.SessionException;
 import io.amelia.support.DateAndTime;
 import io.amelia.support.Strs;
-import io.amelia.support.data.Parcel;
-import io.amelia.support.data.ParcelLoader;
 
 /**
  * Stores arbitrary data for sessions being loaded from their datastore.
@@ -30,9 +29,9 @@ public abstract class SessionData
 	protected String ipAddress;
 	protected String sessionId;
 	protected String sessionName;
-	protected String site;
 	protected boolean stale;
 	protected long timeout;
+	protected String webroot;
 
 	protected SessionData( SessionAdapterImpl datastore, boolean stale )
 	{
@@ -52,7 +51,7 @@ public abstract class SessionData
 		ipAddress = null;
 		sessionName = SessionRegistry.getDefaultSessionName();
 		sessionId = null;
-		site = "default";
+		webroot = "default";
 	}
 
 	protected abstract void destroy() throws SessionException.Error;
@@ -64,6 +63,6 @@ public abstract class SessionData
 	@Override
 	public String toString()
 	{
-		return "SessionData{name=" + sessionName + ",id=" + sessionId + ",ip=" + ipAddress + ",timeout=" + timeout + ",site=" + site + "," + Strs.join( ParcelLoader.encodeMap( data ), ",", "=", "<null>" ) + "}";
+		return "SessionData{name=" + sessionName + ",id=" + sessionId + ",ip=" + ipAddress + ",timeout=" + timeout + ",webroot=" + webroot + "," + Strs.join( ParcelLoader.encodeMap( data ), ",", "=", "<null>" ) + "}";
 	}
 }

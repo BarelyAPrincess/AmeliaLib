@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2017 Joel Greene <joel.greene@penoaks.com>
- * Copyright (c) 2017 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -14,7 +14,7 @@ import java.io.IOException;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 
-import io.amelia.net.NetworkManager;
+import io.amelia.net.Networking;
 import io.amelia.support.Strs;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.ssl.NotSslRecordException;
@@ -48,20 +48,20 @@ public class SslExceptionHandler extends SslHandler
 		// io.netty.handler.ssl.NotSslRecordException;
 
 		if ( cause instanceof NotSslRecordException )
-			NetworkManager.L.severe( "Not an SSL/TLS record" );
-		if ( cause instanceof SSLException || ! ( cause instanceof IOException ) )
+			Networking.L.severe( "Not an SSL/TLS record" );
+		if ( cause instanceof SSLException || !( cause instanceof IOException ) )
 		{
 			String protocol = Strs.regexCapture( cause.getMessage(), "Client requested protocol (.*) not enabled or not supported" );
 
 			if ( protocol != null )
-				NetworkManager.L.severe( String.format( "Client tried to negotiate a SSL connection using protocol version %s, which is currently disabled or not supported", protocol ) );
+				Networking.L.severe( String.format( "Client tried to negotiate a SSL connection using protocol version %s, which is currently disabled or not supported", protocol ) );
 			else if ( cause.getMessage().contains( "SSLv2Hello is disabled" ) )
-				NetworkManager.L.severe( "Client tried to negotiate a SSL connection using protocol version SSLv2Hello, which is currently disabled" );
+				Networking.L.severe( "Client tried to negotiate a SSL connection using protocol version SSLv2Hello, which is currently disabled" );
 			else if ( cause.getMessage().contains( "no cipher suites in common" ) )
 				// Expand on this exception and see if it would be possible to discover which cipher suites the client was expecting
-				NetworkManager.L.severe( "Client tried to negotiate a SSL connection but the server and client had no cipher suites in common" );
+				Networking.L.severe( "Client tried to negotiate a SSL connection but the server and client had no cipher suites in common" );
 			else
-				NetworkManager.L.severe( "Caught an unexpected yet severe exception while trying to negotiate the SSL connection", cause );
+				Networking.L.severe( "Caught an unexpected yet severe exception while trying to negotiate the SSL connection", cause );
 		}
 		else
 			super.exceptionCaught( ctx, cause );

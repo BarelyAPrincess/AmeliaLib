@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -47,6 +47,7 @@ import io.amelia.support.Encrypt;
 import io.amelia.support.Exceptions;
 import io.amelia.support.IO;
 import io.amelia.support.Objs;
+import io.amelia.support.VoluntaryWithCause;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 
@@ -174,18 +175,18 @@ public class CertificateWrapper
 		return privateKey;
 	}
 
-	public Voluntary<String, CertificateEncodingException> getCommonName()
+	public VoluntaryWithCause<String, CertificateEncodingException> getCommonName()
 	{
 		try
 		{
 			X500Name x500name = new JcaX509CertificateHolder( certificate ).getSubject();
 			RDN cn = x500name.getRDNs( BCStyle.CN )[0];
 
-			return Voluntary.ofNullable( IETFUtils.valueToString( cn.getFirst().getValue() ) );
+			return VoluntaryWithCause.ofNullableWithCause( IETFUtils.valueToString( cn.getFirst().getValue() ) );
 		}
 		catch ( CertificateEncodingException e )
 		{
-			return Voluntary.withException( e );
+			return VoluntaryWithCause.withException( e );
 		}
 	}
 
@@ -194,12 +195,12 @@ public class CertificateWrapper
 		return certificate.getEncoded();
 	}
 
-	public Voluntary<List<String>, CertificateParsingException> getSubjectAltDNSNames()
+	public VoluntaryWithCause<List<String>, CertificateParsingException> getSubjectAltDNSNames()
 	{
 		return getSubjectAltNames( 2 );
 	}
 
-	public Voluntary<List<String>, CertificateParsingException> getSubjectAltNames( int type )
+	public VoluntaryWithCause<List<String>, CertificateParsingException> getSubjectAltNames( int type )
 	{
 		/*
 		 * otherName [0] OtherName,
@@ -233,11 +234,11 @@ public class CertificateWrapper
 					{
 						Networking.L.severe( e.getMessage() );
 					}
-			return Voluntary.of( result );
+			return VoluntaryWithCause.ofWithCause( result );
 		}
 		catch ( CertificateParsingException e )
 		{
-			return Voluntary.withException( e );
+			return VoluntaryWithCause.withException( e );
 		}
 	}
 

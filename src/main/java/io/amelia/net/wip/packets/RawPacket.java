@@ -2,12 +2,12 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.net.packets;
+package io.amelia.net.wip.packets;
 
 import java.lang.reflect.Field;
 import java.util.HashMap;
@@ -16,11 +16,10 @@ import java.util.Map;
 import javax.annotation.Nonnull;
 
 import io.amelia.lang.ApplicationException;
-import io.amelia.lang.NetworkException;
 import io.amelia.lang.ReportingLevel;
-import io.amelia.net.NetworkLoader;
-import io.amelia.net.udp.UDPHandler;
-import io.amelia.net.udp.UDPPacketHandler;
+import io.amelia.net.wip.ClusterRole;
+import io.amelia.net.wip.NetworkLoader;
+import io.amelia.net.wip.udp.UDPPacketHandler;
 import io.amelia.support.Encrypt;
 import io.amelia.support.Objs;
 import io.amelia.support.Strs;
@@ -67,7 +66,7 @@ public abstract class RawPacket
 		packetId = Encrypt.hash();
 	}
 
-	public boolean checkUDPState( UDPHandler.ClusterRole clusterRole )
+	public boolean checkUDPState( ClusterRole clusterRole )
 	{
 		return true;
 	}
@@ -111,7 +110,7 @@ public abstract class RawPacket
 		return classId;
 	}
 
-	protected Object getField( String field ) throws NetworkException.PacketValidation
+	protected Object getField( String field ) throws PacketValidationException
 	{
 		try
 		{
@@ -121,7 +120,7 @@ public abstract class RawPacket
 		}
 		catch ( Throwable e )
 		{
-			throw new NetworkException.PacketValidation( this, "Packet validation failed for the following reason.", e );
+			throw new PacketValidationException( this, "Packet validation failed for the following reason.", e );
 		}
 	}
 
@@ -154,16 +153,16 @@ public abstract class RawPacket
 		return false;
 	}
 
-	protected void notEmpty( String field ) throws NetworkException.PacketValidation
+	protected void notEmpty( String field ) throws PacketValidationException
 	{
 		if ( Objs.isEmpty( getField( field ) ) )
-			throw new NetworkException.PacketValidation( this, "Packet validation failed! The variable '" + field + "' must not be empty." );
+			throw new PacketValidationException( this, "Packet validation failed! The variable '" + field + "' must not be empty." );
 	}
 
-	protected void notNull( String field ) throws NetworkException.PacketValidation
+	protected void notNull( String field ) throws PacketValidationException
 	{
 		if ( Objs.isNull( getField( field ) ) )
-			throw new NetworkException.PacketValidation( this, "Packet validation failed! The variable '" + field + "' must not be empty." );
+			throw new PacketValidationException( this, "Packet validation failed! The variable '" + field + "' must not be empty." );
 	}
 
 	public abstract void processPacket( UDPPacketHandler packetHandler );
@@ -181,7 +180,7 @@ public abstract class RawPacket
 		return this.getClass().getSimpleName();
 	}
 
-	public abstract void validate() throws NetworkException.PacketValidation;
+	public abstract void validate() throws PacketValidationException;
 
 	public enum PacketPayload
 	{

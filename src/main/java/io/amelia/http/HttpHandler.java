@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -14,7 +14,6 @@ import com.google.common.base.Strings;
 import org.codehaus.groovy.runtime.NullObject;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
@@ -42,6 +41,8 @@ import io.amelia.http.webroot.Webroot;
 import io.amelia.http.webroot.WebrootScriptingContext;
 import io.amelia.lang.ExceptionContext;
 import io.amelia.lang.ExceptionReport;
+import io.amelia.lang.HttpCode;
+import io.amelia.lang.HttpError;
 import io.amelia.lang.MultipleException;
 import io.amelia.lang.NetworkException;
 import io.amelia.lang.NonceException;
@@ -68,6 +69,7 @@ import io.amelia.support.SslLevel;
 import io.amelia.support.Streams;
 import io.amelia.support.Strs;
 import io.amelia.support.Timing;
+import io.amelia.support.http.HttpServerKey;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
@@ -379,6 +381,13 @@ public class HttpHandler extends SimpleChannelInboundHandler<Object>
 	}
 
 	@Override
+	public void channelReadComplete( ChannelHandlerContext ctx ) throws Exception
+	{
+		log.flushAndClose();
+		super.channelReadComplete( ctx );
+	}
+
+	@Override
 	public void exceptionCaught( ChannelHandlerContext ctx, Throwable cause ) throws Exception
 	{
 		try
@@ -535,7 +544,7 @@ public class HttpHandler extends SimpleChannelInboundHandler<Object>
 	{
 		try
 		{
-			log.log( Level.INFO, "%s {code=%s}", response.getHttpMsg(), response.getHttpCode() );
+			log.log( Level.INFO, "%s {code=%s}", response.getHttpReason(), response.getHttpCode() );
 
 			if ( !response.isCommitted() )
 				response.sendResponse();
@@ -552,11 +561,14 @@ public class HttpHandler extends SimpleChannelInboundHandler<Object>
 		}
 	}
 
-	@Override
-	public void channelReadComplete( ChannelHandlerContext ctx ) throws Exception
+	/**
+	 * Gets the {@link HttpRequestContext} used to parse annotations, file encoding, and etc.
+	 *
+	 * @return The active interpreter
+	 */
+	public HttpRequestContext getHttpRequestContext()
 	{
-		log.flushAndClose();
-		super.channelReadComplete( ctx );
+		return httpRequestContext;
 	}
 
 	/**
@@ -567,16 +579,6 @@ public class HttpHandler extends SimpleChannelInboundHandler<Object>
 	public HttpRequestWrapper getRequest()
 	{
 		return request;
-	}
-
-	/**
-	 * Gets the {@link HttpRequestContext} used to parse annotations, file encoding, and etc.
-	 *
-	 * @return The active interpreter
-	 */
-	public HttpRequestContext getRequestContext()
-	{
-		return httpRequestContext;
 	}
 
 	/**
@@ -701,7 +703,7 @@ public class HttpHandler extends SimpleChannelInboundHandler<Object>
 
 		/* Check direct file access annotation: @disallowDirectAccess true */
 		if ( Objs.castToBoolean( httpRequestContext.getMetaValue( "disallowDirectAccess" ) ) && request.getDomainMapping().directory().resolve( Strs.trimAll( request.getUri(), '/' ) ).equals( httpRequestContext.getFilePath() ) )
-			throw new HttpError( HttpResponseStatus.NOT_FOUND, "Accessing this file by exact file name is disallowed per annotation." );
+			throw new HttpError( HttpCode.HTTP_NOT_FOUND, "Accessing this file by exact file name is disallowed per annotation." );
 
 		/*
 		 * Start: Trailing slash enforcer
@@ -782,7 +784,7 @@ public class HttpHandler extends SimpleChannelInboundHandler<Object>
 		 * End: SSL enforcer
 		 */
 
-		if ( httpRequestContext.getStatus() != HttpResponseStatus.OK )
+		if ( httpRequestContext.getStatus() != HttpCode.HTTP_OK )
 			throw new HttpError( httpRequestContext.getStatus() );
 
 		/*
@@ -826,7 +828,7 @@ public class HttpHandler extends SimpleChannelInboundHandler<Object>
 		 */
 
 		if ( !httpRequestContext.hasFilePath() ) // && !httpRequestContext.hasHTML() )
-			response.setStatus( HttpResponseStatus.NO_CONTENT );
+			response.setStatus( HttpCode.HTTP_NO_CONTENT );
 
 		session.setGlobal( "__FILE__", httpRequestContext.getFilePath() );
 
@@ -870,7 +872,7 @@ public class HttpHandler extends SimpleChannelInboundHandler<Object>
 		 */
 
 		Nonce.NonceLevel level = Nonce.NonceLevel.parse( httpRequestContext.getMetaValue( "nonce" ) );
-		Nonce nonce = session.nonce();
+		Nonce nonce = session.getNonce();
 
 		boolean nonceProvided = nonce != null && request.getRequestMap().containsKey( nonce.key() );
 		boolean processNonce = false;
@@ -1009,7 +1011,7 @@ public class HttpHandler extends SimpleChannelInboundHandler<Object>
 			request.getArguments().forEach( arg -> {
 				scriptingContext.addOption( arg.getKey(), arg.getValue() );
 			} );
-			ScriptingResult result = ( ( ScriptingFactory ) factory ).eval( scriptingContext );
+			ScriptingResult result = factory.eval( scriptingContext );
 			ExceptionReport exceptionReport = result.getExceptionReport();
 
 			exceptionReport.getIgnorableExceptions().forEach( exceptionContext -> {
@@ -1114,7 +1116,7 @@ public class HttpHandler extends SimpleChannelInboundHandler<Object>
 		Path dir = httpRequestContext.getFilePath();
 
 		if ( !Files.isDirectory( dir ) )
-			throw new HttpError( HttpResponseStatus.INTERNAL_SERVER_ERROR, "Invalid Directory!" );
+			throw new HttpError( HttpCode.HTTP_INTERNAL_SERVER_ERROR, "Invalid Directory!" );
 
 		response.setContentType( "text/html" );
 		response.setEncoding( CharsetUtil.UTF_8 );

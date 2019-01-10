@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -21,36 +21,31 @@ import java.util.stream.Collectors;
 
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.foundation.Kernel;
-import io.amelia.http.HttpError;
 import io.amelia.http.HttpRequestWrapper;
 import io.amelia.http.mappings.DomainMapping;
 import io.amelia.http.routes.Route;
 import io.amelia.http.routes.RouteResult;
 import io.amelia.http.routes.Routes;
 import io.amelia.http.webroot.WebrootRegistry;
+import io.amelia.lang.HttpCode;
+import io.amelia.lang.HttpError;
 import io.amelia.net.Networking;
 import io.amelia.scripting.ScriptingContext;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
-public class HttpRequestContext extends FileContext
+public class HttpRequestContext extends HttpContext
 {
-	private String action = null;
 	private boolean fwRequest;
 	private boolean isDirectoryRequest = false;
 	private Map<String, String> rewriteParams = new TreeMap<>();
-	private HttpResponseStatus status = HttpResponseStatus.OK;
-
-	public String getAction()
-	{
-		return action;
-	}
+	private HttpCode status = HttpCode.HTTP_OK;
 
 	public Map<String, String> getRewriteParams()
 	{
 		return rewriteParams;
 	}
 
-	public HttpResponseStatus getStatus()
+	public HttpCode getStatus()
 	{
 		return status;
 	}
@@ -86,8 +81,8 @@ public class HttpRequestContext extends FileContext
 			if ( mapping.hasConfig( "redirect" ) && !Objs.isEmpty( mapping.getConfig( "redirect" ) ) )
 			{
 				String url = mapping.getConfig( "redirect" );
-				status = HttpResponseStatus.valueOf( Objs.castToInt( mapping.getConfig( "redirectCode" ), 301 ) );
-				request.getResponse().sendRedirect( url.toLowerCase().startsWith( "http" ) ? url : request.getFullDomain() + url, status.code() );
+				status = HttpCode.getHttpCode( Objs.castToInt( mapping.getConfig( "redirectCode" ) ) ).orElse( HttpCode.HTTP_MOVED_PERM );
+				request.getResponse().sendRedirect( url.toLowerCase().startsWith( "http" ) ? url : request.getFullDomain() + url, status );
 				return;
 			}
 		}
@@ -103,8 +98,8 @@ public class HttpRequestContext extends FileContext
 			{
 				/*Assume redirect action  */
 				String url = route.hasParam( "redirect" ) ? route.getParam( "redirect" ) : route.getParam( "url" );
-				status = HttpResponseStatus.valueOf( route.httpCode() );
-				request.getResponse().sendRedirect( url.toLowerCase().startsWith( "http" ) ? url : request.getFullDomain() + url, status.code() );
+				status = HttpCode.getHttpCode( route.httpCode() ).orElse( HttpCode.HTTP_MOVED_TEMP );
+				request.getResponse().sendRedirect( url.toLowerCase().startsWith( "http" ) ? url : request.getFullDomain() + url, status );
 				return;
 			}
 			else if ( route.hasParam( "file" ) && !Objs.isEmpty( route.getParam( "file" ) ) )
@@ -124,7 +119,7 @@ public class HttpRequestContext extends FileContext
 					for ( int i = 0; i < 9; i++ )
 						if ( rewrites.containsKey( "action" + i ) )
 							actions.add( rewrites.get( "action" + i ) );
-					action = actions.stream().collect( Collectors.joining( "/" ) );
+					action = Strs.join( actions, "/" );
 				}
 
 				if ( Files.notExists( dest ) )
@@ -138,10 +133,10 @@ public class HttpRequestContext extends FileContext
 			dest = request.getDomainMapping().directory().resolve( uri );
 
 			if ( Files.exists( dest ) && dest.getFileName().startsWith( "index." ) && ConfigRegistry.config.getBoolean( "advanced.security.disallowDirectIndexFiles" ).orElse( true ) )
-				throw new HttpError( HttpResponseStatus.FORBIDDEN, "Accessing index files by name is prohibited!" );
+				throw new HttpError( HttpCode.HTTP_FORBIDDEN, "Accessing index files by name is prohibited!" );
 
 			if ( Files.exists( dest ) && dest.getFileName().toString().contains( ".controller." ) )
-				throw new HttpError( HttpResponseStatus.FORBIDDEN, "Accessing controller files by name is prohibited!" );
+				throw new HttpError( HttpCode.HTTP_FORBIDDEN, "Accessing controller files by name is prohibited!" );
 		}
 
 		/* If our destination does not exist, try to determine if the uri simply contains server side options or is a filename with extension */
@@ -330,10 +325,10 @@ public class HttpRequestContext extends FileContext
 			readFromFile( dest );
 		}
 		else
-			status = HttpResponseStatus.NOT_FOUND;
+			status = HttpCode.HTTP_NOT_FOUND;
 	}
 
-	public void returnErrorOrThrowException( HttpResponseStatus code, Throwable t, String message, Object... objs ) throws HttpError
+	public void returnErrorOrThrowException( HttpCode code, Throwable t, String message, Object... objs ) throws HttpError
 	{
 		if ( objs != null && objs.length > 0 )
 			message = String.format( message, objs );
@@ -341,7 +336,7 @@ public class HttpRequestContext extends FileContext
 		if ( Kernel.isDevelopment() )
 		{
 			if ( t == null )
-				throw new HttpError( HttpResponseStatus.INTERNAL_SERVER_ERROR, message );
+				throw new HttpError( HttpCode.HTTP_INTERNAL_SERVER_ERROR, message );
 			else
 				throw new HttpError( t, message );
 		}

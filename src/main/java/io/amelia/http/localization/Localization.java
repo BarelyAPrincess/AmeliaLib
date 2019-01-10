@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -22,6 +22,7 @@ import javax.annotation.Nonnull;
 import io.amelia.data.parcel.Parcel;
 import io.amelia.data.parcel.ParcelLoader;
 import io.amelia.foundation.Kernel;
+import io.amelia.lang.ParcelableException;
 import io.amelia.support.DateAndTime;
 import io.amelia.support.IO;
 import io.amelia.support.Objs;
@@ -48,7 +49,7 @@ public class Localization
 		IO.forceCreateDirectory( this.localePath );
 	}
 
-	private Parcel getLang( String key ) throws LocalizationException, IOException
+	private Parcel getLang( String key ) throws LocalizationException, IOException, ParcelableException.Error
 	{
 		if ( key.contains( "/" ) || key.contains( "\\" ) )
 			throw new LocalizationException( "Locale key can't contain forward/back slashes." );
@@ -79,7 +80,7 @@ public class Localization
 		cache.clear();
 	}
 
-	public String localePlural( String key, int cnt ) throws LocalizationException, IOException
+	public String localePlural( String key, int cnt ) throws LocalizationException, IOException, ParcelableException.Error
 	{
 		String str = localeTrans( key );
 
@@ -142,7 +143,7 @@ public class Localization
 		return str;
 	}
 
-	public String localeTrans( String key, Map<String, String> params ) throws LocalizationException, IOException
+	public String localeTrans( String key, Map<String, String> params ) throws LocalizationException, IOException, ParcelableException.Error
 	{
 		String str = localeTrans( key );
 
@@ -165,7 +166,7 @@ public class Localization
 		return str;
 	}
 
-	public String localeTrans( String key ) throws LocalizationException, IOException
+	public String localeTrans( String key ) throws LocalizationException, IOException, ParcelableException.Error
 	{
 		Objs.notEmpty( key );
 		key = Strs.trimAll( key, '.' );

@@ -7,12 +7,13 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.lang;
+package io.amelia.net.wip.packets;
 
-public class NonceException extends NetworkException.Error
+import io.amelia.data.parcel.Parcel;
+
+public abstract class DataPacket extends RawPacket
 {
-	public NonceException( String msg )
-	{
-		super( msg );
-	}
+	private Parcel inbound = Parcel.empty();
+	private Parcel outbound = Parcel.empty();
+
 }

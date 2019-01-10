@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -19,7 +19,7 @@ import io.amelia.foundation.Foundation;
 import io.amelia.foundation.Kernel;
 import io.amelia.lang.NetworkException;
 import io.amelia.lang.StartupException;
-import io.amelia.net.NetworkLoader;
+import io.amelia.net.wip.NetworkLoader;
 import io.amelia.support.NIO;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
@@ -81,7 +81,8 @@ public class HttpWorker
 	public void shutdown()
 	{
 		for ( Channel channel : listeningChannels )
-			NIO.closeQuietly( channel );
+			channel.closeFuture();
+		// NIO.closeQuietly( channel );
 	}
 
 	public class ProtocolGroup

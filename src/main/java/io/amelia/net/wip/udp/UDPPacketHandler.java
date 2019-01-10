@@ -7,12 +7,19 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.lang;
+package io.amelia.net.wip.udp;
 
-public class NonceException extends NetworkException.Error
+import io.amelia.net.wip.ClusterRole;
+
+public class UDPPacketHandler
 {
-	public NonceException( String msg )
+	public void onClusterRoleTransition( ClusterRole clusterRole )
 	{
-		super( msg );
+
+	}
+
+	public void onNetworkTick()
+	{
+
 	}
 }

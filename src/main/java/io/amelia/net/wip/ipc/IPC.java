@@ -2,22 +2,22 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.net.ipc;
+package io.amelia.net.wip.ipc;
 
-import io.amelia.net.packets.PacketRequestInfo;
-import io.amelia.net.packets.PacketRequestStop;
-import io.amelia.net.udp.UDPWorker;
-import io.amelia.foundation.Foundation;
-import io.amelia.foundation.parcel.ParcelCarrier;
-import io.amelia.lang.NetworkException;
+import io.amelia.data.parcel.Parcel;
+import io.amelia.data.parcel.ParcelCarrier;
 import io.amelia.lang.ParcelableException;
-import io.amelia.net.NetworkLoader;
-import io.amelia.support.data.Parcel;
+import io.amelia.looper.LooperRouter;
+import io.amelia.net.wip.NetworkLoader;
+import io.amelia.net.wip.packets.PacketRequestInfo;
+import io.amelia.net.wip.packets.PacketRequestStop;
+import io.amelia.net.wip.packets.PacketValidationException;
+import io.amelia.net.wip.udp.UDPWorker;
 
 public class IPC
 {
@@ -26,17 +26,17 @@ public class IPC
 	 */
 	public static void processIncomingParcel( Parcel src ) throws ParcelableException.Error
 	{
-		Foundation.getRouter().sendParcel( Parcel.Factory.deserialize( src, ParcelCarrier.class ) );
+		LooperRouter.sendParcel( Parcel.Factory.deserialize( src, ParcelCarrier.class ) );
 	}
 
-	public static void start() throws NetworkException.PacketValidation
+	public static void start() throws PacketValidationException
 	{
 		udp().sendPacket( new PacketRequestInfo( () -> null ), ( request, response ) -> {
 
 		} );
 	}
 
-	public static void status() throws NetworkException.PacketValidation
+	public static void status() throws PacketValidationException
 	{
 		udp().sendPacket( new PacketRequestInfo( () -> null ), ( request, response ) -> {
 			//Kernel.L.info( "Found Instance: " + r.instanceId + " with IP " + r.ipAddress );
@@ -51,7 +51,7 @@ public class IPC
 
 			} );
 		}
-		catch ( NetworkException.PacketValidation e )
+		catch ( PacketValidationException e )
 		{
 
 		}

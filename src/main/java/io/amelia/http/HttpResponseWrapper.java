@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -23,15 +23,24 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 
+import javax.annotation.Nullable;
+
+import io.amelia.data.parcel.ParcelLoader;
+import io.amelia.foundation.Foundation;
+import io.amelia.foundation.Kernel;
 import io.amelia.http.apache.ApacheHandler;
 import io.amelia.http.events.HttpErrorEvent;
-import io.amelia.foundation.Kernel;
 import io.amelia.http.events.HttpExceptionEvent;
 import io.amelia.http.session.Session;
 import io.amelia.http.webroot.WebrootRegistry;
+import io.amelia.lang.HttpCode;
+import io.amelia.lang.HttpError;
+import io.amelia.lang.NetworkException;
 import io.amelia.lang.SessionException;
 import io.amelia.logging.LogEvent;
 import io.amelia.net.Networking;
+import io.amelia.net.web.WebService;
+import io.amelia.scripting.HttpScriptingResponse;
 import io.amelia.scripting.ScriptingContext;
 import io.amelia.scripting.api.Web;
 import io.amelia.support.EnumColor;
@@ -55,13 +64,12 @@ import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.LastHttpContent;
-import io.netty.handler.codec.http.cookie.Cookie;
 import io.netty.handler.stream.ChunkedStream;
 
 /**
  * Wraps the Netty HttpResponse to provide easy methods for manipulating the result of each request
  */
-public class HttpResponseWrapper
+public class HttpResponseWrapper implements HttpScriptingResponse
 {
 	final Map<String, String> annotations = new HashMap<>();
 	final Map<String, String> headers = new HashMap<>();
@@ -69,8 +77,8 @@ public class HttpResponseWrapper
 	final HttpRequestWrapper request;
 	Charset encoding = Charsets.UTF_8;
 	ApacheHandler htaccess = null;
+	HttpCode httpCode = HttpCode.HTTP_OK;
 	String httpContentType = "text/html";
-	HttpResponseStatus httpStatus = HttpResponseStatus.OK;
 	ByteBuf output = Unpooled.buffer();
 	HttpResponseStage stage = HttpResponseStage.READING;
 
@@ -80,12 +88,14 @@ public class HttpResponseWrapper
 		this.log = log;
 	}
 
+	@Override
 	public void close()
 	{
 		request.getChannel().close();
 		stage = HttpResponseStage.CLOSED;
 	}
 
+	@Override
 	public void finishMultipart() throws IOException
 	{
 		if ( stage == HttpResponseStage.CLOSED )
@@ -104,36 +114,37 @@ public class HttpResponseWrapper
 		}
 	}
 
+	@Override
 	public String getAnnotation( String key )
 	{
 		return annotations.get( key );
 	}
 
+	@Override
 	public Charset getEncoding()
 	{
 		return encoding;
 	}
 
-	public void setEncoding( String encoding )
-	{
-		this.encoding = Charset.forName( encoding );
-	}
-
+	@Override
 	public int getHttpCode()
 	{
-		return httpStatus.code();
+		return httpCode.getCode();
 	}
 
-	public String getHttpMsg()
+	@Override
+	public String getHttpReason()
 	{
-		return HttpCode.msg( httpStatus.code() );
+		return httpCode.getReason();
 	}
 
+	@Override
 	public ByteBuf getOutput()
 	{
 		return output;
 	}
 
+	@Override
 	public byte[] getOutputBytes()
 	{
 		byte[] bytes = new byte[output.writerIndex()];
@@ -144,32 +155,25 @@ public class HttpResponseWrapper
 		return bytes;
 	}
 
-	/**
-	 * @return HttpResponseStage
-	 */
 	public HttpResponseStage getStage()
 	{
 		return stage;
 	}
 
+	@Override
 	public boolean isCommitted()
 	{
 		return stage == HttpResponseStage.CLOSED || stage == HttpResponseStage.WRITTEN;
 	}
 
+	@Override
 	@Deprecated
 	public void print( byte[] bytes ) throws IOException
 	{
 		write( bytes );
 	}
 
-	/**
-	 * Prints a single string of text to the buffered output
-	 *
-	 * @param var string of text.
-	 *
-	 * @throws IOException if there was a problem with the output buffer.
-	 */
+	@Override
 	public void print( String var ) throws IOException
 	{
 		if ( var != null && !var.isEmpty() )
@@ -207,24 +211,20 @@ public class HttpResponseWrapper
 		println( Web.createTable( tbl, "debug-getTable" ) );
 	}
 
-	/**
-	 * Prints a single string of text with a line return to the buffered output
-	 *
-	 * @param var string of text.
-	 *
-	 * @throws IOException if there was a problem with the output buffer.
-	 */
+	@Override
 	public void println( String var ) throws IOException
 	{
 		if ( var != null && !var.isEmpty() )
 			write( ( var + "\n" ).getBytes( encoding ) );
 	}
 
+	@Override
 	public void resetBuffer()
 	{
 		output = Unpooled.buffer();
 	}
 
+	@Override
 	public void sendError( Exception e ) throws IOException
 	{
 		Objs.notNull( e );
@@ -237,60 +237,84 @@ public class HttpResponseWrapper
 			sendException( e );
 	}
 
-	public void sendError( HttpResponseStatus status ) throws IOException
+	@Override
+	public void sendError( int code ) throws IOException
 	{
-		sendError( status.code(), status.reasonPhrase().toString(), null );
+		sendError( code, null );
 	}
 
+	@Override
+	public void sendError( int code, String statusReason, String developerMessage ) throws IOException
+	{
+		sendError( HttpCode.getHttpCode( code ).orElse( HttpCode.HTTP_INTERNAL_SERVER_ERROR ), statusReason, developerMessage );
+	}
+
+	@Override
+	public void sendError( int code, String developerMessage ) throws IOException
+	{
+		sendError( code, null, developerMessage );
+	}
+
+	@Override
+	public void sendError( HttpResponseStatus status ) throws IOException
+	{
+		sendError( status.code(), status.reasonPhrase(), null );
+	}
+
+	@Override
 	public void sendError( HttpResponseStatus status, String statusReason, String developerMessage ) throws IOException
 	{
 		sendError( status.code(), statusReason, developerMessage );
 	}
 
+	@Override
 	public void sendError( HttpResponseStatus status, String developerMessage ) throws IOException
 	{
-		sendError( status.code(), status.reasonPhrase().toString(), developerMessage );
+		sendError( status.code(), status.reasonPhrase(), developerMessage );
 	}
 
-	public void sendError( int statusCode ) throws IOException
+	@Override
+	public void sendError( HttpCode httpCode ) throws IOException
 	{
-		sendError( statusCode, null );
+		sendError( httpCode, null );
 	}
 
-	public void sendError( int statusCode, String statusReason ) throws IOException
+	@Override
+	public void sendError( HttpCode httpCode, String developerMessage ) throws IOException
 	{
-		sendError( statusCode, statusReason, null );
+		sendError( httpCode, null, developerMessage );
 	}
 
-	public void sendError( int statusCode, String statusReason, String developerMessage ) throws IOException
+	@Override
+	public void sendError( @Nullable HttpCode httpCode, @Nullable String statusReason, @Nullable String developerMessage ) throws IOException
 	{
 		if ( stage == HttpResponseStage.CLOSED )
 			throw new IllegalStateException( "You can't access sendError method within this HttpResponse because the connection has been closed." );
 
-		if ( statusCode < 1 || statusCode > 600 )
-			statusCode = 500;
+		if ( httpCode == null )
+			httpCode = HttpCode.HTTP_INTERNAL_SERVER_ERROR;
 
 		resetBuffer();
 
 		// Trigger an internal Error Event to notify plugins of a possible problem.
-		HttpErrorEvent event = new HttpErrorEvent( request, statusCode, statusReason, Kernel.isDevelopment() );
-		Events.callEvent( event );
+		HttpErrorEvent event = new HttpErrorEvent( request, httpCode, statusReason, Kernel.isDevelopment() );
+		Foundation.getEvents().callEvent( event );
 
-		statusCode = event.getHttpCode();
+		httpCode = event.getHttpCode();
 		statusReason = event.getHttpReason();
 
 		if ( statusReason == null || statusReason.length() > 255 )
-			log.log( Level.SEVERE, "%s {code=%s}", statusReason, statusCode );
+			log.log( Level.SEVERE, "%s {code=%s}", statusReason, httpCode );
 		else
-			log.log( Level.SEVERE, "%s {code=%s,reason=%s}", statusReason, statusCode, statusReason );
+			log.log( Level.SEVERE, "%s {code=%s,reason=%s}", statusReason, httpCode, statusReason );
 
 		if ( event.getErrorHtml() == null || event.getErrorHtml().length() == 0 )
 		{
 			boolean printHtml = true;
 
-			if ( htaccess != null && htaccess.getErrorDocument( statusCode ) != null )
+			if ( htaccess != null && htaccess.getErrorDocument( httpCode.getCode() ) != null )
 			{
-				String resp = htaccess.getErrorDocument( statusCode ).getResponse();
+				String resp = htaccess.getErrorDocument( httpCode.getCode() ).getResponse();
 
 				if ( resp.startsWith( "/" ) )
 				{
@@ -309,12 +333,12 @@ public class HttpResponseWrapper
 			if ( printHtml )
 			{
 				println( "<html><head>" );
-				println( "<title>" + statusCode + " - " + statusReason + "</title>" );
+				println( "<title>" + httpCode + " - " + statusReason + "</title>" );
 				println( "<style>body { margin: 0; padding: 0; } h1, h2, h3, h4, h5, h6 { margin: 0; } .container { padding: 8px; } .debug-header { display: block; margin: 15px 0 0; font-size: 18px; color: #303030; font-weight: bold; } #debug-getTable { border: 1px solid; width: 100%; } #debug-getTable thead { background-color: #eee; } #debug-getTable #col_0 { width: 20%; min-width: 130px; overflow: hidden; font-weight: bold; color: #463C54; padding-right: 5px; } #debug-getTable #tblStringRow { color: rgba(0, 0, 0, .3); font-weight: 300; }</style>" );
 				println( "</head><body>" );
 
 				println( "<div class=\"container\" style=\" background-color: #eee; \">" );
-				println( "<h1>" + statusCode + " - " + statusReason + "</h1>" );
+				println( "<h1>" + httpCode + " - " + statusReason + "</h1>" );
 				println( "</div>" );
 				println( "<div class=\"container\">" );
 
@@ -353,15 +377,13 @@ public class HttpResponseWrapper
 						add( "File Size" );
 						add( "MD5 Hash" );
 					}};
-					println( Builtin.createTable( tbl, cols, "debug-getTable" ) );
+					println( Web.createTable( tbl, cols, "debug-getTable" ) );
 
 					println( "<span class=\"debug-header\">Cookies</span>" );
 					printMap( new HashMap<String, Object>()
 					{{
-						for ( Cookie cookie : request.getCookies() )
-							put( cookie.getKey(), cookie.getValue() );
-						for ( Cookie cookie : request.getServerCookies() )
-							put( cookie.getKey() + " (Server Cookie)", cookie.getValue() );
+						request.getCookies().forEach( cookie -> put( cookie.getName(), cookie.getValue() ) );
+						request.getServerCookies().forEach( cookie -> put( cookie.getName() + " (Server Cookie)", cookie.getValue() ) );
 						// TODO Implement a HTML color code parser, like a built-in BBCode or Markdown parser
 						// put( cookie.getKey() + " <span style=\"color: #eee; font-weight: 300;\">(internal)</span>", cookie.getValue() );
 					}} );
@@ -369,7 +391,7 @@ public class HttpResponseWrapper
 					if ( request.hasSession() )
 					{
 						println( "<span class=\"debug-header\">Session</span>" );
-						printMap( request.getSession().getDataMap() );
+						printMap( ParcelLoader.encodeMap( request.getSession().getDataMap() ) );
 					}
 
 					println( "<span class=\"debug-header\">Server/Header Data</span>" );
@@ -381,13 +403,13 @@ public class HttpResponseWrapper
 					Networking.L.severe( String.format( "%s%sHttpError Developer Message: %s", EnumColor.GOLD, EnumColor.NEGATIVE, developerMessage ) );
 
 				println( "<hr>" );
-				println( "<small>Running <a href=\"https://github.com/ChioriGreene/ChioriWebServer\">" + Kernel.getDevMeta().getProductName() + "</a> Version " + Kernel.getDevMeta().getVersionDescribe() + ")<br />" + Kernel.getDevMeta().getProductCopyright() + "</small>" );
+				println( Kernel.getDevMeta().getHTMLFooter() );
 				println( "</div>" );
 				println( "</body></html>" );
 
 				setContentType( "text/html" );
 				setEncoding( Charsets.UTF_8 );
-				httpStatus = HttpResponseStatus.valueOf( statusCode );
+				this.httpCode = httpCode;
 				sendResponse();
 			}
 		}
@@ -396,11 +418,12 @@ public class HttpResponseWrapper
 			print( event.getErrorHtml() );
 			setContentType( "text/html" );
 			setEncoding( Charsets.UTF_8 );
-			httpStatus = HttpResponseStatus.valueOf( statusCode );
+			this.httpCode = httpCode;
 			sendResponse();
 		}
 	}
 
+	@Override
 	public void sendException( Throwable cause ) throws IOException
 	{
 		Objs.notNull( cause );
@@ -415,7 +438,7 @@ public class HttpResponseWrapper
 		}
 
 		HttpExceptionEvent event = new HttpExceptionEvent( request, cause, Kernel.isDevelopment() );
-		Events.callEvent( event );
+		Foundation.getEvents().callEvent( event );
 
 		int httpCode = event.getHttpCode();
 
@@ -436,7 +459,7 @@ public class HttpResponseWrapper
 			}
 			else
 			{
-				log.log( Level.SEVERE, "%s {code=500}", HttpCode.msg( 500 ) );
+				log.log( Level.SEVERE, "%s {code=500}", HttpCode.getReason( 500 ) );
 
 				resetBuffer();
 				print( event.getErrorHtml() );
@@ -455,42 +478,25 @@ public class HttpResponseWrapper
 		}
 	}
 
-	/**
-	 * Sends the client to the site login page found in data and also sends a please login message along with it.
-	 */
+	@Override
 	public void sendLoginPage()
 	{
 		sendLoginPage( "You must be logged in to view this page" );
 	}
 
-	/**
-	 * Sends the client to the site login page
-	 *
-	 * @param msg The message to pass to the login page
-	 */
+	@Override
 	public void sendLoginPage( String msg )
 	{
 		sendLoginPage( msg, null );
 	}
 
-	/**
-	 * Sends the client to the site login page
-	 *
-	 * @param msg   The message to pass to the login page
-	 * @param level The severity level of this login page redirect
-	 */
+	@Override
 	public void sendLoginPage( String msg, String level )
 	{
 		sendLoginPage( msg, level, null );
 	}
 
-	/**
-	 * Sends the client to the site login page
-	 *
-	 * @param msg    The message to pass to the login page
-	 * @param level  The severity level of this login page redirect
-	 * @param target The target to redirect to once we receive a successful login
-	 */
+	@Override
 	public void sendLoginPage( String msg, String level, String target )
 	{
 		Nonce nonce = request.getSession().getNonce();
@@ -503,6 +509,7 @@ public class HttpResponseWrapper
 		sendRedirect( String.format( "%s?%s=%s", loginForm, nonce.key(), nonce.value() ) );
 	}
 
+	@Override
 	public void sendMultipart( byte[] bytesToWrite ) throws IOException
 	{
 		if ( request.method() == HttpMethod.HEAD )
@@ -580,31 +587,23 @@ public class HttpResponseWrapper
 		}
 	}
 
-	/**
-	 * Send the client to a specified page with http code 302 automatically.
-	 *
-	 * @param target The destination URL. Can either be relative or absolute.
-	 */
+	@Override
 	public void sendRedirect( String target )
 	{
-		sendRedirect( target, 302 );
+		sendRedirect( target, HttpCode.HTTP_MOVED_TEMP );
 	}
 
-	/**
-	 * Sends the client to a specified page with specified http code but with the option to not automatically go.
-	 *
-	 * @param target     The destination url. Can be relative or absolute.
-	 * @param httpStatus What http code to use.
-	 */
-	public void sendRedirect( String target, int httpStatus )
+	@Override
+	public void sendRedirect( String target, HttpCode httpCode )
 	{
-		sendRedirect( target, httpStatus, null );
+		sendRedirect( target, httpCode, null );
 	}
 
-	public void sendRedirect( String target, int httpStatus, Map<String, String> nonceValues )
+	@Override
+	public void sendRedirect( String target, HttpCode httpCode, Map<String, String> nonceValues )
 	{
-		// NetworkManager.getLogger().info( ConsoleColor.DARK_GRAY + "Sending page redirect to `" + target + "` using httpCode `" + httpStatus + " - " + HttpCode.msg( httpStatus ) + "`" );
-		log.log( Level.INFO, "Redirect {uri=%s,httpCode=%s,status=%s}", target, httpStatus, HttpCode.msg( httpStatus ) );
+		// NetworkManager.getLogger().info( ConsoleColor.DARK_GRAY + "Sending page redirect to `" + target + "` using httpCode `" + httpCode + " - " + HttpCode.msg( httpCode ) + "`" );
+		log.log( Level.INFO, "Redirect {uri=%s,httpCode=%s,status=%s}", target, this.httpCode, httpCode );
 
 		if ( stage == HttpResponseStage.CLOSED )
 			throw new IllegalStateException( "You can't access sendRedirect method within this HttpResponse because the connection has been closed." );
@@ -612,12 +611,12 @@ public class HttpResponseWrapper
 		if ( nonceValues != null && nonceValues.size() > 0 )
 		{
 			target += ( target.contains( "?" ) ? "&" : "?" ) + request.getSession().getNonce().query();
-			request.getSession().nonce().putAll( nonceValues );
+			request.getSession().getNonce().putAll( nonceValues );
 		}
 
 		if ( !isCommitted() )
 		{
-			setStatus( httpStatus );
+			setStatus( this.httpCode );
 			setHeader( "Location", target );
 		}
 		else
@@ -640,27 +639,25 @@ public class HttpResponseWrapper
 		}
 	}
 
+	@Override
 	public void sendRedirect( String target, Map<String, String> nonceValues )
 	{
-		sendRedirect( target, 302, nonceValues );
+		sendRedirect( target, HttpCode.HTTP_MOVED_TEMP, nonceValues );
 	}
 
+	@Override
 	public void sendRedirectRepost( String target )
 	{
-		sendRedirect( target, request.getHttpVersion() == HttpVersion.HTTP_1_0 ? 302 : 307 );
+		sendRedirect( target, request.getHttpVersion() == HttpVersion.HTTP_1_0 ? HttpCode.HTTP_MOVED_TEMP : HttpCode.HTTP_TEMPORARY_REDIRECT );
 	}
 
-	/**
-	 * Sends the data to the client. Internal Use.
-	 *
-	 * @throws IOException if there was a problem sending the data, like the connection was unexpectedly closed.
-	 */
+	@Override
 	public void sendResponse() throws IOException
 	{
 		if ( stage == HttpResponseStage.CLOSED || stage == HttpResponseStage.WRITTEN )
 			return;
 
-		FullHttpResponse response = new DefaultFullHttpResponse( HttpVersion.HTTP_1_1, httpStatus, output );
+		FullHttpResponse response = new DefaultFullHttpResponse( HttpVersion.HTTP_1_1, HttpResponseStatus.valueOf( httpCode.getCode(), httpCode.getReason() ), output );
 		HttpHeaders headers = response.headers();
 
 		if ( request.hasSession() )
@@ -708,6 +705,7 @@ public class HttpResponseWrapper
 		request.getChannel().writeAndFlush( response );
 	}
 
+	@Override
 	public void setAnnotation( String key, String val )
 	{
 		annotations.put( key, val );
@@ -718,16 +716,13 @@ public class HttpResponseWrapper
 		this.htaccess = htaccess;
 	}
 
+	@Override
 	public void setContentLength( long length )
 	{
 		setHeader( "Content-Length", length );
 	}
 
-	/**
-	 * Sets the ContentType header.
-	 *
-	 * @param type, e.g., text/html or application/xml
-	 */
+	@Override
 	public void setContentType( String type )
 	{
 		if ( type == null || type.isEmpty() )
@@ -736,35 +731,43 @@ public class HttpResponseWrapper
 		httpContentType = type;
 	}
 
+	@Override
+	public void setEncoding( String encoding )
+	{
+		this.encoding = Charset.forName( encoding );
+	}
+
+	@Override
 	public void setEncoding( Charset encoding )
 	{
 		this.encoding = encoding;
 	}
 
+	@Override
 	public void setHeader( String key, Object val )
 	{
 		headers.put( key, Objs.castToStringWithException( val ) );
 	}
 
-	public void setStatus( HttpResponseStatus httpStatus )
+	@Override
+	public void setStatus( HttpCode httpCode )
 	{
 		if ( stage == HttpResponseStage.CLOSED )
 			throw new IllegalStateException( "You can't access setStatus( status ) method within this HttpResponse because the connection has been closed." );
 
-		this.httpStatus = httpStatus;
+		this.httpCode = httpCode;
 	}
 
-	public void setStatus( int status )
+	@Override
+	public void setStatus( int code )
 	{
-		setStatus( HttpResponseStatus.valueOf( status ) );
+		setStatus( HttpCode.getHttpCode( code ).orElseThrow( IllegalArgumentException::new ) );
 	}
 
-	/**
-	 * Redirects the current page load to a secure HTTPS connection
-	 */
+	@Override
 	public boolean switchToSecure()
 	{
-		if ( !Networking.isHttpsRunning() )
+		if ( !Networking.getService( WebService.class ).orElseThrow( NetworkException.Runtime::new ).isHttpsRunning() )
 		{
 			log.log( Level.SEVERE, "We were going to attempt to switch to a secure HTTPS connection and aborted due to the HTTPS server not running." );
 			return false;
@@ -777,12 +780,10 @@ public class HttpResponseWrapper
 		return true;
 	}
 
-	/**
-	 * Redirects the current page load to an unsecure HTTP connection
-	 */
+	@Override
 	public boolean switchToUnsecure()
 	{
-		if ( !Networking.isHttpRunning() )
+		if ( !Networking.getService( WebService.class ).orElseThrow( NetworkException.Runtime::new ).isHttpRunning() )
 		{
 			log.log( Level.SEVERE, "We were going to attempt to switch to an unsecure HTTP connection and aborted due to the HTTP server not running." );
 			return false;
@@ -795,13 +796,7 @@ public class HttpResponseWrapper
 		return true;
 	}
 
-	/**
-	 * Writes a byte array to the buffered output.
-	 *
-	 * @param bytes byte array to print
-	 *
-	 * @throws IOException if there was a problem with the output buffer.
-	 */
+	@Override
 	public void write( byte[] bytes ) throws IOException
 	{
 		if ( stage != HttpResponseStage.MULTIPART )
@@ -810,13 +805,7 @@ public class HttpResponseWrapper
 		output.writeBytes( bytes );
 	}
 
-	/**
-	 * Writes a ByteBuf to the buffered output
-	 *
-	 * @param buf byte buffer to print
-	 *
-	 * @throws IOException if there was a problem with the output buffer.
-	 */
+	@Override
 	public void write( ByteBuf buf ) throws IOException
 	{
 		if ( stage != HttpResponseStage.MULTIPART )

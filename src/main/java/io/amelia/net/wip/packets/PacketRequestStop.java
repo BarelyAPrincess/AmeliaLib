@@ -2,15 +2,14 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.net.packets;
+package io.amelia.net.wip.packets;
 
-import io.amelia.lang.NetworkException;
-import io.amelia.net.udp.UDPPacketHandler;
+import io.amelia.net.wip.udp.UDPPacketHandler;
 import io.amelia.support.NIO;
 import io.netty.buffer.ByteBuf;
 
@@ -48,7 +47,7 @@ public class PacketRequestStop extends PacketRequest<PacketRequestStop, Object>
 	}
 
 	@Override
-	public void validate() throws NetworkException.PacketValidation
+	public void validate() throws PacketValidationException
 	{
 		notEmpty( "instanceId" );
 	}

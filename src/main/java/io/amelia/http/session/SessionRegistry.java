@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -23,21 +23,20 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import io.amelia.data.TypeBase;
-import io.amelia.http.HoneyCookie;
-import io.amelia.http.session.adapters.FileAdapter;
-import io.amelia.http.session.adapters.SqlAdapter;
-import io.amelia.http.webroot.Webroot;
-import io.amelia.lang.SessionException;
-import io.amelia.net.Networking;
-import io.amelia.storage.HoneyStorageProvider;
+import io.amelia.database.DatabaseManager;
 import io.amelia.foundation.ConfigData;
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.foundation.Env;
 import io.amelia.foundation.Foundation;
 import io.amelia.foundation.Kernel;
-import io.amelia.tasks.Tasks;
-import io.amelia.tasks.Ticks;
+import io.amelia.http.HoneyCookie;
+import io.amelia.http.session.adapters.FileAdapter;
+import io.amelia.http.session.adapters.SqlAdapter;
+import io.amelia.http.webroot.Webroot;
+import io.amelia.lang.SessionException;
 import io.amelia.lang.StartupException;
+import io.amelia.net.Networking;
+import io.amelia.storage.HoneyStorageProvider;
 import io.amelia.support.DateAndTime;
 import io.amelia.support.Encrypt;
 import io.amelia.support.EnumColor;
@@ -45,9 +44,11 @@ import io.amelia.support.IO;
 import io.amelia.support.StorageConversions;
 import io.amelia.support.Streams;
 import io.amelia.support.Strs;
+import io.amelia.tasks.Tasks;
+import io.amelia.tasks.Ticks;
 
 /**
- * Persistence manager handles sessions kept in memory. It also manages when to unload the session to free memory.
+ * Persistence manager handles sessions kept in memory. It also manages when to unload the session to free memory, which we try to be agressive about.
  */
 public class SessionRegistry
 {
@@ -69,13 +70,30 @@ public class SessionRegistry
 		Path path;
 		switch ( getDefaultBackend() )
 		{
-			case FILE:
-				backend = FileSystems.getDefault();
-				path = Kernel.getPath( PATH_SESSIONS );
-				break;
 			case SQL:
 				backend = HoneyStorageProvider.newFileSystem();
 				path = backend.getPath( "/" );
+
+				if ( DatabaseManager.getDefault().getDatabase() == null )
+					L.severe( "Session Manager backend is configured to use the server database but it's unconfigured. Falling back to the file backend." );
+				else
+					datastore = new SqlAdapter();
+
+				break;
+			case FILE:
+				backend = FileSystems.getDefault();
+				path = Kernel.getPath( PATH_SESSIONS );
+
+				if ( !Files.isWritable( FileAdapter.getSessionsDirectory() ) )
+					L.severe( "Session Manager backend is configured to use the file system but we can't write to the sessions directory `" + FileAdapter.getSessionsDirectory().toString() + "`. Falling back to the memory backend, i.e., sessions will not be saved." );
+				else
+					datastore = new FileAdapter();
+
+				break;
+			case MEMORY:
+				path = null;
+
+				datastore = new MemoryDatastore();
 				break;
 			default:
 				throw new SessionException.Runtime( "The session backend is not set." );
@@ -85,36 +103,20 @@ public class SessionRegistry
 		{
 			IO.forceCreateDirectory( path );
 
-			Streams.forEachWithException( Files.list( path ).filter( directory -> Files.isDirectory( directory ) && Files.isRegularFile( directory.resolve( "config.yaml" ) ) ), directory -> {
+			/* Streams.forEachWithException( Files.list( path ).filter( directory -> Files.isDirectory( directory ) && Files.isRegularFile( directory.resolve( "config.yaml" ) ) ), directory -> {
 				ConfigData data = ConfigData.empty();
 				StorageConversions.loadToStacker( directory.resolve( "config.yaml" ), data );
 				Env env = new Env( directory.resolve( ".env" ) );
 				WEBROOTS.add( new Webroot( directory, data, env ) );
-			} );
+			} ); */
 		}
 		catch ( Exception e )
 		{
 			throw new SessionException.Runtime( e );
 		}
 
-
 		try
 		{
-			if ( "db".equalsIgnoreCase( datastoreType ) || "database".equalsIgnoreCase( datastoreType ) || "sql".equalsIgnoreCase( datastoreType ) )
-				if ( StorageModule.i().getDatabase() == null )
-					L.severe( "Session Manager's datastore is configured to use database but the server's database is unconfigured. Falling back to the file datastore." );
-				else
-					datastore = new SqlAdapter();
-
-			if ( "file".equalsIgnoreCase( datastoreType ) || datastore == null )
-				if ( !FileAdapter.getSessionsDirectory().canWrite() )
-					L.severe( "Session Manager's datastore is configured to use the file system but we can't write to the directory `" + FileAdapter.getSessionsDirectory().getAbsolutePath() + "`. Falling back to the memory datastore, i.e., sessions will not be saved." );
-				else
-					datastore = new FileAdapter();
-
-			if ( datastore == null )
-				datastore = new MemoryDatastore();
-
 			for ( SessionData data : datastore.getSessions() )
 				try
 				{
@@ -141,6 +143,28 @@ public class SessionRegistry
 		 * This schedules the Session Manager with the Scheduler to run every 5 minutes (by default) to cleanup sessions.
 		 */
 		Tasks.scheduleAsyncRepeatingTask( Foundation.getApplication(), 0L, Ticks.MINUTE * ConfigRegistry.config.getValue( Networking.ConfigKeys.SESSION_CLEANUP_INTERVAL ), SessionRegistry::sessionCleanup );
+	}
+
+	/**
+	 * Creates a fresh {@link Session} and saves it's reference.
+	 *
+	 * @param wrapper The {@link SessionWrapper} to reference
+	 *
+	 * @return The hot out of the oven Session
+	 *
+	 * @throws SessionException.Error If there was a problem - seriously!
+	 */
+	public static Session createSession( SessionWrapper wrapper ) throws SessionException.Error
+	{
+		Session session = new Session( datastore.createSession( sessionIdBaker(), wrapper ) );
+		session.newSession = true;
+		sessions.add( session );
+		return session;
+	}
+
+	private static Backend getDefaultBackend()
+	{
+		return ConfigRegistry.config.getString( "sessions.backend" ).map( Backend::valueOf ).orElse( Backend.FILE );
 	}
 
 	/**
@@ -184,33 +208,6 @@ public class SessionRegistry
 	}
 
 	/**
-	 * Is the Session Manager is debug mode, i.e., mean more debug will output to the console
-	 *
-	 * @return True if we are
-	 */
-	public static boolean isDebug()
-	{
-		return ConfigRegistry.config.getValue( Networking.ConfigKeys.SESSION_DEBUG );
-	}
-
-	/**
-	 * Creates a fresh {@link Session} and saves it's reference.
-	 *
-	 * @param wrapper The {@link SessionWrapper} to reference
-	 *
-	 * @return The hot out of the oven Session
-	 *
-	 * @throws SessionException.Error If there was a problem - seriously!
-	 */
-	public static Session createSession( SessionWrapper wrapper ) throws SessionException.Error
-	{
-		Session session = new Session( datastore.createSession( sessionIdBaker(), wrapper ) );
-		session.newSession = true;
-		sessions.add( session );
-		return session;
-	}
-
-	/**
 	 * Gets an unmodifiable list of currently loaded {@link Session}s
 	 *
 	 * @return A unmodifiable list of sessions
@@ -233,21 +230,13 @@ public class SessionRegistry
 	}
 
 	/**
-	 * Reloads the currently loaded sessions from their Datastore
+	 * Is the Session Manager is debug mode, i.e., mean more debug will output to the console
 	 *
-	 * @throws SessionException.Error If there was problems
+	 * @return True if we are
 	 */
-	public void reload() throws SessionException.Error
+	public static boolean isDebug()
 	{
-		synchronized ( sessions )
-		{
-			// Run session cleanup before saving sessions
-			sessionCleanup();
-
-			// XXX Are we sure we want to override existing sessions without saving?
-			for ( Session session : sessions )
-				session.reload();
-		}
+		return ConfigRegistry.config.getValue( Networking.ConfigKeys.SESSION_DEBUG );
 	}
 
 	public static void sessionCleanup()
@@ -350,7 +339,7 @@ public class SessionRegistry
 		Session session = null;
 
 		if ( cookie != null )
-			session = sessions.stream().filter( s -> s != null && cookie.value().equals( s.getSessionId() ) ).findFirst().orElse( null );
+			session = sessions.stream().filter( s -> s != null && cookie.getValue().equals( s.getSessionId() ) ).findFirst().orElse( null );
 
 		if ( session == null )
 			session = createSession( wrapper );
@@ -362,17 +351,30 @@ public class SessionRegistry
 		return session;
 	}
 
-	private static Backend getDefaultBackend()
+	private SessionRegistry()
 	{
-		return Backend.FILE;
+		// Static Access
 	}
 
 	// int defaultLife = ( getSite().getYaml() != null ) ? getSite().getYaml().getInt( "sessions.lifetimeDefault", 604800 ) : 604800;
 	// timeout = CommonFunc.getEpoch() + AppConfig.get().getInt( "sessions.defaultTimeout", 3600 );
 
-	private SessionRegistry()
+	/**
+	 * Reloads the currently loaded sessions from their Datastore
+	 *
+	 * @throws SessionException.Error If there was problems
+	 */
+	public void reload() throws SessionException.Error
 	{
-		// Static Access
+		synchronized ( sessions )
+		{
+			// Run session cleanup before saving sessions
+			sessionCleanup();
+
+			// XXX Are we sure we want to override existing sessions without saving?
+			for ( Session session : sessions )
+				session.reload();
+		}
 	}
 
 	public enum Backend
@@ -385,7 +387,7 @@ public class SessionRegistry
 	public static class ConfigKeys
 	{
 		public static final TypeBase SESSIONS_BASE = new TypeBase( "sessions" );
-		public static final TypeBase.TypeInteger SESSIONS_REARM_TIMEOUT = new TypeBase.TypeInteger( SESSIONS_BASE, "rearmTimeoutWithEachRequest" );
+		public static final TypeBase.TypeBoolean SESSIONS_REARM_TIMEOUT = new TypeBase.TypeBoolean( SESSIONS_BASE, "rearmTimeoutWithEachRequest", false );
 
 		public ConfigKeys()
 		{

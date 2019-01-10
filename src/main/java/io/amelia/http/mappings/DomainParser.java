@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -45,8 +45,8 @@ public class DomainParser
 
 		if ( Objs.isEmpty( fullDomain ) )
 		{
-			tld = new Namespace();
-			sub = new Namespace();
+			tld = Namespace.empty();
+			sub = Namespace.empty();
 			return;
 		}
 
@@ -55,7 +55,7 @@ public class DomainParser
 
 		for ( int n = 0; n < ns.getNodeCount(); n++ )
 		{
-			String sns = ns.subNodes( n ).getString();
+			String sns = ns.getSubNodes( n ).getString();
 			if ( isTld( sns ) )
 			{
 				parentNodePos = n;
@@ -65,12 +65,12 @@ public class DomainParser
 
 		if ( parentNodePos > 0 )
 		{
-			tld = ns.subNodes( parentNodePos );
-			sub = ns.subNodes( 0, parentNodePos );
+			tld = ns.getSubNodes( parentNodePos );
+			sub = ns.getSubNodes( 0, parentNodePos );
 		}
 		else
 		{
-			tld = new Namespace();
+			tld = Namespace.empty();
 			sub = ns;
 		}
 	}
@@ -82,7 +82,7 @@ public class DomainParser
 
 	public Namespace getChildDomain()
 	{
-		return sub.getNodeCount() <= 1 ? new Namespace() : sub.subNodes( 1 );
+		return sub.getNodeCount() <= 1 ? Namespace.empty() : sub.getSubNodes( 1 );
 	}
 
 	public Namespace getFullDomain()

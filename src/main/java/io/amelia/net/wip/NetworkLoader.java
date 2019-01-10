@@ -2,12 +2,12 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.net;
+package io.amelia.net.wip;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
@@ -23,26 +23,24 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 
-import io.amelia.net.packets.RawPacket;
-import io.amelia.net.udp.UDPWorker;
+import io.amelia.bindings.Bindings;
+import io.amelia.bindings.FacadePriority;
+import io.amelia.bindings.WritableBinding;
 import io.amelia.foundation.Kernel;
-import io.amelia.foundation.binding.Bindings;
-import io.amelia.foundation.binding.FacadePriority;
-import io.amelia.foundation.binding.WritableBinding;
 import io.amelia.lang.ApplicationException;
 import io.amelia.lang.NetworkException;
+import io.amelia.net.wip.packets.RawPacket;
+import io.amelia.net.wip.udp.UDPWorker;
 import io.amelia.support.Objs;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 
+@Deprecated
 public class NetworkLoader
 {
 	public static final Kernel.Logger L = Kernel.getLogger( NetworkLoader.class );
-
 	public static final EventLoopGroup IO_LOOP_GROUP = new NioEventLoopGroup( 0, Executors.newCachedThreadPool( new ThreadFactoryBuilder().setNameFormat( "Netty Client IO #%d" ).setDaemon( true ).build() ) );
-
 	private static final Map<Class<? extends NetworkWorker>, NetworkWorker> networkWorkers = new ConcurrentHashMap<>();
-
 	private static final PacketCollection registeredPackets = new PacketCollection();
 
 	static

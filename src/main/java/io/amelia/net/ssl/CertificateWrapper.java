@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2017 Joel Greene <joel.greene@penoaks.com>
- * Copyright (c) 2017 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -35,10 +35,10 @@ import java.util.List;
 
 import javax.net.ssl.SSLException;
 
-import io.amelia.net.NetworkManager;
+import io.amelia.net.Networking;
 import io.amelia.support.IO;
 import io.amelia.support.Objs;
-import io.amelia.support.Voluntary;
+import io.amelia.support.VoluntaryWithCause;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 
@@ -106,7 +106,7 @@ public class CertificateWrapper
 		if ( context == null )
 		{
 			context = SslContextBuilder.forServer( Files.newInputStream( sslCertFile ), Files.newInputStream( sslKeyFile ), sslSecret ).build();
-			NetworkManager.L.info( String.format( "Initialized SslContext %s using cert '%s', key '%s', and hasSecret? %s", context.getClass(), IO.relPath( sslCertFile ), IO.relPath( sslKeyFile ), sslSecret != null && !sslSecret.isEmpty() ) );
+			Networking.L.info( String.format( "Initialized SslContext %s using cert '%s', key '%s', and hasSecret? %s", context.getClass(), IO.relPath( sslCertFile ), IO.relPath( sslKeyFile ), sslSecret != null && !sslSecret.isEmpty() ) );
 		}
 
 		return context;
@@ -133,18 +133,18 @@ public class CertificateWrapper
 		return cert;
 	}
 
-	public Voluntary<String, CertificateEncodingException> getCommonName()
+	public VoluntaryWithCause<String, CertificateEncodingException> getCommonName()
 	{
 		try
 		{
 			X500Name x500name = new JcaX509CertificateHolder( cert ).getSubject();
 			RDN cn = x500name.getRDNs( BCStyle.CN )[0];
 
-			return Voluntary.of( IETFUtils.valueToString( cn.getFirst().getValue() ) );
+			return VoluntaryWithCause.ofWithCause( IETFUtils.valueToString( cn.getFirst().getValue() ) );
 		}
 		catch ( CertificateEncodingException e )
 		{
-			return Voluntary.withException( e );
+			return VoluntaryWithCause.withException( e );
 		}
 	}
 
@@ -163,12 +163,12 @@ public class CertificateWrapper
 		return sslSecret;
 	}
 
-	public Voluntary<List<String>, CertificateParsingException> getSubjectAltDNSNames()
+	public VoluntaryWithCause<List<String>, CertificateParsingException> getSubjectAltDNSNames()
 	{
 		return getSubjectAltNames( 2 );
 	}
 
-	public Voluntary<List<String>, CertificateParsingException> getSubjectAltNames( int type )
+	public VoluntaryWithCause<List<String>, CertificateParsingException> getSubjectAltNames( int type )
 	{
 		try
 		{
@@ -201,14 +201,14 @@ public class CertificateWrapper
 					}
 					catch ( ClassCastException e )
 					{
-						NetworkManager.L.severe( e.getMessage() );
+						Networking.L.severe( e.getMessage() );
 					}
 
-			return Voluntary.of( results );
+			return VoluntaryWithCause.ofWithCause( results );
 		}
 		catch ( CertificateParsingException e )
 		{
-			return Voluntary.withException( e );
+			return VoluntaryWithCause.withException( e );
 		}
 	}
 

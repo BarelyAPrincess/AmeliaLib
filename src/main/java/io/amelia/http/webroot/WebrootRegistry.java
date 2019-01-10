@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -26,9 +26,8 @@ import io.amelia.foundation.ConfigData;
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.foundation.Env;
 import io.amelia.foundation.Kernel;
-import io.amelia.http.mappings.DomainNode;
-import io.amelia.http.mappings.DomainTree;
 import io.amelia.lang.ApplicationException;
+import io.amelia.lang.ExceptionReport;
 import io.amelia.lang.WebrootException;
 import io.amelia.storage.HoneyStorageProvider;
 import io.amelia.support.IO;
@@ -44,7 +43,14 @@ public class WebrootRegistry
 
 	static
 	{
-		WEBROOTS.add( new DefaultWebroot() );
+		try
+		{
+			WEBROOTS.add( new DefaultWebroot() );
+		}
+		catch ( WebrootException.Error e )
+		{
+			ExceptionReport.handleSingleException( e );
+		}
 
 		Kernel.setPath( PATH_ARCHIVES, Kernel.PATH_STORAGE, "archives" );
 		Kernel.setPath( PATH_WEBROOT, Kernel.PATH_STORAGE, "webroot" );

@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -11,7 +11,6 @@ package io.amelia.http.session;
 
 import com.google.common.base.Joiner;
 
-import java.net.HttpCookie;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -19,6 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
@@ -33,25 +33,25 @@ import io.amelia.http.webroot.Webroot;
 import io.amelia.http.webroot.WebrootRegistry;
 import io.amelia.lang.ParcelableException;
 import io.amelia.lang.SessionException;
-import io.amelia.permissions.PermissibleEntity;
+import io.amelia.scripting.ScriptingSession;
 import io.amelia.support.DateAndTime;
 import io.amelia.support.EnumColor;
+import io.amelia.support.HttpCookie;
 import io.amelia.support.Objs;
 import io.amelia.support.Strs;
 import io.amelia.support.WeakReferenceList;
 import io.amelia.users.Kickable;
+import io.amelia.users.UserContext;
 import io.amelia.users.UserException;
 import io.amelia.users.UserPermissible;
 import io.amelia.users.UserResult;
 import io.amelia.users.auth.UserAuthenticator;
-import io.netty.handler.codec.http.cookie.Cookie;
-import io.netty.handler.codec.http.cookie.DefaultCookie;
 
 /**
  * This class is used to carry data that is to be persistent from request to request.
  * If you need to sync data across requests then we recommend using Session Vars for Security.
  */
-public final class Session extends UserPermissible implements Kickable
+public final class Session extends UserPermissible implements Kickable, ScriptingSession
 {
 	/**
 	 * The underlying data for this session<br>
@@ -119,13 +119,9 @@ public final class Session extends UserPermissible implements Kickable
 		sessionKey = data.sessionName;
 		timeout = data.timeout;
 		Strs.split( data.ipAddress, "|" ).forEach( knownIps::add );
-		webroot = WebrootRegistry.getWebrootById( data.site );
-
-		if ( webroot == null )
-		{
-			webroot = WebrootRegistry.getDefaultWebroot();
-			data.site = webroot.getWebrootId();
-		}
+		webroot = WebrootRegistry.getWebrootById( data.webroot ).orElseGet( WebrootRegistry::getDefaultWebroot );
+		if ( !webroot.getWebrootId().equals( data.webroot ) )
+			data.webroot = webroot.getWebrootId(); // Updates changed and invalid webroot ids
 
 		timeout = data.timeout;
 
@@ -201,6 +197,7 @@ public final class Session extends UserPermissible implements Kickable
 		isInvalidated = true;
 	}
 
+	@Override
 	public void destroyNonce()
 	{
 		nonce = null;
@@ -217,7 +214,7 @@ public final class Session extends UserPermissible implements Kickable
 	 *
 	 * @return A unmodifiable copy of dataChangeHistory.
 	 */
-	Set<String> getChangeHistory()
+	public Set<String> getChangeHistory()
 	{
 		return Collections.unmodifiableSet( new HashSet<String>( dataChangeHistory ) );
 	}
@@ -229,26 +226,31 @@ public final class Session extends UserPermissible implements Kickable
 	 *
 	 * @return The cookie matching the requested key
 	 */
+	@Override
 	public HoneyCookie getCookie( String key )
 	{
-		return sessionCookies.stream().filter( sessionCookie -> key.equals( sessionCookie.name() ) ).findAny().orElseGet( () -> new HoneyCookie( key, null ) );
+		return sessionCookies.stream().filter( sessionCookie -> key.equals( sessionCookie.getName() ) ).findAny().orElseGet( () -> new HoneyCookie( key, null ) );
 	}
 
+	@Override
 	public Stream<HoneyCookie> getCookies()
 	{
 		return sessionCookies.stream();
 	}
 
+	@Override
 	public Parcel getDataMap()
 	{
 		return data.data;
 	}
 
+	@Override
 	public Object getGlobal( String key )
 	{
 		return globals.get( key );
 	}
 
+	@Override
 	public Map<String, Object> getGlobals()
 	{
 		return globals;
@@ -268,11 +270,13 @@ public final class Session extends UserPermissible implements Kickable
 		return ips;
 	}
 
+	@Override
 	public String getName()
 	{
 		return sessionKey;
 	}
 
+	@Override
 	public Nonce getNonce()
 	{
 		if ( nonce == null )
@@ -281,16 +285,12 @@ public final class Session extends UserPermissible implements Kickable
 	}
 
 	@Override
-	public PermissibleEntity getPermissible()
-	{
-		return null;
-	}
-
 	public HoneyCookie getSessionCookie()
 	{
 		return sessionCookie;
 	}
 
+	@Override
 	public String getSessionId()
 	{
 		return sessionId;
@@ -299,14 +299,21 @@ public final class Session extends UserPermissible implements Kickable
 	/**
 	 * @return A set of active SessionProviders for this session.
 	 */
-	public Set<SessionWrapper> getSessionWrappers()
+	public Stream<SessionWrapper> getSessionWrappers()
 	{
-		return wrappers.toSet();
+		return wrappers.stream();
 	}
 
+	@Override
 	public long getTimeout()
 	{
 		return timeout;
+	}
+
+	@Override
+	public UserContext getUser()
+	{
+		return getEntity().getContext();
 	}
 
 	@Override
@@ -336,21 +343,25 @@ public final class Session extends UserPermissible implements Kickable
 	 * Replaces current nonce instance with a new instance.
 	 * Can be called multiple times.
 	 */
+	@Override
 	public void initNonce()
 	{
 		nonce = new Nonce( this );
 	}
 
+	@Override
 	public boolean isInvalidated()
 	{
 		return isInvalidated;
 	}
 
+	@Override
 	public boolean isNew()
 	{
 		return newSession;
 	}
 
+	@Override
 	public boolean isSet( String key )
 	{
 		return data.data.hasValue( key );
@@ -368,6 +379,7 @@ public final class Session extends UserPermissible implements Kickable
 	/**
 	 * Removes the session expiration and prevents the Session Manager from unloading or destroying sessions
 	 */
+	@Override
 	public void noTimeout()
 	{
 		if ( isInvalidated )
@@ -377,15 +389,7 @@ public final class Session extends UserPermissible implements Kickable
 		data.timeout = 0;
 	}
 
-	// TODO Sessions can outlive a login.
-	// TODO Sessions can have an expiration in 7 days and a login can have an expiration of 24 hours.
-	// TODO Remember me would extend login expiration to the life of the session.
-
-	public Nonce nonce()
-	{
-		return nonce;
-	}
-
+	@Override
 	public void processSessionCookie( String domain )
 	{
 		if ( isInvalidated )
@@ -419,20 +423,30 @@ public final class Session extends UserPermissible implements Kickable
 		{
 			String oldKey = sessionCookie.getName();
 			sessionCookies.add( sessionCookie.setMaxAge( 0 ) );
-
-			sessionCookie.setName( getWebroot().getSessionKey() );
-			sessionCookies.add( oldKey, new HttpCookie( oldKey, "" ).setExpiration( 0 ) );
+			HoneyCookie newSessionCookie = new HoneyCookie( getWebroot().getSessionKey(), sessionCookie.getValue() );
+			newSessionCookie.setDomain( sessionCookie.getDomain() );
+			newSessionCookie.setHttpOnly( sessionCookie.isHttpOnly() );
+			newSessionCookie.setMaxAge( sessionCookie.getMaxAge() );
+			newSessionCookie.setPath( sessionCookie.getPath() );
+			newSessionCookie.setSecure( sessionCookie.isSecure() );
+			newSessionCookie.setWrap( sessionCookie.getWrap() );
+			sessionCookie = newSessionCookie;
 		}
 	}
 
-	void putSessionCookie( String key, Cookie cookie )
+	// TODO Sessions can outlive a login.
+	// TODO Sessions can have an expiration in 7 days and a login can have an expiration of 24 hours.
+	// TODO Remember me would extend login expiration to the life of the session.
+
+	@Override
+	public void putSessionCookie( String key, HttpCookie cookie )
 	{
 		if ( isInvalidated )
 			throw new IllegalStateException( "This session has been invalidated" );
-
-		sessionCookies.add( new HoneyCookie( cookie ) );
+		sessionCookies.add( ( HoneyCookie ) cookie );
 	}
 
+	@Override
 	public void rearmTimeout()
 	{
 		if ( isInvalidated )
@@ -493,6 +507,7 @@ public final class Session extends UserPermissible implements Kickable
 	 *
 	 * @param remember Should we?
 	 */
+	@Override
 	public void remember( boolean remember )
 	{
 		if ( isInvalidated )
@@ -533,6 +548,7 @@ public final class Session extends UserPermissible implements Kickable
 		}
 	}
 
+	@Override
 	public void saveWithoutException()
 	{
 		try
@@ -545,6 +561,7 @@ public final class Session extends UserPermissible implements Kickable
 		}
 	}
 
+	@Override
 	public void setGlobal( String key, Object val )
 	{
 		if ( isInvalidated )
@@ -581,7 +598,7 @@ public final class Session extends UserPermissible implements Kickable
 			throw new IllegalStateException( "This session has been invalidated" );
 
 		this.webroot = webroot;
-		data.site = webroot.getWebrootId();
+		data.webroot = webroot.getWebrootId();
 	}
 
 	@Override
@@ -609,7 +626,7 @@ public final class Session extends UserPermissible implements Kickable
 	@Override
 	public String toString()
 	{
-		return "Session{key=" + sessionKey + ",id=" + sessionId + ",ipAddress=" + getIpAddresses() + ",timeout=" + timeout + ",isInvalidated=" + isInvalidated + ",data=" + data + ",requestCount=" + requestCnt + ",site=" + webroot + "}";
+		return "Session{key=" + sessionKey + ",id=" + sessionId + ",ipAddress=" + getIpAddresses() + ",timeout=" + timeout + ",isInvalidated=" + isInvalidated + ",data=" + data + ",requestCount=" + requestCnt + ",webroot=" + webroot + "}";
 	}
 
 	public void unload()
@@ -626,5 +643,11 @@ public final class Session extends UserPermissible implements Kickable
 		wrappers.clear();
 
 		isInvalidated = true;
+	}
+
+	@Override
+	public UUID uuid()
+	{
+		return getEntity().uuid();
 	}
 }

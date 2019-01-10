@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -64,13 +64,22 @@ public final class DomainTree
 		if ( child.isEmpty() )
 			throw new IllegalArgumentException( String.format( "Something went wrong, the tld \"%s\" has no child domains.", root ) );
 
-		List<DomainRoot> list = domains.compute( root.setGlue( "_" ).getString( true ), ( k, v ) -> v == null ? new ArrayList<>() : v );
-
 		String first = child.getStringFirst();
-		DomainNode node = Lists.findOrNew( list, domainRoot -> first.equals( domainRoot.getNodeName() ), new DomainRoot( root.getString(), first ) );
+
+		List<DomainRoot> list = domains.compute( root.setGlue( "_" ).getString( true ), ( k, v ) -> v == null ? new ArrayList<>() : v );
+		DomainNode node = null;
+		for ( DomainRoot domainRoot : list )
+			if ( first.equals( domainRoot.getNodeName() ) )
+				node = domainRoot;
+
+		if ( node == null )
+		{
+			node = new DomainRoot( root.getString(), first );
+			list.add( ( DomainRoot ) node );
+		}
 
 		if ( child.getNodeCount() > 1 )
-			for ( String s : child.subArray( 1 ) )
+			for ( String s : child.getSubStringArray( 1 ) )
 				node = node.getChild( s, true );
 
 		return node;

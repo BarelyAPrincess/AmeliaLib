@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -60,16 +60,17 @@ import io.amelia.support.DateAndTime;
 import io.amelia.support.EnumColor;
 import io.amelia.support.Exceptions;
 import io.amelia.support.IO;
-import io.amelia.support.Lists;
 import io.amelia.support.NIO;
 import io.amelia.support.Objs;
 import io.amelia.support.StorageConversions;
 import io.amelia.support.StoragePolicy;
 import io.amelia.support.Strs;
 import io.amelia.tasks.Tasks;
+import io.amelia.users.UserRoot;
+import io.amelia.users.Users;
 import io.netty.handler.ssl.SslContext;
 
-public class Webroot
+public class Webroot implements UserRoot
 {
 	public final static TypeBase.TypeString CONFIG_TITLE = new TypeBase.TypeString( "title", "" );
 	// Storage Policy for Webroot Directories
@@ -322,21 +323,6 @@ public class Webroot
 			cachePatterns.add( pattern.toLowerCase() );
 	}
 
-	public Path getAccountDirectory()
-	{
-		return null;
-	}
-
-	public List<String> getAccountFields()
-	{
-		return getConfig().getStringList( "accounts.fields" ).orElseGet( Lists::newArrayList );
-	}
-
-	public ElegantQueryTable getAccountTable()
-	{
-		return null;
-	}
-
 	public ApacheConfiguration getApacheConfig()
 	{
 		return new ApacheConfiguration();
@@ -560,6 +546,21 @@ public class Webroot
 	public String getTitle()
 	{
 		return webrootTitle;
+	}
+
+	public Path getUsersDirectory()
+	{
+		return Kernel.getPath( Users.PATH_USERS );
+	}
+
+	public List<String> getUsersFields()
+	{
+		return getConfig().getStringList( "users.fields" ).orElseGet( ArrayList::new );
+	}
+
+	public ElegantQueryTable getUsersTable()
+	{
+		return null;
 	}
 
 	public String getWebrootId()

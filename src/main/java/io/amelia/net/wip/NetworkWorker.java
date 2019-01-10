@@ -7,13 +7,13 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.net;
+package io.amelia.net.wip;
 
 import io.amelia.foundation.ConfigData;
 import io.amelia.foundation.ConfigRegistry;
-import io.amelia.lang.ApplicationException;
+import io.amelia.lang.NetworkException;
 
-public interface NetworkService
+public interface NetworkWorker<T>
 {
 	default ConfigData getConfig()
 	{
@@ -27,7 +27,11 @@ public interface NetworkService
 
 	String getId();
 
-	void shutdown();
+	void heartbeat();
 
-	void start() throws ApplicationException.Error;
+	boolean isStarted();
+
+	T start() throws NetworkException.Error;
+
+	T stop() throws NetworkException.Error;
 }

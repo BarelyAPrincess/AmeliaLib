@@ -2,34 +2,26 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
 package io.amelia.http.webroot;
 
-import io.amelia.data.parcel.Parcel;
-import io.amelia.lang.StorageException;
-import io.amelia.storage.Storage;
-import io.amelia.storage.driver.StorageDriver;
-import io.amelia.storage.methods.HomeStorageMethod;
-import io.amelia.support.Strs;
-import io.amelia.support.data.Parcel;
-
-public class WebrootStorage extends HomeStorageMethod
+public class WebrootStorage // extends HomeStorageMethod
 {
 	public WebrootStorage()
 	{
-		super( "webroot", "(.*)(?:\\\\|\\/)config.yaml", WebrootEntry::new );
+		// super( "webroot", "(.*)(?:\\\\|\\/)config.yaml", WebrootEntry::new );
 	}
 
 	public static class WebrootEntry
 	{
-		private final Parcel data;
-		private final String path;
+		// private final Parcel data;
+		// private final String path;
 
-		public WebrootEntry( StorageDriver.Entry entry ) throws StorageException.Error
+		/* public WebrootEntry( StorageDriver.Entry entry ) throws StorageException.Error
 		{
 			try
 			{
@@ -55,6 +47,6 @@ public class WebrootStorage extends HomeStorageMethod
 			{
 				throw new StorageException.Error( e );
 			}
-		}
+		} */
 	}
 }
