@@ -2,13 +2,15 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
 package io.amelia.storage;
 
+import java.io.File;
+import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.util.concurrent.TimeUnit;
@@ -29,6 +31,11 @@ public class StorageFileAttributes implements BasicFileAttributes
 	public static final String IS_REGULAR_FILE = "isRegularFile";
 	public static final String IS_SYMLINK = "isSymlink";
 	public static final String FILE_KEY = "fileKey";
+
+	public static StorageFileAttributes get( Path path, boolean b )
+	{
+		return null;
+	}
 
 	private final Parcel attributes;
 

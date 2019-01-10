@@ -7,8 +7,8 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.storage.types;
+package io.amelia.storage.sql;
 
-public interface StorageType
+public class SQLPath
 {
 }

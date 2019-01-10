@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
@@ -23,6 +24,7 @@ import io.amelia.data.KeyValueSetterTrait;
 import io.amelia.data.KeyValueTypesTrait;
 import io.amelia.lang.StorageException;
 import io.amelia.support.Voluntary;
+import io.amelia.support.VoluntaryWithCause;
 
 public class TableStorageType implements StorageType
 {
@@ -59,13 +61,13 @@ public class TableStorageType implements StorageType
 		}
 
 		@Override
-		public Voluntary getValue( @Nonnull String key )
+		public VoluntaryWithCause<Object, StorageException.Error> getValue( @Nonnull String key )
 		{
-			return Voluntary.ofNullable( columns.get( key ) );
+			return VoluntaryWithCause.ofNullableWithCause( columns.get( key ) );
 		}
 
 		@Override
-		public Voluntary getValue()
+		public VoluntaryWithCause<Object, StorageException.Error> getValue()
 		{
 			return getValue( "id" );
 		}
@@ -85,7 +87,7 @@ public class TableStorageType implements StorageType
 		}
 
 		@Override
-		public void setValueIfAbsent( String key, Object value ) throws StorageException.Error
+		public void setValueIfAbsent( String key, Supplier<?> value ) throws StorageException.Error
 		{
 			if ( !hasValue( key ) )
 				setValue( key, value );

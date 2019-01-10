@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -93,7 +93,11 @@ public class HoneyStorageProvider extends FileSystemProvider
 	@Override
 	public StorageFileSystem getFileSystem( URI uri )
 	{
-		Path path = getPath( uri );
+		MountPoint mp = HoneyStorage.getMountPoint( NodePath.of( uri.getPath() ) ).orElse( null );
+		if ( mp == null )
+			throw new FileSystemNotFoundException( "There is no mount point for path " + uri.getPath() + "." );
+		// return mp.getBackend();
+		return null;
 	}
 
 	@Override
@@ -102,7 +106,7 @@ public class HoneyStorageProvider extends FileSystemProvider
 		MountPoint mp = HoneyStorage.getMountPoint( NodePath.of( uri.getPath() ) ).orElse( null );
 		if ( mp == null )
 			throw new FileSystemNotFoundException( "There is no mount point for path " + uri.getPath() + "." );
-		return mp.getBackend();
+		return mp.getPath();
 	}
 
 	@Override

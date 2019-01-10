@@ -2,13 +2,14 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
 package io.amelia.storage;
 
+import java.nio.file.Path;
 import java.nio.file.spi.FileSystemProvider;
 import java.util.ArrayList;
 import java.util.List;
@@ -112,9 +113,9 @@ public class HoneyStorage
 		return backends.stream();
 	}
 
-	public static Optional<MountPoint> getMountPoint( NodePath origFullPath )
+	public static Optional<MountPoint> getMountPoint( Path origFullPath )
 	{
-		return Optional.ofNullable( getBackends().map( backend -> backend.matches( origFullPath ) ).filter( Objs::isNotNull ).findAny().orElseGet( () -> rootBackend.getMountPoint( origFullPath ) ) );
+		return Optional.ofNullable( getBackends().map( backend -> backend.matches( origFullPath ) ).filter( Objs::isNotNull ).findAny().orElseGet( () -> rootBackend.getMountPoint( NodePath.of( origFullPath ) ) ) );
 	}
 
 	public static FileStorageBackend getRootBackend()

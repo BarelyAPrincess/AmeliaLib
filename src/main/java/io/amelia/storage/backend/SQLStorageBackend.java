@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -14,16 +14,36 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 import io.amelia.lang.StorageException;
+import io.amelia.storage.HoneyStorage;
+import io.amelia.support.NodePath;
 import io.amelia.support.Objs;
 
 public class SQLStorageBackend extends StorageBackend
 {
-	SQLStorageBackend( Builder builder ) throws StorageException.Error
+	SQLStorageBackend( AbstractBuilder builder, HoneyStorage.BackendType type ) throws StorageException.Error
 	{
-		super( builder );
+		super( builder, type );
 	}
 
-	abstract class AbstractBuilder<Extended extends AbstractBuilder> extends io.amelia.storage.backend.AbstractBuilder<Extended>
+	@Override
+	public void createDirectory( NodePath path )
+	{
+
+	}
+
+	@Override
+	public void delete( NodePath path )
+	{
+
+	}
+
+	@Override
+	public boolean isHidden( NodePath path )
+	{
+		return false;
+	}
+
+	abstract class AbstractBuilder<Extended extends AbstractBuilder> extends io.amelia.storage.backend.AbstractBuilder
 	{
 		Connection connection;
 		String pass = null;
@@ -75,7 +95,7 @@ public class SQLStorageBackend extends StorageBackend
 		{
 			validate();
 			abstractConnect();
-			return new SQLStorageBackend( mountPath, this );
+			return new SQLStorageBackend( this, HoneyStorage.BackendType.DEFAULT );
 		}
 
 		@Override

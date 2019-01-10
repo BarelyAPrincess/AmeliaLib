@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -19,6 +19,7 @@ import io.amelia.data.ContainerWithValue;
 import io.amelia.data.parcel.Parcel;
 import io.amelia.data.parcel.ParcelLoader;
 import io.amelia.lang.ParcelableException;
+import io.amelia.storage.sql.SQLPath;
 import io.amelia.support.IO;
 import io.amelia.support.Streams;
 
@@ -29,7 +30,6 @@ public abstract class TableTranslator
 {
 	public static TableTranslator fromPath( Path path )
 	{
-		Files.isRegularFile(  )
 		if ( !Files.isDirectory( path ) )
 			throw new IllegalArgumentException( "" );
 		if ( path instanceof SQLPath )

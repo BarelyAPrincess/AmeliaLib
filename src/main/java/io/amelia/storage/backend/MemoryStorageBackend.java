@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -17,6 +17,31 @@ public class MemoryStorageBackend extends StorageBackend
 {
 	public MemoryStorageBackend() throws StorageException.Error
 	{
-		super( NodePath.empty(), HoneyStorage.BackendType.DEFAULT );
+		super( new AbstractBuilder()
+		{
+			@Override
+			StorageBackend init() throws StorageException.Error
+			{
+				return null;
+			}
+		}, HoneyStorage.BackendType.DEFAULT );
+	}
+
+	@Override
+	public void createDirectory( NodePath path )
+	{
+
+	}
+
+	@Override
+	public void delete( NodePath path )
+	{
+
+	}
+
+	@Override
+	public boolean isHidden( NodePath path )
+	{
+		return false;
 	}
 }
