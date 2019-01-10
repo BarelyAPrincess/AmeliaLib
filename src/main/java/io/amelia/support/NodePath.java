@@ -2,13 +2,15 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
 package io.amelia.support;
 
+import java.io.File;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -16,7 +18,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-public class NodePath extends NodeStack<NodePath>
+public class NodePath extends NodeStack<NodePath> implements ImplPath<NodePath>
 {
 	public static final Separator DEFAULT_SEPARATOR = Separator.FORWARDSLASH;
 
@@ -41,19 +43,49 @@ public class NodePath extends NodeStack<NodePath>
 		return new NodePath( Strs.split( path, Pattern.compile( separator.getSeparator(), Pattern.LITERAL ) ).collect( Collectors.toList() ), separator ).setAbsolute( path.startsWith( separator.getSeparator() ) );
 	}
 
+	public static NodePath of( @Nonnull Collection<String> nodes, @Nonnull Separator separator )
+	{
+		return new NodePath( nodes );
+	}
+
+	public static NodePath of( @Nonnull String[] nodes, @Nonnull Separator separator )
+	{
+		return new NodePath( nodes );
+	}
+
+	public static NodePath of( @Nonnull Path path, @Nonnull Separator separator )
+	{
+		return of( IO.getNames( path ) );
+	}
+
+	public static NodePath of( @Nonnull Collection<String> nodes )
+	{
+		return new NodePath( nodes );
+	}
+
+	public static NodePath of( @Nonnull String[] nodes )
+	{
+		return new NodePath( nodes );
+	}
+
+	public static NodePath of( @Nonnull Path path )
+	{
+		return of( IO.getNames( path ) );
+	}
+
 	private boolean isAbsolute;
 
-	public NodePath( String[] nodes, @Nonnull Separator separator )
+	private NodePath( String[] nodes, @Nonnull Separator separator )
 	{
 		super( NodePath::new, separator.getSeparator(), nodes );
 	}
 
-	public NodePath( Collection<String> nodes, @Nonnull Separator separator )
+	private NodePath( Collection<String> nodes, @Nonnull Separator separator )
 	{
 		super( NodePath::new, separator.getSeparator(), nodes );
 	}
 
-	public NodePath( @Nonnull Separator separator )
+	private NodePath( @Nonnull Separator separator )
 	{
 		super( NodePath::new, separator.getSeparator() );
 	}
@@ -64,17 +96,17 @@ public class NodePath extends NodeStack<NodePath>
 		isAbsolute = from.isAbsolute;
 	}
 
-	public NodePath( String[] nodes )
+	private NodePath( String[] nodes )
 	{
 		this( nodes, DEFAULT_SEPARATOR );
 	}
 
-	public NodePath( Collection<String> nodes )
+	private NodePath( Collection<String> nodes )
 	{
 		this( nodes, DEFAULT_SEPARATOR );
 	}
 
-	public NodePath()
+	private NodePath()
 	{
 		this( DEFAULT_SEPARATOR );
 	}
@@ -92,6 +124,35 @@ public class NodePath extends NodeStack<NodePath>
 		if ( node.isEmpty() )
 			return clone();
 		return create( Arrs.concat( this.nodes, node.nodes ) );
+	}
+
+	@Override
+	public int compareTo( Path other )
+	{
+		return super.compareTo( other.toString(), File.pathSeparator );
+	}
+
+	@Override
+	public NodePath create( String... nodes )
+	{
+		return super.create( nodes );
+	}
+
+	@Override
+	public NodePath getDefaultPath()
+	{
+		return NodePath.empty().setAbsolute( true );
+	}
+
+	@Override
+	public int getNameCount()
+	{
+		return getNodeCount();
+	}
+
+	public String getSeparator()
+	{
+		return glue;
 	}
 
 	@Override
@@ -117,16 +178,29 @@ public class NodePath extends NodeStack<NodePath>
 		return this;
 	}
 
+	@Override
+	public NodePath subpath( int beginIndex, int endIndex )
+	{
+		return super.getSubNodes( beginIndex, endIndex );
+	}
+
+	@Override
+	public File toFile()
+	{
+		return new File( getString( File.separator ) );
+	}
+
 	public Namespace toNamespace()
 	{
-		return new Namespace( getNodes(), glue );
+		return Namespace.of( getNames(), glue );
 	}
 
 	public enum Separator
 	{
 		FORWARDSLASH( "/" ),
 		BACKSLASH( "\\" ),
-		UNDERSCORE( "_" ),;
+		UNDERSCORE( "_" ),
+		;
 
 		private final String separator;
 

@@ -2,13 +2,16 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
 package io.amelia.support;
 
+import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -30,7 +33,7 @@ import io.amelia.lang.ApplicationException;
  *
  * @param <Self> Self of this class
  */
-public abstract class NodeStack<Self extends NodeStack> implements Cloneable, Comparable<Self>
+public abstract class NodeStack<Self extends NodeStack> implements Cloneable
 {
 	// TODO Implement a flag setup that does things such as forces nodes to lowercase, normalizes, or converts to ASCII
 
@@ -67,13 +70,19 @@ public abstract class NodeStack<Self extends NodeStack> implements Cloneable, Co
 	}
 
 	@SuppressWarnings( "unchecked" )
-	public Self append( @Nonnull String node )
+	public Self append( @Nonnull String name )
 	{
-		if ( Strs.isEmpty( node ) )
+		return append( new String[] {name} );
+	}
+
+	public Self append( @Nonnull String[] names )
+	{
+		if ( names.length == 0 )
 			return ( Self ) this;
-		if ( node.contains( glue ) )
-			throw new IllegalArgumentException( "Appended string MUST NOT contain the glue character." );
-		this.nodes = Arrs.concat( this.nodes, new String[] {node} );
+		for ( String name : names )
+			if ( name.contains( glue ) )
+				throw new IllegalArgumentException( "Appended string MUST NOT contain the glue character." );
+		this.nodes = Arrs.concat( this.nodes, names );
 		return ( Self ) this;
 	}
 
@@ -103,7 +112,6 @@ public abstract class NodeStack<Self extends NodeStack> implements Cloneable, Co
 		return Maths.normalizeCompare( matchPercentage( other ), 100 );
 	}
 
-	@Override
 	public int compareTo( @Nonnull Self other )
 	{
 		return Maths.normalizeCompare( matchPercentage( other ), 100 );
@@ -140,7 +148,7 @@ public abstract class NodeStack<Self extends NodeStack> implements Cloneable, Co
 
 	public Self dropFirst()
 	{
-		return subNodes( 1 );
+		return getSubNodes( 1 );
 	}
 
 	public boolean endsWith( String other )
@@ -206,6 +214,11 @@ public abstract class NodeStack<Self extends NodeStack> implements Cloneable, Co
 		return nodes[nodes.length - 1];
 	}
 
+	public String[] getNames()
+	{
+		return nodes;
+	}
+
 	public Self getNode( int inx )
 	{
 		return create( getStringNode( inx ) );
@@ -221,9 +234,9 @@ public abstract class NodeStack<Self extends NodeStack> implements Cloneable, Co
 		return Arrays.stream( nodes );
 	}
 
-	public String[] getNodes()
+	public Self[] getNodes()
 	{
-		return nodes;
+		return ( Self[] ) Arrays.stream( nodes ).map( this::create ).toArray();
 	}
 
 	public Self getParent()
@@ -311,6 +324,43 @@ public abstract class NodeStack<Self extends NodeStack> implements Cloneable, Co
 			return "";
 
 		return Strs.join( Arrays.copyOf( nodes, nodes.length - depth ), glue );
+	}
+
+	public Self getSubNodes( int start )
+	{
+		return getSubNodes( start, getNodeCount() );
+	}
+
+	public Self getSubNodes( int start, int end )
+	{
+		return create( getSubStringArray( start, end ) );
+	}
+
+	public String getSubString( int start )
+	{
+		return getSubString( start, getNodeCount() );
+	}
+
+	public String getSubString( int start, int end )
+	{
+		return Strs.join( getSubStringArray( start, end ), glue );
+	}
+
+	public String[] getSubStringArray( int start, int end )
+	{
+		if ( start < 0 )
+			throw new IllegalArgumentException( "Start can't be less than 0" );
+		if ( start > nodes.length )
+			throw new IllegalArgumentException( "Start can't be more than length " + nodes.length );
+		if ( end > nodes.length )
+			throw new IllegalArgumentException( "End can't be more than node count" );
+
+		return Arrays.copyOfRange( nodes, start, end );
+	}
+
+	public String[] getSubStringArray( int start )
+	{
+		return getSubStringArray( start, getNodeCount() );
 	}
 
 	public boolean isEmpty()
@@ -406,7 +456,9 @@ public abstract class NodeStack<Self extends NodeStack> implements Cloneable, Co
 	 */
 	public Self pop()
 	{
-		return subNodes( 0, getNodeCount() - 1 );
+		if ( getNodeCount() == 0 )
+			return create();
+		return getSubNodes( 0, getNodeCount() - 1 );
 	}
 
 	/**
@@ -548,41 +600,9 @@ public abstract class NodeStack<Self extends NodeStack> implements Cloneable, Co
 		return startsWith( create( splitString( namespace, separator ) ), matchAtSeparator );
 	}
 
-	public String[] subArray( int start, int end )
+	public Path toPath( boolean absolute )
 	{
-		if ( start < 0 )
-			throw new IllegalArgumentException( "Start can't be less than 0" );
-		if ( start > nodes.length )
-			throw new IllegalArgumentException( "Start can't be more than length " + nodes.length );
-		if ( end > nodes.length )
-			throw new IllegalArgumentException( "End can't be more than node count" );
-
-		return Arrays.copyOfRange( nodes, start, end );
-	}
-
-	public String[] subArray( int start )
-	{
-		return subArray( start, getNodeCount() );
-	}
-
-	public Self subNodes( int start )
-	{
-		return subNodes( start, getNodeCount() );
-	}
-
-	public Self subNodes( int start, int end )
-	{
-		return create( subArray( start, end ) );
-	}
-
-	public String subString( int start )
-	{
-		return subString( start, getNodeCount() );
-	}
-
-	public String subString( int start, int end )
-	{
-		return Strs.join( subArray( start, end ), glue );
+		return Paths.get( ( absolute ? "/" : "" ) + getString( File.pathSeparator ) );
 	}
 
 	@Override

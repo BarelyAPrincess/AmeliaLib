@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -52,6 +52,7 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -375,6 +376,26 @@ public class IO
 			Streams.forEachWithException( Files.list( path ), IO::deleteIfExists );
 
 		Files.delete( path );
+	}
+
+	public static String dirname( @Nonnull Path path )
+	{
+		return dirname( path, 1 );
+	}
+
+	public static String dirname( @Nonnull Path path, int levels )
+	{
+		Objs.notPositive( levels );
+
+		path = path.toAbsolutePath();
+
+		while ( levels > 0 && path.getParent() != null )
+		{
+			levels--;
+			path = path.getParent();
+		}
+
+		return path.getFileName().toString();
 	}
 
 	public static String dirname( @Nonnull File path )
@@ -920,6 +941,11 @@ public class IO
 	public static String getLocalName( @Nonnull String path )
 	{
 		return getLocalName( Paths.get( path ) );
+	}
+
+	public static String[] getNames( Path path )
+	{
+		return StreamSupport.stream( path.spliterator(), true ).toArray( String[]::new );
 	}
 
 	public static String getParentPath( @Nonnull String path )

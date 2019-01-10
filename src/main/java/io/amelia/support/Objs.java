@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -1060,22 +1060,22 @@ public class Objs
 
 	public static <T extends Number> T notPositive( T number )
 	{
-		return notNegative( number, "Number must be negative." );
+		return notPositive( number, "Number must be negative." );
 	}
 
-	public static <T extends Number> T notPositiveOrZero( T number )
-	{
-		return notNegativeOrZero( number, "Number must be negative or zero." );
-	}
-
-	public static <T extends Number> T notPostive( T number, String message, Object... objects )
+	public static <T extends Number> T notPositive( T number, String message, Object... objects )
 	{
 		if ( number.longValue() > 0 )
 			throw new IllegalArgumentException( objects == null || objects.length == 0 ? message : String.format( message, ( Object[] ) objects ) );
 		return number;
 	}
 
-	public static <T extends Number> T notPostiveOrZero( T number, String message, Object... objects )
+	public static <T extends Number> T notPositiveOrZero( T number )
+	{
+		return notPositiveOrZero( number, "Number must be negative or zero." );
+	}
+
+	public static <T extends Number> T notPositiveOrZero( T number, String message, Object... objects )
 	{
 		if ( number.longValue() >= 0 )
 			throw new IllegalArgumentException( objects == null || objects.length == 0 ? message : String.format( message, ( Object[] ) objects ) );

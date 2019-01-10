@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -66,6 +66,26 @@ public class Namespace extends NodeStack<Namespace>
 		return new Namespace( Strs.split( namespace, Pattern.compile( glue, Pattern.LITERAL ) ).collect( Collectors.toList() ), glue );
 	}
 
+	public static Namespace of( String[] nodes, String glue )
+	{
+		return new Namespace( nodes, glue );
+	}
+
+	public static Namespace of( String[] nodes )
+	{
+		return new Namespace( nodes );
+	}
+
+	public static Namespace of( Collection<String> nodes, String glue )
+	{
+		return new Namespace( nodes, glue );
+	}
+
+	public static Namespace of( Collection<String> nodes )
+	{
+		return new Namespace( nodes );
+	}
+
 	public static Namespace ofRegex( String namespace, String regex )
 	{
 		namespace = Objs.notNullOrDef( namespace, "" );
@@ -85,7 +105,7 @@ public class Namespace extends NodeStack<Namespace>
 
 		for ( int n = 0; n < ns.getNodeCount(); n++ )
 		{
-			String sns = ns.subNodes( n ).getString();
+			String sns = ns.getSubNodes( n ).getString();
 			if ( isTld( sns ) )
 			{
 				parentNodePos = n;
@@ -93,20 +113,20 @@ public class Namespace extends NodeStack<Namespace>
 			}
 		}
 
-		return parentNodePos > 0 ? new Domain( ns.subNodes( parentNodePos ), ns.subNodes( 0, parentNodePos ) ) : new Domain( new Namespace(), ns );
+		return parentNodePos > 0 ? new Domain( ns.getSubNodes( parentNodePos ), ns.getSubNodes( 0, parentNodePos ) ) : new Domain( new Namespace(), ns );
 	}
 
-	public Namespace( String[] nodes, String glue )
+	private Namespace( String[] nodes, String glue )
 	{
 		super( Namespace::new, glue, nodes );
 	}
 
-	public Namespace( Collection<String> nodes, String glue )
+	private Namespace( Collection<String> nodes, String glue )
 	{
 		super( Namespace::new, glue, nodes );
 	}
 
-	public Namespace( String glue )
+	private Namespace( String glue )
 	{
 		super( Namespace::new, glue );
 	}
@@ -116,17 +136,17 @@ public class Namespace extends NodeStack<Namespace>
 		this( nodes );
 	}
 
-	public Namespace( String[] nodes )
+	private Namespace( String[] nodes )
 	{
 		this( nodes, "." );
 	}
 
-	public Namespace( Collection<String> nodes )
+	private Namespace( Collection<String> nodes )
 	{
 		this( nodes, "." );
 	}
 
-	public Namespace()
+	private Namespace()
 	{
 		this( "." );
 	}
@@ -160,7 +180,7 @@ public class Namespace extends NodeStack<Namespace>
 
 		public Namespace getChildDomain()
 		{
-			return child.getNodeCount() <= 1 ? new Namespace() : child.subNodes( 1 );
+			return child.getNodeCount() <= 1 ? new Namespace() : child.getSubNodes( 1 );
 		}
 
 		public Namespace getFullDomain()

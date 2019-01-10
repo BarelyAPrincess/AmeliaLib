@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -303,7 +303,7 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 		if ( ns.getNodeCount() <= 1 )
 			return found;
 		else
-			return found.flatMapWithCause( child -> child.findChild( ns.subString( 1 ), create ) );
+			return found.flatMapWithCause( child -> child.findChild( ns.getSubString( 1 ), create ) );
 	}
 
 	final BaseClass findFlag( int flag )
@@ -461,7 +461,7 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 	{
 		disposalCheck();
 		if ( Objs.isEmpty( localName ) )
-			return new Namespace();
+			return Namespace.empty();
 		return hasParent() ? getParent().getNamespace().append( localName ) : Namespace.of( localName, getOptions().getSeparator() );
 	}
 

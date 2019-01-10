@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -27,6 +27,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -183,6 +184,11 @@ public class Lists
 	public static <Type> Optional<Type> last( Collection<Type> list )
 	{
 		return Optional.ofNullable( list.size() == 0 ? null : ( Type ) list.toArray()[list.size() - 1] );
+	}
+
+	public static <T> List<T> newArrayList( Iterable<T> elements )
+	{
+		return StreamSupport.stream( elements.spliterator(), true ).collect( Collectors.toList() );
 	}
 
 	@SafeVarargs

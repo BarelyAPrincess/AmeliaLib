@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -14,6 +14,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 import io.amelia.support.IO;
@@ -25,13 +26,14 @@ public class ApacheConfiguration extends ApacheSection
 
 	}
 
-	public ApacheConfiguration( Path source ) throws IOException
+	public ApacheConfiguration( Path sourcePath ) throws IOException
 	{
-		if ( source.exists() )
-			if ( source.isFile() )
-				appendWithFile( source );
+		if ( Files.exists( sourcePath ) )
+			if ( Files.isDirectory( sourcePath ) )
+				appendWithDir( sourcePath );
 			else
-				appendWithDir( source );
+				appendWithFile( sourcePath );
+
 	}
 
 	public ApacheConfiguration( String text ) throws IOException
@@ -39,28 +41,28 @@ public class ApacheConfiguration extends ApacheSection
 		appendRaw( text, "<source unknown>" );
 	}
 
-	public ApacheConfiguration appendWithDir( File dir ) throws IOException
+	public ApacheConfiguration appendWithDir( Path dir ) throws IOException
 	{
-		if ( dir.exists() && dir.isDirectory() )
+		if ( Files.isDirectory( dir ) )
 		{
-			File htaccessFile = new File( dir, ".htaccess" );
-			if ( htaccessFile.exists() && htaccessFile.isFile() )
+			Path htaccessFile = dir.resolve( ".htaccess" );
+			if ( Files.isRegularFile( htaccessFile ) )
 				appendWithFile( htaccessFile );
 
-			htaccessFile = new File( dir, "htaccess" );
-			if ( htaccessFile.exists() && htaccessFile.isFile() )
+			htaccessFile = dir.resolve( "htaccess" );
+			if ( Files.isRegularFile( htaccessFile ) )
 				appendWithFile( htaccessFile );
 		}
 
 		return this;
 	}
 
-	public ApacheConfiguration appendWithFile( File file ) throws FileNotFoundException
+	public ApacheConfiguration appendWithFile( Path file ) throws FileNotFoundException
 	{
-		if ( file.exists() && file.isFile() )
-			try ( BufferedReader br = new BufferedReader( new FileReader( file ) ) )
+		if ( Files.isRegularFile( file ) )
+			try ( BufferedReader br = new BufferedReader( new FileReader( file.toFile() ) ) )
 			{
-				appendRaw( br, file.getAbsolutePath() );
+				appendRaw( br, file.toRealPath().toString() );
 				IO.closeQuietly( br );
 			}
 			catch ( IOException e )

@@ -7,12 +7,14 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.injection;
+package io.amelia.support;
 
-/**
- * Provides a context to the source of a library load
- */
-public interface LibrarySource
+public abstract class HttpContext extends FileContext
 {
-	String getName();
+	protected String action = null;
+
+	public String getAction()
+	{
+		return action;
+	}
 }
