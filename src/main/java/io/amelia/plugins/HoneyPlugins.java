@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -21,7 +21,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
@@ -49,19 +48,19 @@ import io.amelia.plugins.loader.PluginLoader;
 import io.amelia.support.IO;
 import io.amelia.support.Objs;
 import io.amelia.support.Priority;
+import io.amelia.support.VoluntaryWithCause;
 import io.amelia.tasks.Tasks;
 
-public class DefaultPlugins<Subclass extends Plugin> implements BasePlugins<Subclass>
+public class HoneyPlugins implements Plugins<Plugin>
 {
-	public static final Kernel.Logger L = Kernel.getLogger( DefaultPlugins.class );
 
 	private final Map<Pattern, PluginLoader> fileAssociations = new HashMap<>();
 	private final ReentrantLock lock = new ReentrantLock();
-	private final Map<String, Subclass> lookupNames = new HashMap<>();
-	private final List<Subclass> plugins = new ArrayList<>();
+	private final Map<String, Plugin> lookupNames = new HashMap<>();
+	private final List<Plugin> plugins = new ArrayList<>();
 	private Set<String> loadedPlugins = new HashSet<>();
 
-	public DefaultPlugins()
+	public HoneyPlugins()
 	{
 		// Loads plugins in order as PluginManager receives the notices from the Events
 		Events.getInstance().listen( Foundation.getApplication(), Priority.NORMAL, RunlevelEvent.class, event -> {
@@ -104,7 +103,7 @@ public class DefaultPlugins<Subclass extends Plugin> implements BasePlugins<Subc
 	}
 
 	@Override
-	public void disablePlugin( final Subclass plugin )
+	public void disablePlugin( final Plugin plugin )
 	{
 		if ( plugin.isEnabled() )
 		{
@@ -184,7 +183,7 @@ public class DefaultPlugins<Subclass extends Plugin> implements BasePlugins<Subc
 	}
 
 	@Override
-	public void enablePlugin( final Subclass plugin )
+	public void enablePlugin( final Plugin plugin )
 	{
 		if ( !plugin.isEnabled() )
 			try
@@ -198,45 +197,33 @@ public class DefaultPlugins<Subclass extends Plugin> implements BasePlugins<Subc
 	}
 
 	@Override
-	public <T extends Subclass> Optional<T> getPluginByClass( @Nonnull Class<?> pluginClass )
+	public VoluntaryWithCause<Plugin, PluginNotFoundException> getPluginByClass( @Nonnull Class<?> pluginClass )
 	{
 		if ( pluginClass.getClassLoader() instanceof PluginClassLoader )
-			return ( Optional<T> ) getPlugins().filter( plugin -> plugin == ( ( PluginClassLoader ) pluginClass.getClassLoader() ).getPlugin() ).findAny();
-		return Optional.empty();
+			return VoluntaryWithCause.ofWithCause( getPlugins().filter( plugin -> plugin == ( ( PluginClassLoader ) pluginClass.getClassLoader() ).getPlugin() ).findAny() );
+		return VoluntaryWithCause.emptyWithCause();
 	}
 
 	@Override
-	public <T extends Subclass> T getPluginByClassWithException( @Nonnull Class<?> pluginClass ) throws PluginNotFoundException
+	public VoluntaryWithCause<Plugin, PluginNotFoundException> getPluginByClassname( String className )
 	{
-		return ( T ) getPluginByClass( pluginClass ).orElseThrow( () -> new PluginNotFoundException( "We could not find a plugin with the class '" + pluginClass.getSimpleName() + "', maybe it's not loaded." ) );
+		return VoluntaryWithCause.ofWithCause( getPlugins().filter( plugin -> plugin.getClass().getName().startsWith( className ) ).findAny() );
 	}
 
 	@Override
-	public Optional<Subclass> getPluginByClassname( String className )
+	public VoluntaryWithCause<Plugin, PluginNotFoundException> getPluginByName( String pluginName )
 	{
-		return getPlugins().filter( plugin -> plugin.getClass().getName().startsWith( className ) ).findAny();
+		return VoluntaryWithCause.ofWithCause( getPlugins().filter( plugin -> plugin.getClass().getCanonicalName().equals( pluginName ) || plugin.getName().equalsIgnoreCase( pluginName ) ).findAny() );
 	}
 
 	@Override
-	public Subclass getPluginByClassnameWithException( String className ) throws PluginNotFoundException
-	{
-		return getPluginByClassname( className ).orElseThrow( () -> new PluginNotFoundException( "We could not find a plugin with the classname '" + className + "', maybe it's not loaded." ) );
-	}
-
-	@Override
-	public Subclass getPluginByNameWithException( String pluginName ) throws PluginNotFoundException
+	public Plugin getPluginByNameWithException( String pluginName ) throws PluginNotFoundException
 	{
 		return getPluginByName( pluginName ).orElseThrow( () -> new PluginNotFoundException( "We could not find a plugin by the name '" + pluginName + "', maybe it's not loaded." ) );
 	}
 
 	@Override
-	public Optional<Subclass> getPluginByName( String pluginName )
-	{
-		return getPlugins().filter( plugin -> plugin.getClass().getCanonicalName().equals( pluginName ) || plugin.getName().equalsIgnoreCase( pluginName ) ).findAny();
-	}
-
-	@Override
-	public synchronized Stream<Subclass> getPlugins()
+	public synchronized Stream<Plugin> getPlugins()
 	{
 		return plugins.stream();
 	}
@@ -255,12 +242,12 @@ public class DefaultPlugins<Subclass extends Plugin> implements BasePlugins<Subc
 	 * @throws PluginDependencyUnknownException If a required dependency could not be found
 	 */
 	@Override
-	public synchronized Subclass loadPlugin( @Nonnull Path pluginPath ) throws PluginInvalidException, PluginDependencyUnknownException
+	public synchronized Plugin loadPlugin( @Nonnull Path pluginPath ) throws PluginInvalidException, PluginDependencyUnknownException
 	{
 		checkUpdate( pluginPath );
 
 		Set<Pattern> filters = fileAssociations.keySet();
-		Subclass result = null;
+		Plugin result = null;
 
 		for ( Pattern filter : filters )
 		{
@@ -269,7 +256,7 @@ public class DefaultPlugins<Subclass extends Plugin> implements BasePlugins<Subc
 
 			if ( match.find() )
 			{
-				PluginLoader<Subclass> loader = fileAssociations.get( filter );
+				PluginLoader<Plugin> loader = fileAssociations.get( filter );
 				result = loader.loadPlugin( pluginPath );
 			}
 		}
@@ -283,7 +270,7 @@ public class DefaultPlugins<Subclass extends Plugin> implements BasePlugins<Subc
 		return result;
 	}
 
-	protected void loadPlugin( Subclass plugin )
+	protected void loadPlugin( Plugin plugin )
 	{
 		try
 		{
@@ -327,11 +314,11 @@ public class DefaultPlugins<Subclass extends Plugin> implements BasePlugins<Subc
 	 * @return A list of all plugins loaded
 	 */
 	@Override
-	public Stream<Subclass> loadPlugins( @Nonnull Path pluginPath ) throws IOException
+	public Stream<Plugin> loadPlugins( @Nonnull Path pluginPath ) throws IOException
 	{
 		Objs.notFalse( Files.isDirectory( pluginPath ), "Directory must be a directory" );
 
-		List<Subclass> result = new ArrayList<Subclass>();
+		List<Plugin> result = new ArrayList<>();
 		Set<Pattern> filters = fileAssociations.keySet();
 
 		Map<String, Path> plugins = new HashMap<>();

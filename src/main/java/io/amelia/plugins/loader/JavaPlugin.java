@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -26,11 +26,10 @@ import io.amelia.foundation.ConfigRegistry;
 import io.amelia.foundation.VendorMeta;
 import io.amelia.lang.ParcelableException;
 import io.amelia.lang.PluginException;
-import io.amelia.logcompat.LogBuilder;
-import io.amelia.logcompat.Logger;
-import io.amelia.plugins.DefaultPlugins;
+import io.amelia.plugins.HoneyPlugins;
 import io.amelia.plugins.Plugin;
 import io.amelia.plugins.PluginMeta;
+import io.amelia.plugins.Plugins;
 import io.amelia.support.IO;
 import io.amelia.support.Objs;
 import io.amelia.support.Strs;
@@ -156,11 +155,6 @@ public abstract class JavaPlugin extends Plugin
 		return pluginPath;
 	}
 
-	public final Logger getLogger()
-	{
-		return LogBuilder.get( getClass() );
-	}
-
 	/**
 	 * Returns the plugin.yaml pluginPath containing the details for this plugin
 	 *
@@ -245,9 +239,7 @@ public abstract class JavaPlugin extends Plugin
 
 	public void publishConfig()
 	{
-		ConfigRegistry.config.getChild( DefaultPlugins.ConfigKeys.BaseNode );
-
-
+		ConfigRegistry.config.getChild( HoneyPlugins.ConfigKeys.BaseNode );
 
 	}
 
@@ -275,7 +267,7 @@ public abstract class JavaPlugin extends Plugin
 		}
 		catch ( IOException ex )
 		{
-			getLogger().severe( "Could not save config to " + configPath, ex );
+			Plugins.L.severe( "Could not save config to " + configPath, ex );
 		}
 	}
 
@@ -322,11 +314,11 @@ public abstract class JavaPlugin extends Plugin
 				in.close();
 			}
 			else
-				getLogger().warning( "Could not save " + resourcePath + " to " + IO.relPath( outPath ) + " because it already exists." );
+				Plugins.L.warning( "Could not save " + resourcePath + " to " + IO.relPath( outPath ) + " because it already exists." );
 		}
 		catch ( IOException ex )
 		{
-			getLogger().severe( "Could not save " + resourcePath + " to " + IO.relPath( outPath ), ex );
+			Plugins.L.severe( "Could not save " + resourcePath + " to " + IO.relPath( outPath ), ex );
 		}
 	}
 

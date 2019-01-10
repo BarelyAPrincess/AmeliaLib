@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -11,6 +11,8 @@ package io.amelia.plugins.events;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -19,6 +21,7 @@ import io.amelia.data.parcel.ParcelReceiver;
 import io.amelia.data.parcel.ParcelSender;
 import io.amelia.events.ApplicationEvent;
 import io.amelia.events.Cancellable;
+import io.amelia.foundation.EntityPrincipal;
 import io.amelia.support.Lists;
 
 /**
@@ -29,10 +32,10 @@ public class MessageEvent extends ApplicationEvent implements Cancellable
 {
 	private final ParcelSender sender;
 	private boolean cancelled = false;
-	private Collection<Object> objs;
-	private Collection<ParcelReceiver> recipients;
+	private List<Object> objs;
+	private Set<ParcelReceiver> recipients;
 
-	public MessageEvent( final ParcelSender sender, final Collection<ParcelReceiver> recipients, final Object... objs )
+	public MessageEvent( final ParcelSender sender, final Set<ParcelReceiver> recipients, final Object... objs )
 	{
 		this.sender = sender;
 		this.recipients = recipients;
@@ -49,27 +52,14 @@ public class MessageEvent extends ApplicationEvent implements Cancellable
 		recipients.add( acct );
 	}
 
-	public boolean containsRecipient( ParcelReceiver acct )
+	public boolean containsRecipient( EntityPrincipal entityPrincipal )
 	{
-		for ( ParcelReceiver acct1 : recipients )
-			if ( acct1.uuid().equals( acct.uuid() ) )
-				return true;
-		return false;
+		return recipients.stream().anyMatch( recipient -> recipient instanceof EntityPrincipal && ( ( EntityPrincipal ) recipient ).uuid().equals( entityPrincipal.uuid() ) );
 	}
 
 	public Collection<Object> getMessages()
 	{
 		return objs;
-	}
-
-	/**
-	 * WARNING! This will completely clear and reset the messages.
-	 *
-	 * @param objs The new messages
-	 */
-	public void setMessages( Object... objs )
-	{
-		this.objs = Arrays.asList( objs );
 	}
 
 	@SuppressWarnings( "unchecked" )
@@ -81,11 +71,6 @@ public class MessageEvent extends ApplicationEvent implements Cancellable
 	public Collection<ParcelReceiver> getRecipients()
 	{
 		return recipients;
-	}
-
-	public void setRecipients( Set<ParcelReceiver> recipients )
-	{
-		this.recipients = recipients;
 	}
 
 	public ParcelSender getSender()
@@ -104,12 +89,6 @@ public class MessageEvent extends ApplicationEvent implements Cancellable
 		return cancelled;
 	}
 
-	@Override
-	public void setCancelled( boolean cancel )
-	{
-		cancelled = cancel;
-	}
-
 	public Object removeMessage( int index )
 	{
 		return objs.remove( index );
@@ -120,12 +99,29 @@ public class MessageEvent extends ApplicationEvent implements Cancellable
 		return objs.remove( obj );
 	}
 
-	public boolean removeRecipient( ParcelReceiver acct )
+	public boolean removeRecipient( EntityPrincipal entityPrincipal )
 	{
-		for ( ParcelReceiver acct1 : recipients )
-			if ( acct1.uuid().equals( acct.uuid() ) )
-				return recipients.remove( acct1 );
-		return false;
+		Set<ParcelReceiver> recipientsCopy = new HashSet<>( recipients );
+		recipients.stream().filter( recipient -> recipient instanceof EntityPrincipal && ( ( EntityPrincipal ) recipient ).uuid().equals( entityPrincipal.uuid() ) ).forEach( recipientsCopy::remove );
+		int count = recipients.size();
+		recipients = recipientsCopy;
+		return recipients.size() != count;
+	}
+
+	@Override
+	public void setCancelled( boolean cancel )
+	{
+		cancelled = cancel;
+	}
+
+	/**
+	 * WARNING! This will completely clear and reset the messages.
+	 *
+	 * @param objs The new messages
+	 */
+	public void setMessages( Object... objs )
+	{
+		this.objs = Collections.singletonList( objs );
 	}
 
 	/**
@@ -136,5 +132,10 @@ public class MessageEvent extends ApplicationEvent implements Cancellable
 	public void setMessages( Iterable<Object> objs )
 	{
 		this.objs = Lists.newArrayList( objs );
+	}
+
+	public void setRecipients( Set<ParcelReceiver> recipients )
+	{
+		this.recipients = recipients;
 	}
 }
