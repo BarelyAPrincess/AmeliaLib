@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -29,6 +29,7 @@ import io.amelia.lang.StartupException;
 import io.amelia.looper.LooperRouter;
 import io.amelia.looper.MainLooper;
 import io.amelia.permissions.Permissions;
+import io.amelia.plugins.Plugins;
 import io.amelia.support.Encrypt;
 import io.amelia.support.EnumColor;
 import io.amelia.support.IO;
@@ -124,6 +125,11 @@ public final class Foundation
 	public static Permissions getPermissions()
 	{
 		return Bindings.resolveClass( Permissions.class ).orElseThrowCause( e -> new RuntimeException( "Permissions is not implemented!", e ) );
+	}
+
+	public static Plugins getPlugins()
+	{
+		return Bindings.resolveClass( Plugins.class ).orElseThrowCause( e -> new ApplicationException.Runtime( "The Plugins implementation is missing.", e ) );
 	}
 
 	public static EntitySubject getRootEntity()

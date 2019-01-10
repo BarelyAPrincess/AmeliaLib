@@ -2,16 +2,14 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
 package io.amelia.permissions;
 
 import io.amelia.foundation.Foundation;
-import io.amelia.permissions.lang.PermissionException;
-import io.amelia.permissions.lang.PermissionValueException;
 import io.amelia.support.DateAndTime;
 import io.amelia.support.Objs;
 import io.amelia.support.VoluntaryBoolean;
@@ -22,7 +20,7 @@ import io.amelia.support.VoluntaryBoolean;
  */
 public class PermissionResult
 {
-	public static final PermissionResult DUMMY = new PermissionResult( Foundation.getNullEntity().getPermissible(), PermissionDefault.DEFAULT.getNode() );
+	public static final PermissionResult DUMMY = new PermissionResult( Foundation.getNullEntity().getPermissibleEntity(), PermissionDefault.DEFAULT.getNode() );
 	private final PermissibleEntity entity;
 	private final Permission perm;
 	protected long epoch = DateAndTime.epoch();

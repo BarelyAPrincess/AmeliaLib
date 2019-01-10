@@ -1,10 +1,19 @@
+/**
+ * This software may be modified and distributed under the terms
+ * of the MIT license.  See the LICENSE file for details.
+ * <p>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
+ * <p>
+ * All Rights Reserved.
+ */
 package io.amelia.users;
 
 import java.util.UUID;
 
 import io.amelia.data.parcel.Parcel;
-import io.amelia.foundation.ConfigRegistry;
 import io.amelia.foundation.EntitySubject;
+import io.amelia.foundation.Foundation;
 import io.amelia.permissions.PermissibleEntity;
 import io.amelia.support.Parcels;
 
@@ -27,12 +36,12 @@ public class UserOffline implements EntitySubject
 
 	public UserContext getContext( boolean create )
 	{
-		UserContext userContext = userCreator.getUsers().getUsers().filter( user -> uuid.equals( user.uuid() ) ).findAny().orElse( null );
+		UserContext userContext = Foundation.getUsers().getUsers().filter( user -> uuid.equals( user.uuid() ) ).findAny().orElse( null );
 		if ( create )
 			try
 			{
 				userContext = new UserContext( this );
-				userCreator.getUsers().put( userContext );
+				Foundation.getUsers().put( userContext );
 			}
 			catch ( UserException.Error error )
 			{
@@ -54,9 +63,9 @@ public class UserOffline implements EntitySubject
 	}
 
 	@Override
-	public PermissibleEntity getPermissible()
+	public PermissibleEntity getPermissibleEntity()
 	{
-		return getContext().getPermissible();
+		return getContext().getPermissibleEntity();
 	}
 
 	public UserCreator getUserCreator()
@@ -67,7 +76,7 @@ public class UserOffline implements EntitySubject
 	@Override
 	public String name()
 	{
-		return Parcels.parseFormatString( parcel, ConfigRegistry.config.getValue( HoneyUsers.ConfigKeys.DISPLAY_NAME_FORMAT ) ).orElse( "{error}" );
+		return Parcels.parseFormatString( parcel, Foundation.getUsers().getDisplayNameFormat() ).orElse( "{error}" );
 	}
 
 	@Override

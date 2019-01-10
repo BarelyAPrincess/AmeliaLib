@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -18,6 +18,7 @@ import io.amelia.permissions.PermissibleEntity;
 import io.amelia.permissions.PermissionDefault;
 import io.amelia.permissions.event.PermissibleEntityEvent;
 import io.amelia.support.DateAndTime;
+import io.amelia.support.VoluntaryBoolean;
 
 class UserCreatorMemory extends UserCreator
 {
@@ -26,17 +27,6 @@ class UserCreatorMemory extends UserCreator
 		super( "memory", Foundation.getUsers().getUserCreators().noneMatch( UserCreator::isDefault ) );
 
 		Events.getInstance().listen( Foundation.getApplication(), PermissibleEntityEvent.class, this::onPermissibleEntityEvent );
-	}
-
-	private void onPermissibleEntityEvent( PermissibleEntityEvent event )
-	{
-		// XXX Prevent the root user from losing it's OP permissions
-		if ( event.getAction() == PermissibleEntityEvent.Action.PERMISSIONS_CHANGED )
-			if ( Foundation.getUsers().isRootUser( event.getEntity() ) )
-			{
-				event.getEntity().addPermission( PermissionDefault.OP.getNode(), true, null );
-				event.getEntity().setVirtual( true );
-			}
 	}
 
 	@Override
@@ -57,7 +47,7 @@ class UserCreatorMemory extends UserCreator
 	@Override
 	public boolean hasUser( UUID uuid )
 	{
-		return Foundation.getUsers().isNullEntity( uuid ) || Foundation.getUsers().isRootUser( uuid );
+		return Foundation.isNullEntity( uuid ) || Foundation.isRootEntity( uuid );
 	}
 
 	@Override
@@ -93,15 +83,26 @@ class UserCreatorMemory extends UserCreator
 	@Override
 	public void loginSuccessInit( UserContext userContext, PermissibleEntity permissibleEntity )
 	{
-		if ( userContext.getCreator() == this && Foundation.getUsers().isRootUser( userContext ) )
+		if ( userContext.getCreator() == this && Foundation.isRootEntity( userContext ) )
 		{
-			permissibleEntity.addPermission( PermissionDefault.OP.getNode(), true, null );
+			permissibleEntity.addPermission( PermissionDefault.OP.getNode(), VoluntaryBoolean.of( true ), null );
 			permissibleEntity.setVirtual( true );
 			// getUserContext.registerAttachment( ApplicationTerminal.terminal() );
 		}
 
-		if ( userContext.getCreator() == this && Foundation.getUsers().isNullEntity( userContext ) )
+		if ( userContext.getCreator() == this && Foundation.isNullEntity( userContext ) )
 			permissibleEntity.setVirtual( true );
+	}
+
+	private void onPermissibleEntityEvent( PermissibleEntityEvent event )
+	{
+		// XXX Prevent the root user from losing it's OP permissions
+		if ( event.getAction() == PermissibleEntityEvent.Action.PERMISSIONS_CHANGED )
+			if ( Foundation.isRootEntity( event.getEntity() ) )
+			{
+				event.getEntity().addPermission( PermissionDefault.OP.getNode(), VoluntaryBoolean.of( true ), null );
+				event.getEntity().setVirtual( true );
+			}
 	}
 
 	@Override

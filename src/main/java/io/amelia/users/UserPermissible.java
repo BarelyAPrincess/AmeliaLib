@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -41,9 +41,9 @@ public abstract class UserPermissible extends Permissible implements EntitySubje
 	private boolean checkUser()
 	{
 		if ( entity == null )
-			entity = Foundation.getUsers().USER_NULL.getEntity();
+			entity = Foundation.getNullEntity().getEntity();
 
-		return !Foundation.getUsers().isNullEntity( entity );
+		return !Foundation.isNullEntity( entity );
 	}
 
 	protected abstract void failedLogin( UserResult result );
@@ -249,9 +249,9 @@ public abstract class UserPermissible extends Permissible implements EntitySubje
 
 	public UserResult logout()
 	{
-		if ( !Foundation.getUsers().isNullEntity( entity ) )
+		if ( !Foundation.isNullEntity( entity ) )
 		{
-			Users.L.info( EnumColor.GREEN + "Successful Logout: [id='" + entity.uuid() + "',displayName='" + entity.getDisplayName() + "',ipAddresses='" + entity.getIpAddresses() + "']" );
+			Users.L.info( EnumColor.GREEN + "Successful Logout: [id='" + entity.uuid() + "',name='" + entity.name() + "',ipAddresses='" + entity.getIpAddresses() + "']" );
 
 			entity = null;
 			checkUser();
@@ -279,6 +279,8 @@ public abstract class UserPermissible extends Permissible implements EntitySubje
 		checkUser();
 		entity.registerAttachment( attachment );
 	}
+
+	public abstract UserRoot getWebroot();
 
 	public abstract void setVariable( String key, String value );
 

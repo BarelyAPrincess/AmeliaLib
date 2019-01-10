@@ -1,3 +1,12 @@
+/**
+ * This software may be modified and distributed under the terms
+ * of the MIT license.  See the LICENSE file for details.
+ * <p>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
+ * <p>
+ * All Rights Reserved.
+ */
 package io.amelia.database;
 
 import java.sql.SQLException;
@@ -30,14 +39,14 @@ public class DatabaseManager
 
 	public static DatabaseManager getDefault()
 	{
-		return Lists.compute( instances, DatabaseManager::isDefault, () -> new DatabaseManager( "default" ) );
+		return Lists.findOrNew( instances, DatabaseManager::isDefault, () -> new DatabaseManager( "default" ) );
 	}
 
 	public static DatabaseManager getInstance( @Nonnull String id )
 	{
 		if ( "default".equalsIgnoreCase( id ) || id.length() == 0 )
 			throw new ApplicationException.Runtime( "Instance ID must not equal \"default\" or be empty." );
-		return Lists.compute( instances, mgr -> id.equalsIgnoreCase( mgr.id ), () -> new DatabaseManager( id ) );
+		return Lists.findOrNew( instances, mgr -> id.equalsIgnoreCase( mgr.id ), () -> new DatabaseManager( id ) );
 	}
 
 	public static DatabaseDriver makeDatabaseDriver( ConfigData section )

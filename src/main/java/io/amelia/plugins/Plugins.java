@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -16,14 +16,18 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 
+import io.amelia.foundation.Kernel;
 import io.amelia.lang.PluginDependencyUnknownException;
 import io.amelia.lang.PluginException;
 import io.amelia.lang.PluginInvalidException;
 import io.amelia.lang.PluginNotFoundException;
 import io.amelia.plugins.loader.PluginLoader;
+import io.amelia.support.VoluntaryWithCause;
 
-public interface BasePlugins<Subclass extends BasePlugin>
+public interface Plugins<Subclass extends BasePlugin>
 {
+	Kernel.Logger L = Kernel.getLogger( Plugins.class );
+
 	void clearPlugins();
 
 	void disablePlugin( final Subclass plugin );
@@ -32,17 +36,13 @@ public interface BasePlugins<Subclass extends BasePlugin>
 
 	void enablePlugin( final Subclass plugin );
 
-	<T extends Subclass> Optional<T> getPluginByClass( @Nonnull Class<?> pluginClass );
+	VoluntaryWithCause<Subclass, PluginNotFoundException> getPluginByClass( @Nonnull Class<?> pluginClass );
 
-	<T extends Subclass> T getPluginByClassWithException( @Nonnull Class<?> pluginClass ) throws PluginNotFoundException;
+	VoluntaryWithCause<Subclass, PluginNotFoundException> getPluginByClassname( String className );
 
-	Optional<Subclass> getPluginByClassname( String className ) throws PluginNotFoundException;
-
-	Subclass getPluginByClassnameWithException( String className ) throws PluginNotFoundException;
+	VoluntaryWithCause<Subclass, PluginNotFoundException> getPluginByName( String pluginName );
 
 	Subclass getPluginByNameWithException( String pluginName ) throws PluginNotFoundException;
-
-	Optional<Subclass> getPluginByName( String pluginName ) throws PluginNotFoundException;
 
 	Stream<Subclass> getPlugins();
 

@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -176,7 +176,7 @@ public class Bindings
 		} );
 	}
 
-	private static <T> VoluntaryWithCause<T, BindingsException.Error> invokeConstructors( @Nonnull Class<? super T> declaringClass, @Nonnull Predicate<Constructor> constructorPredicate, @Nonnull Object... args )
+	private static <T> VoluntaryWithCause<T, BindingsException.Error> invokeConstructors( @Nonnull Class<? extends T> declaringClass, @Nonnull Predicate<Constructor> constructorPredicate, @Nonnull Object... args )
 	{
 		if ( declaringClass.isInterface() )
 			return Voluntary.withException( new BindingsException.Error( "Not possible to invoke constructor on interfaces." ) );
@@ -323,7 +323,7 @@ public class Bindings
 		resolvers.add( bindingResolver );
 	}
 
-	public static <T> VoluntaryWithCause<T, BindingsException.Error> resolveClass( @Nonnull Class<? super T> expectedClass, @Nonnull Object... args )
+	public static <T> VoluntaryWithCause<T, BindingsException.Error> resolveClass( @Nonnull Class<? extends T> expectedClass, @Nonnull Object... args )
 	{
 		VoluntaryWithCause<T, BindingsException.Error> result = Voluntary.ofWithCause( getResolvers().map( bindingResolver -> bindingResolver.get( expectedClass, args ) ).filter( Objs::isNotNull ).map( obj -> ( T ) obj ).findAny() );
 
@@ -336,7 +336,7 @@ public class Bindings
 		return result;
 	}
 
-	protected static <T> Voluntary<T> resolveNamespace( @Nonnull String namespace, @Nonnull Class<? super T> expectedClass, @Nonnull Object... args )
+	protected static <T> Voluntary<T> resolveNamespace( @Nonnull String namespace, @Nonnull Class<? extends T> expectedClass, @Nonnull Object... args )
 	{
 		Objs.notEmpty( namespace );
 		return Voluntary.of( getResolvers( namespace ).map( bindingResolver -> ( T ) bindingResolver.get( namespace, expectedClass ) ).filter( Objs::isNotNull ).findAny() );

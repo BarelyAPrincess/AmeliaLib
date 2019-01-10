@@ -2,14 +2,12 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
 package io.amelia.permissions;
-
-import com.sun.istack.internal.NotNull;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -23,6 +21,8 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import javax.annotation.Nonnull;
 
 import io.amelia.events.Events;
 import io.amelia.foundation.EntityPrincipal;
@@ -608,7 +608,7 @@ public abstract class PermissibleEntity implements EntityPrincipal
 		removePermission( Foundation.getPermissions().createNode( permission ), refs );
 	}
 
-	private boolean removeRefs( @NotNull References current, @NotNull References refs )
+	private boolean removeRefs( @Nonnull References current, @Nonnull References refs )
 	{
 		if ( current == null )
 			return false;

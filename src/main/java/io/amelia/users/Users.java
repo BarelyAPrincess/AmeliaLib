@@ -1,3 +1,12 @@
+/**
+ * This software may be modified and distributed under the terms
+ * of the MIT license.  See the LICENSE file for details.
+ * <p>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
+ * <p>
+ * All Rights Reserved.
+ */
 package io.amelia.users;
 
 import java.util.Optional;
@@ -6,9 +15,7 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 
-import io.amelia.bindings.Bindings;
 import io.amelia.data.TypeBase;
-import io.amelia.foundation.EntityPrincipal;
 import io.amelia.foundation.Kernel;
 import io.amelia.lang.ReportingLevel;
 import io.amelia.support.Encrypt;
@@ -16,11 +23,15 @@ import io.amelia.support.Encrypt;
 public abstract class Users
 {
 	public static final Kernel.Logger L = Kernel.getLogger( Users.class );
+	public static final String PATH_USERS = "__users";
+
+	static
+	{
+		Kernel.setPath( PATH_USERS, Kernel.PATH_STORAGE, "users" );
+	}
 
 	public final UserCreatorMemory MEMORY = new UserCreatorMemory();
-
 	public final ReportingLevel[] reportingLevelSeverityArray = new ReportingLevel[] {ReportingLevel.E_ERROR, ReportingLevel.L_SECURITY, ReportingLevel.L_ERROR, ReportingLevel.L_EXPIRED, ReportingLevel.L_DENIED};
-
 	protected boolean isDebugEnabled = false;
 
 	public Users()

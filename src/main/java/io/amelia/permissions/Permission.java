@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -47,7 +47,7 @@ public final class Permission extends ContainerWithValue<Permission, PermissionM
 	public static Permission of( @Nonnull NodeStack namespace )
 	{
 		Permission current = empty();
-		for ( String child : namespace.getNodes() )
+		for ( String child : namespace.getNames() )
 			current = current.getChildOrCreate( child );
 		return current;
 	}
@@ -118,14 +118,14 @@ public final class Permission extends ContainerWithValue<Permission, PermissionM
 		return null;
 	}
 
-	public PermissionNamespace getPermissionNamespace()
-	{
-		return PermissionNamespace.transform( super.getNamespace() );
-	}
-
 	public PermissionMeta getPermissionMeta()
 	{
 		return getValue( () -> new PermissionMeta( getPermissionNamespace() ) ).get();
+	}
+
+	public PermissionNamespace getPermissionNamespace()
+	{
+		return PermissionNamespace.transform( super.getNamespace() );
 	}
 
 	@Override

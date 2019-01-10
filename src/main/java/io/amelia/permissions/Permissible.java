@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -26,7 +26,7 @@ public abstract class Permissible
 		if ( Foundation.isNullEntity(entity) )
 			entity = Foundation.getPermissions().getPermissibleEntity( uuid() );
 		if ( entity == null )
-			entity = Foundation.getNullEntity().getPermissible();
+			entity = Foundation.getNullEntity().getPermissibleEntity();
 
 		return !Foundation.isNullEntity( entity );
 	}
@@ -64,7 +64,7 @@ public abstract class Permissible
 
 	public final void destroyEntity()
 	{
-		entity = Foundation.getNullEntity().getPermissible();
+		entity = Foundation.getNullEntity().getPermissibleEntity();
 	}
 
 	/**

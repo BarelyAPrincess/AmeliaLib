@@ -2,8 +2,8 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2018 Amelia Sara Greene <barelyaprincess@gmail.com>
- * Copyright (c) 2018 Penoaks Publishing LLC <development@penoaks.com>
+ * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
@@ -34,7 +34,6 @@ import io.amelia.lang.StartupException;
 import io.amelia.lang.StartupInterruptException;
 import io.amelia.looper.LooperRouter;
 import io.amelia.permissions.Permissions;
-import io.amelia.plugins.BasePlugins;
 import io.amelia.support.Encrypt;
 import io.amelia.support.EnumColor;
 import io.amelia.support.IO;
@@ -132,17 +131,6 @@ public abstract class BaseApplication implements VendorRegistrar, ExceptionRegis
 	public <T extends Permissions> T getPermissions( Class<T> expectedClass )
 	{
 		return Bindings.resolveClass( expectedClass ).orElseThrowCause( e -> new ApplicationException.Runtime( "The Permissions implementation is missing.", e ) );
-	}
-
-	@SuppressWarnings( "unchecked" )
-	public <T extends BasePlugins> T getPlugins()
-	{
-		return ( T ) getPlugins( BasePlugins.class );
-	}
-
-	public <T extends BasePlugins> T getPlugins( Class<T> expectedClass )
-	{
-		return Bindings.resolveClass( expectedClass ).orElseThrowCause( e -> new ApplicationException.Runtime( "The Plugins implementation is missing.", e ) );
 	}
 
 	public Optional<String> getStringArgument( String arg )
