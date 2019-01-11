@@ -17,20 +17,26 @@ import io.amelia.support.NodePath;
 
 public class FileStorageBackend extends StorageBackend
 {
+	private final Path path;
+
+	/**
+	 * @param path      The real system path on the file system
+	 * @param mountPath The path to mount the new backend
+	 * @param type      The backend type
+	 *
+	 * @throws StorageException.Error
+	 */
 	public FileStorageBackend( Path path, NodePath mountPath, HoneyStorage.BackendType type ) throws StorageException.Error
 	{
 		// super( path, mountPath, type );
-		super( null, type );
+		super( mountPath, type );
+
+		this.path = path;
 	}
 
 	public FileStorageBackend( Path path, NodePath mountPath ) throws StorageException.Error
 	{
 		this( path, mountPath, HoneyStorage.BackendType.DEFAULT );
-	}
-
-	public FileStorageBackend( Path path ) throws StorageException.Error
-	{
-		this( path, NodePath.empty() );
 	}
 
 	@Override
@@ -43,6 +49,13 @@ public class FileStorageBackend extends StorageBackend
 	public void delete( NodePath path )
 	{
 
+	}
+
+	@Override
+	public Path getRootPath()
+	{
+		return path;
+		// return new HoneyPath( FileSystems.getDefault(), path );
 	}
 
 	@Override

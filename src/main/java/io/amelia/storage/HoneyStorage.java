@@ -131,18 +131,17 @@ public class HoneyStorage
 				throw new StorageException.Error( "Storage registry has already been initialized." );
 
 			rootBackend = new FileStorageBackend( Kernel.getPath( Kernel.PATH_APP ), NodePath.of( "foundation" ) );
-			StorageBackend configBackend = new FileStorageBackend( Kernel.getPath( Kernel.PATH_CONFIG ), NodePath.of( "config" ), BackendType.CONFIG );
+			StorageBackend configBackend = new FileStorageBackend( Kernel.getPathAndCreate( Kernel.PATH_CONFIG ), NodePath.of( "config" ), BackendType.CONFIG );
 			backends.add( configBackend );
-			backends.add( new FileStorageBackend( Kernel.getPath( Kernel.PATH_CACHE ), NodePath.of( "cache" ) ) );
-			backends.add( new FileStorageBackend( Kernel.getPath( Kernel.PATH_LIBS ), NodePath.of( "libs" ) ) );
-			backends.add( new FileStorageBackend( Kernel.getPath( Kernel.PATH_LOGS ), NodePath.of( "logs" ), BackendType.LOGS ) );
-			backends.add( new FileStorageBackend( Kernel.getPath( Kernel.PATH_PLUGINS ), NodePath.of( "plugins" ) ) );
-			backends.add( new FileStorageBackend( Kernel.getPath( Kernel.PATH_STORAGE ), NodePath.of( "storage" ) ) );
-			backends.add( new FileStorageBackend( Kernel.getPath( Kernel.PATH_UPDATES ), NodePath.of( "updates" ) ) );
+			backends.add( new FileStorageBackend( Kernel.getPathAndCreate( Kernel.PATH_CACHE ), NodePath.of( "cache" ) ) );
+			backends.add( new FileStorageBackend( Kernel.getPathAndCreate( Kernel.PATH_LIBS ), NodePath.of( "libs" ) ) );
+			backends.add( new FileStorageBackend( Kernel.getPathAndCreate( Kernel.PATH_LOGS ), NodePath.of( "logs" ), BackendType.LOGS ) );
+			backends.add( new FileStorageBackend( Kernel.getPathAndCreate( Kernel.PATH_PLUGINS ), NodePath.of( "plugins" ) ) );
+			backends.add( new FileStorageBackend( Kernel.getPathAndCreate( Kernel.PATH_STORAGE ), NodePath.of( "storage" ) ) );
+			backends.add( new FileStorageBackend( Kernel.getPathAndCreate( Kernel.PATH_UPDATES ), NodePath.of( "updates" ) ) );
 
 			synchronized ( configLoaders )
 			{
-				ConfigData config;
 				for ( ConfigLoader configLoader : configLoaders )
 					try
 					{
@@ -174,7 +173,8 @@ public class HoneyStorage
 		ConfigData config;
 		if ( ( config = configLoader.beginConfig() ) != null )
 		{
-			StorageConversions.loadToStacker( storageBackend.getRootPath(), config );
+			if ( storageBackend.getRootPath() != null ) // TODO Temp?
+				StorageConversions.loadToStacker( storageBackend.getRootPath(), config );
 			configLoader.commitConfig( commitType );
 		}
 	}
@@ -205,12 +205,8 @@ public class HoneyStorage
 		public ParcelChecker getParcelChecker() throws ParcelException.Error
 		{
 			ParcelChecker parcelChecker = new ParcelChecker();
-
 			if ( this == HOME_CONFIG )
-			{
 				parcelChecker.setValueType( "config.fileName", ParcelChecker.ValueType.STRING, "config" );
-			}
-
 			return parcelChecker;
 		}
 	}

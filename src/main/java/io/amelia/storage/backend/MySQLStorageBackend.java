@@ -9,10 +9,12 @@
  */
 package io.amelia.storage.backend;
 
+import javax.annotation.Nonnull;
+
 import io.amelia.lang.ApplicationException;
 import io.amelia.lang.StorageException;
 import io.amelia.storage.HoneyStorage;
-import io.amelia.support.Objs;
+import io.amelia.support.NodePath;
 import io.amelia.support.Strs;
 
 public class MySQLStorageBackend extends SQLStorageBackend
@@ -29,59 +31,57 @@ public class MySQLStorageBackend extends SQLStorageBackend
 		}
 	}
 
-	private Builder lastBuilder = null;
-
-	public MySQLStorageBackend( Builder builder, HoneyStorage.BackendType type ) throws StorageException.Error
+	public MySQLStorageBackend( @Nonnull SQLMeta meta, @Nonnull NodePath mountPath, @Nonnull HoneyStorage.BackendType type ) throws StorageException.Error
 	{
-		super( builder, type );
+		super( meta, mountPath, type );
 	}
 
-	protected MySQLStorageBackend reconnect() throws StorageException.Error
-	{
-		return lastBuilder.init();
-	}
-
-	public class Builder extends SQLStorageBackend.AbstractBuilder<Builder>
+	public class MySQLMeta extends SQLMeta
 	{
 		private String db;
 		private String host;
 		private String port = "3306";
 
 		@Override
-		public MySQLStorageBackend init() throws StorageException.Error
+		public String getConnectionString()
 		{
-			validate();
-			abstractConnect();
-			return new MySQLStorageBackend( this, HoneyStorage.BackendType.DEFAULT );
+			return "jdbc:mysql://" + host + ":" + port + "/" + db + "?autoReconnect=true&useUnicode=yes";
 		}
 
-		public Builder db( String db )
+		public String getDb()
+		{
+			return db;
+		}
+
+		public String getHost()
+		{
+			return host;
+		}
+
+		public String getPort()
+		{
+			return port;
+		}
+
+		@Override
+		public SQLMeta setConnectionString( String connectionString )
+		{
+			throw new IllegalArgumentException( "Not Applicable" );
+		}
+
+		public MySQLMeta setDb( String db )
 		{
 			this.db = db;
 			return this;
 		}
 
-		@Override
-		String getConnectionString()
-		{
-			return "jdbc:mysql://" + host + ":" + port + "/" + db + "?autoReconnect=true&useUnicode=yes";
-		}
-
-		@Override
-		public void validate() throws StorageException.Error
-		{
-			super.validate();
-			Objs.notEmpty( host );
-			Objs.notEmpty( db );
-		}
-
-		public Builder hostname( String host )
+		public MySQLMeta setHost( String host )
 		{
 			this.host = host;
 			return this;
 		}
 
-		public Builder port( String port )
+		public MySQLMeta setPort( String port )
 		{
 			this.port = Strs.notEmptyOrDef( port, "3306" );
 			return this;

@@ -21,13 +21,13 @@ import io.amelia.support.NodePath;
 
 public abstract class StorageBackend
 {
-	private final AbstractBuilder builder;
+	private final NodePath mountPath;
 	private boolean debugEnabled = false;
 	private HoneyStorage.BackendType type;
 
-	public StorageBackend( AbstractBuilder builder, HoneyStorage.BackendType type ) throws StorageException.Error
+	public StorageBackend( @Nonnull NodePath mountPath, @Nonnull HoneyStorage.BackendType type ) throws StorageException.Error
 	{
-		this.builder = builder;
+		this.mountPath = mountPath;
 		this.type = type;
 	}
 
@@ -35,14 +35,9 @@ public abstract class StorageBackend
 
 	public abstract void delete( NodePath path );
 
-	AbstractBuilder getBuilder()
-	{
-		return builder;
-	}
-
 	public NodePath getMountPath()
 	{
-		return builder.mountPath;
+		return mountPath;
 	}
 
 	public MountPoint getMountPoint( @Nonnull NodePath subPath )
@@ -50,8 +45,9 @@ public abstract class StorageBackend
 		return new MountPoint( this, getMountPath(), subPath );
 	}
 
-	public HoneyPath getRootPath()
+	public Path getRootPath()
 	{
+		// TODO
 		return null;
 	}
 

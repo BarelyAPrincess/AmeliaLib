@@ -13,16 +13,36 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
+import javax.annotation.Nonnull;
+
 import io.amelia.lang.StorageException;
 import io.amelia.storage.HoneyStorage;
 import io.amelia.support.NodePath;
-import io.amelia.support.Objs;
 
 public class SQLStorageBackend extends StorageBackend
 {
-	SQLStorageBackend( AbstractBuilder builder, HoneyStorage.BackendType type ) throws StorageException.Error
+	Connection connection;
+	SQLMeta meta;
+
+	SQLStorageBackend( @Nonnull SQLMeta meta, @Nonnull NodePath mountPath, @Nonnull HoneyStorage.BackendType type ) throws StorageException.Error
 	{
-		super( builder, type );
+		super( mountPath, type );
+
+		this.meta = meta;
+		connect();
+	}
+
+	protected void connect() throws StorageException.Error
+	{
+		try
+		{
+			connection = DriverManager.getConnection( meta.getConnectionString(), meta.getUser(), meta.getPass() );
+			connection.setAutoCommit( true );
+		}
+		catch ( SQLException e )
+		{
+			throw new StorageException.Error( e );
+		}
 	}
 
 	@Override
@@ -43,70 +63,43 @@ public class SQLStorageBackend extends StorageBackend
 		return false;
 	}
 
-	abstract class AbstractBuilder<Extended extends AbstractBuilder> extends io.amelia.storage.backend.AbstractBuilder
+	public class SQLMeta
 	{
-		Connection connection;
+		String connectionString;
 		String pass = null;
 		String user = null;
 
-		void abstractConnect() throws StorageException.Error
-		{
-			try
-			{
-				connection = DriverManager.getConnection( getConnectionString(), user, pass );
-				connection.setAutoCommit( true );
-			}
-			catch ( SQLException e )
-			{
-				throw new StorageException.Error( e );
-			}
-		}
-
-		abstract String getConnectionString();
-
-		public Extended setPassword( String pass )
-		{
-			this.pass = pass;
-			return ( Extended ) this;
-		}
-
-		@Override
-		public void validate() throws StorageException.Error
-		{
-			super.validate();
-			Objs.notEmpty( getConnectionString(), "Connection string was not specified." );
-		}
-
-		public Extended setUsername( String user )
-		{
-			this.user = user;
-			return ( Extended ) this;
-		}
-
-
-	}
-
-	public final class Builder extends AbstractBuilder
-	{
-		String connectionString;
-
-		@Override
-		public SQLStorageBackend init() throws StorageException.Error
-		{
-			validate();
-			abstractConnect();
-			return new SQLStorageBackend( this, HoneyStorage.BackendType.DEFAULT );
-		}
-
-		@Override
-		String getConnectionString()
+		public String getConnectionString()
 		{
 			return connectionString;
 		}
 
-		public void setConnectionString( String connectionString )
+		public String getPass()
+		{
+			return pass;
+		}
+
+		public String getUser()
+		{
+			return user;
+		}
+
+		public SQLMeta setConnectionString( String connectionString )
 		{
 			this.connectionString = connectionString;
+			return this;
+		}
+
+		public SQLMeta setPassword( String pass )
+		{
+			this.pass = pass;
+			return this;
+		}
+
+		public SQLMeta setUsername( String user )
+		{
+			this.user = user;
+			return this;
 		}
 	}
 }

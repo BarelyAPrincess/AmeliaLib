@@ -24,7 +24,9 @@ public class StorageConversions
 	@SuppressWarnings( "unchecked" )
 	public static <Stacker extends ContainerWithValue> void loadToStacker( @Nonnull Path path, @Nonnull Stacker stacker, @Nonnull String nestingPrefix ) throws StorageException.Error
 	{
-		Streams.forEachWithException( Exceptions.tryCatch( () -> Files.list( path ), exp -> new StorageException.Error( "Failed to load configuration " + IO.relPath( path ), exp ) ), nextPath -> {
+		Objs.allNotNull( path, stacker, nestingPrefix );
+
+		Streams.forEachWithException( Exceptions.tryCatch( () -> Files.list( path ), exp -> new StorageException.Error( "Failed to load configuration \"" + IO.relPath( path ) + "\"", exp ) ), nextPath -> {
 			String newNestingPrefix = Strs.join( new String[] {nestingPrefix, IO.getLocalName( nextPath )}, "." );
 
 			try

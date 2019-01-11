@@ -15,16 +15,9 @@ import io.amelia.support.NodePath;
 
 public class MemoryStorageBackend extends StorageBackend
 {
-	public MemoryStorageBackend() throws StorageException.Error
+	public MemoryStorageBackend( NodePath mountPath ) throws StorageException.Error
 	{
-		super( new AbstractBuilder()
-		{
-			@Override
-			StorageBackend init() throws StorageException.Error
-			{
-				return null;
-			}
-		}, HoneyStorage.BackendType.DEFAULT );
+		super( mountPath, HoneyStorage.BackendType.DEFAULT );
 	}
 
 	@Override

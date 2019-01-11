@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.AccessMode;
+import java.nio.file.FileSystem;
 import java.nio.file.LinkOption;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
@@ -37,31 +38,37 @@ import io.amelia.support.StorageUtils;
 
 public class HoneyPath implements Path
 {
-	private final StorageFileSystem fileSystem;
-	private final NodePath path;
+	private final FileSystem fileSystem;
+	private final NodePath rootPath;
 
-	private HoneyPath( StorageFileSystem fileSystem, NodePath path )
+	public HoneyPath( FileSystem fileSystem, Path rootPath )
 	{
 		this.fileSystem = fileSystem;
-		this.path = path;
+		this.rootPath = NodePath.of( rootPath );
 	}
 
-	public HoneyPath( StorageFileSystem fileSystem, String path )
+	private HoneyPath( FileSystem fileSystem, NodePath rootPath )
 	{
-		this( fileSystem, NodePath.of( path, NodePath.Separator.FORWARDSLASH ) );
+		this.fileSystem = fileSystem;
+		this.rootPath = rootPath;
+	}
+
+	public HoneyPath( FileSystem fileSystem, String rootPath )
+	{
+		this( fileSystem, NodePath.of( rootPath, NodePath.Separator.FORWARDSLASH ) );
 	}
 
 	void checkAccess( AccessMode... accessModes ) throws IOException
 	{
 		EnumSet<AccessMode> accessModes0 = EnumSet.copyOf( Arrays.asList( accessModes ) );
 
-		StorageFileAttributes attr = fileSystem.getFileAttributes( getResolvedPath() );
-		if ( attr == null && !path.startsWith( getSeparator() ) )
+		/* StorageFileAttributes attr = fileSystem.getFileAttributes( getResolvedPath() );
+		if ( attr == null && !rootPath.startsWith( getSeparator() ) )
 			throw new NoSuchFileException( getStringPath() );
 		else if ( accessModes0.contains( AccessMode.WRITE ) && fileSystem.isReadOnly() )
 			throw new AccessDeniedException( getStringPath() );
 		else if ( accessModes0.contains( AccessMode.EXECUTE ) )
-			throw new AccessDeniedException( getStringPath() );
+			throw new AccessDeniedException( getStringPath() ); */
 	}
 
 	@Override
@@ -88,17 +95,17 @@ public class HoneyPath implements Path
 	@Override
 	public boolean endsWith( String other )
 	{
-		return path.endsWith( other );
+		return rootPath.endsWith( other );
 	}
 
 	@Override
 	public Path getFileName()
 	{
-		return create( path.getLast().setAbsolute( false ) );
+		return create( rootPath.getLast().setAbsolute( false ) );
 	}
 
 	@Override
-	public StorageFileSystem getFileSystem()
+	public FileSystem getFileSystem()
 	{
 		return fileSystem;
 	}
@@ -106,30 +113,30 @@ public class HoneyPath implements Path
 	@Override
 	public Path getName( int index )
 	{
-		return create( path.getNode( index ).setAbsolute( false ) );
+		return create( rootPath.getNode( index ).setAbsolute( false ) );
 	}
 
 	@Override
 	public int getNameCount()
 	{
-		return path.getNodeCount();
+		return rootPath.getNodeCount();
 	}
 
 	@Override
 	public Path getParent()
 	{
-		return create( path.getParent() );
+		return create( rootPath.getParent() );
 	}
 
 	private String getResolvedPath()
 	{
-		return path.getString();
+		return rootPath.getString();
 	}
 
 	@Override
 	public Path getRoot()
 	{
-		return create( path.getFirst() );
+		return create( rootPath.getFirst() );
 	}
 
 	public String getSeparator()
@@ -145,13 +152,13 @@ public class HoneyPath implements Path
 
 	public String getStringPath()
 	{
-		return path.toString();
+		return rootPath.toString();
 	}
 
 	@Override
 	public boolean isAbsolute()
 	{
-		return path.isAbsolute();
+		return rootPath.isAbsolute();
 	}
 
 	@Override
@@ -164,13 +171,13 @@ public class HoneyPath implements Path
 			@Override
 			public boolean hasNext()
 			{
-				return inx < path.getNodeCount();
+				return inx < rootPath.getNodeCount();
 			}
 
 			@Override
 			public Path next()
 			{
-				return create( path.getNode( inx++ ).setAbsolute( false ) );
+				return create( rootPath.getNode( inx++ ).setAbsolute( false ) );
 			}
 		};
 	}
@@ -178,7 +185,7 @@ public class HoneyPath implements Path
 	@Override
 	public Path normalize()
 	{
-		return create( path.normalizeAscii() );
+		return create( rootPath.normalizeAscii() );
 	}
 
 	@Override
@@ -217,12 +224,12 @@ public class HoneyPath implements Path
 	@Override
 	public HoneyPath resolve( Path other )
 	{
-		return create( path.append( IO.toString( other, getSeparator() ) ) );
+		return create( rootPath.append( IO.toString( other, getSeparator() ) ) );
 	}
 
 	public HoneyPath resolve( NodePath other )
 	{
-		return create( path.append( other ) );
+		return create( rootPath.append( other ) );
 	}
 
 	@Override
@@ -240,19 +247,19 @@ public class HoneyPath implements Path
 	@Override
 	public boolean startsWith( Path other )
 	{
-		return path.startsWith( other.toString() );
+		return rootPath.startsWith( other.toString() );
 	}
 
 	@Override
 	public boolean startsWith( String other )
 	{
-		return path.startsWith( other );
+		return rootPath.startsWith( other );
 	}
 
 	@Override
 	public Path subpath( int beginIndex, int endIndex )
 	{
-		return create( path.getSubNodes( beginIndex, endIndex ).setAbsolute( false ) );
+		return create( rootPath.getSubNodes( beginIndex, endIndex ).setAbsolute( false ) );
 	}
 
 	@Override
@@ -278,7 +285,7 @@ public class HoneyPath implements Path
 	@Override
 	public String toString()
 	{
-		return path.getString();
+		return rootPath.getString();
 	}
 
 	@Override
