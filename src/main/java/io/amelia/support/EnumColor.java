@@ -277,7 +277,7 @@ public enum EnumColor
 		return STRIP_COLOR_PATTERN.matcher( input ).replaceAll( "" );
 	}
 
-	public static String transAltColors( String var1 )
+	public static String format( String var1 )
 	{
 		var1 = translateAlternateColorCodes( '&', var1 ) + EnumColor.RESET;
 
@@ -286,6 +286,9 @@ public enum EnumColor
 				var1 = var1.replaceAll( "(?i)" + color.toString(), replacements.get( color ) );
 			else
 				var1 = var1.replaceAll( "(?i)" + color.toString(), "" );
+
+		// TODO Make this a configurable option
+		Pattern qutationPattern = Pattern.compile( "\".*?\"" );
 
 		return var1;
 	}
@@ -360,5 +363,4 @@ public enum EnumColor
 	public String toString()
 	{
 		return toString;
-	}
-}
+	}}

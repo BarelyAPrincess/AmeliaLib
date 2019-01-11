@@ -60,6 +60,12 @@ public class Objs
 		return true;
 	}
 
+	public static void allNotNull( final Object... objs )
+	{
+		for ( Object obj : objs )
+			notNull( obj );
+	}
+
 	public static <T> boolean anyMatch( Comparator<T> comparator, T obj, T... objs )
 	{
 		for ( T o : objs )
@@ -978,6 +984,7 @@ public class Objs
 		Method methodHasPendingEntries = getMethodSafe( obj, "hasPendingEntries" );
 		Method methodLength = getMethodSafe( obj, "length" );
 		Method methodSize = getMethodSafe( obj, "size" );
+		Method methodGetNameCount = getMethodSafe( obj, "getNameCount" );
 
 		if ( methodIsEmpty != null && invokeMethodSafe( obj, methodIsEmpty, false ) )
 			throw new IllegalArgumentException( String.format( message, values ) );
@@ -994,6 +1001,9 @@ public class Objs
 		}
 
 		if ( methodSize != null && invokeMethodSafe( obj, methodSize, -1 ) == 0 )
+			throw new IllegalArgumentException( String.format( message, values ) );
+
+		if ( methodGetNameCount != null && invokeMethodSafe( obj, methodGetNameCount, -1 ) == 0 )
 			throw new IllegalArgumentException( String.format( message, values ) );
 
 		return obj;

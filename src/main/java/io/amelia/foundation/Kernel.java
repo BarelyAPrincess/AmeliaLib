@@ -10,6 +10,7 @@
 package io.amelia.foundation;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayDeque;
@@ -35,6 +36,7 @@ import io.amelia.lang.ExceptionReport;
 import io.amelia.lang.UncaughtException;
 import io.amelia.support.Arrs;
 import io.amelia.support.DateAndTime;
+import io.amelia.support.EnumColor;
 import io.amelia.support.Exceptions;
 import io.amelia.support.IO;
 import io.amelia.support.Lists;
@@ -168,21 +170,6 @@ public class Kernel
 		return new Logger( source );
 	}
 
-	public static Path getPath( @Nonnull String slug )
-	{
-		return getPath( new String[] {slug} );
-	}
-
-	public static Path getPath( @Nonnull String slug, boolean createPath )
-	{
-		return getPath( new String[] {slug}, createPath );
-	}
-
-	public static Path getPath( @Nonnull String[] slugs )
-	{
-		return getPath( slugs, false );
-	}
-
 	/**
 	 * Builds a directory based on the provided slugs.
 	 * Key based paths MUST start with double underscores.
@@ -209,14 +196,13 @@ public class Kernel
 	 * /absolute -> /absolute
 	 * <p>
 	 *
-	 * @param slugs      The path slugs
-	 * @param createPath Should we try creating the directory if it doesn't exist?
+	 * @param slugs The path slugs
 	 *
 	 * @return The absolute File
 	 *
 	 * @throws ApplicationException.Ignorable
 	 */
-	public static Path getPath( @Nonnull String[] slugs, boolean createPath )
+	public static Path getPath( @Nonnull String... slugs )
 	{
 		Objs.notNull( slugs );
 
@@ -226,39 +212,41 @@ public class Kernel
 		if ( slugs[0].startsWith( "__" ) )
 		{
 			String key = slugs[0].substring( 2 );
-			if ( key.equals( "foundation" ) )
+			if ( key.equalsIgnoreCase( "app" ) )
 				slugs[0] = getPath().toString();
 			else if ( Kernel.APP_PATHS.containsKey( key ) )
 				slugs = Stream.concat( Kernel.APP_PATHS.get( key ).stream(), Arrays.stream( slugs ).skip( 1 ) ).toArray( String[]::new );
 			else
-				throw ApplicationException.ignorable( "Path " + key + " is not set!" );
+				throw new ApplicationException.Ignorable( "Path \"" + key + "\" is not set!" );
 
-			return getPath( slugs, createPath );
+			return getPath( slugs );
 		}
 		else if ( !slugs[0].startsWith( "/" ) )
 			slugs = Arrs.prepend( slugs, getPath().toString() );
 
-		Path path = IO.buildPath( true, slugs );
-
-		if ( createPath )
-		{
-			try
-			{
-				IO.forceCreateDirectory( path );
-			}
-			catch ( IOException e )
-			{
-				throw ApplicationException.ignorable( "The foundation path \"" + path.toString() + "\" does not exist and we couldn't create it.", e );
-			}
-		}
-
-		return path;
+		return IO.buildPath( true, slugs );
 	}
 
 	public static Path getPath()
 	{
-		Objs.notEmpty( appPath, "The foundation path has not been set." );
+		Objs.notEmpty( appPath, "The app path is not set." );
 		return appPath;
+	}
+
+	public static Path getPathAndCreate( String... slugs )
+	{
+		Path path = getPath( slugs );
+
+		try
+		{
+			IO.forceCreateDirectory( path );
+		}
+		catch ( IOException e )
+		{
+			throw new ApplicationException.Ignorable( "The app path \"" + path.toString() + "\" does not exist and we couldn't create it.", e );
+		}
+
+		return path;
 	}
 
 	public static List<String> getPathSlugs()
@@ -276,10 +264,14 @@ public class Kernel
 		return devMeta != null && "0".equals( devMeta.getBuildNumber() ) || ConfigRegistry.config.getBoolean( ConfigRegistry.ConfigKeys.DEVELOPMENT_MODE );
 	}
 
-	protected static void setAppPath( @Nonnull Path appPath )
+	protected static void setAppPath( @Nonnull Path appPath ) throws IOException
 	{
-		Objs.notNull( appPath );
-		Kernel.appPath = appPath;
+		Objs.notEmpty( appPath, "The app path is empty." );
+		Objs.notFalse( Files.exists( appPath ), "The app path does not exist. {appPath=" + appPath.toString() + "}" );
+		Objs.notFalse( Files.isDirectory( appPath ), "The app path is not a directory. {appPath=" + appPath.toString() + "}" );
+		Objs.notFalse( Files.isWritable( appPath ), "The app path is not writable. {appPath=" + appPath.toString() + "}" );
+		L.info( "App path set to \"" + appPath + "\"" );
+		Kernel.appPath = appPath.toRealPath();
 	}
 
 	public static void setDevMeta( DevMetaProvider devMeta )
@@ -314,10 +306,10 @@ public class Kernel
 
 		final String key = pathKey.toLowerCase();
 
-		if ( "foundation".equals( key ) )
+		if ( "app".equals( key ) )
 			throw new IllegalArgumentException( "App path is set using the setAppPath() method." );
 		if ( !Paths.get( paths[0] ).isAbsolute() && !paths[0].startsWith( "__" ) )
-			throw new IllegalArgumentException( "App paths must be absolute or reference another foundation path, i.e., __app. Paths: [" + Strs.join( paths ) + "]" );
+			throw new IllegalArgumentException( "App paths must be absolute or reference another app path, i.e., __app. Paths: [" + Strs.join( paths ) + "]" );
 		Kernel.APP_PATHS.put( key, Lists.newArrayList( paths ) );
 	}
 
@@ -357,7 +349,7 @@ public class Kernel
 		@Override
 		public void log( Level level, Class<?> source, String message, Object... args )
 		{
-			message = "[" + level.getName() + "] " + ( args.length > 0 ? String.format( message, args ) : message );
+			message = EnumColor.format( "[" + level.getName() + "] " + ( args.length > 0 ? String.format( message, args ) : message ) );
 
 			if ( level.intValue() <= Level.INFO.intValue() )
 				System.out.println( message );

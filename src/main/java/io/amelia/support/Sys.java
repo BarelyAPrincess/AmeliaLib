@@ -34,6 +34,32 @@ public class Sys
 		return OS_NAME.startsWith( prefix );
 	}
 
+	public static Voluntary<Path> getAppPath() throws IOException
+	{
+		try
+		{
+			if ( Kernel.isDevelopment() )
+				return Voluntary.of( Files.createDirectories( Paths.get( "workspace" ) ) );
+			Path path = Paths.get( Sys.class.getProtectionDomain().getCodeSource().getLocation().toURI() );
+			if ( Files.isDirectory( path ) )
+				return Voluntary.of( path );
+			if ( path.endsWith( ".jar" ) ) // Remove jar file
+				path = path.getParent();
+			if ( path.endsWith( ".class" ) )
+				throw new IOException( "We failed to resolve app directory, app is running from compiled class files. Specify using \"app-dir\" argument." );
+			if ( path.endsWith( "bin" ) ) // Remove bin directory if present.
+				path = path.getParent();
+			return Voluntary.of( path );
+		}
+		catch ( Exception e )
+		{
+			if ( e instanceof IOException )
+				throw ( IOException ) e;
+			else
+				throw new IOException( e );
+		}
+	}
+
 	/**
 	 * Get the JVM name
 	 *

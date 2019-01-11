@@ -282,8 +282,8 @@ public abstract class NodeStack<Self extends NodeStack> implements Cloneable
 		final String newGlue = glue == null ? this.glue == null ? "." : this.glue : glue;
 		Stream<String> result = Arrays.stream( nodes ).filter( Strs::isNotEmpty );
 		if ( escape )
-			result = result.map( n -> n.replace( glue, "\\" + glue ) );
-		return result.collect( Collectors.joining( glue ) );
+			result = result.map( n -> n.replace( newGlue, "\\" + newGlue ) );
+		return result.collect( Collectors.joining( newGlue ) );
 	}
 
 	public String getStringFirst()

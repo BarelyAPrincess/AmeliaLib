@@ -175,7 +175,7 @@ public class Voluntary<Type>
 
 	public static <T, C extends Exception> VoluntaryWithCause<T, C> ofWithCause( @Nonnull Optional<T> value )
 	{
-		return ( VoluntaryWithCause<T, C> ) value.map( VoluntaryWithCause::of ).orElseGet( VoluntaryWithCause::empty );
+		return ( VoluntaryWithCause<T, C> ) value.map( VoluntaryWithCause::ofWithCause ).orElseGet( VoluntaryWithCause::emptyWithCause );
 	}
 
 	public static <T, C extends Exception> VoluntaryWithCause<T, C> withException( @Nullable C cause )
@@ -548,7 +548,7 @@ public class Voluntary<Type>
 		return ofNullableWithCause( value, cause );
 	}
 
-	public <X extends Exception> VoluntaryWithCause<Type, X> withCause( Supplier<X> cause )
+	public <X extends Exception> VoluntaryWithCause<Type, X> withCauseGet( Supplier<X> cause )
 	{
 		return ofNullableWithCause( value, cause.get() );
 	}

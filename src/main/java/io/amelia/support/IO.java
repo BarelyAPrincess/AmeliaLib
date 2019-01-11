@@ -35,6 +35,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
@@ -152,7 +153,7 @@ public class IO
 
 	public static File buildFile( boolean absolute, String... args )
 	{
-		return new File( ( absolute ? PATH_SEPERATOR : "" ) + buildPath( args ) );
+		return new File( ( absolute ? PATH_SEPERATOR : "" ) + joinPath( args ) );
 	}
 
 	public static File buildFile( File file, String... args )
@@ -167,12 +168,12 @@ public class IO
 
 	public static Path buildPath( boolean absolute, String... args )
 	{
-		return Paths.get( ( absolute ? PATH_SEPERATOR : "" ) + buildPath( args ) );
+		return Paths.get( ( absolute ? PATH_SEPERATOR : "" ) + joinPath( args ) );
 	}
 
 	public static Path buildPath( Path file, String... args )
 	{
-		return Paths.get( joinPath( args ) ).resolve( file );
+		return file.resolve( joinPath( args ) );
 	}
 
 	public static Path buildPath( String... args )
@@ -550,11 +551,11 @@ public class IO
 		List<String> nativesExtracted = new ArrayList<>();
 		boolean foundArchMatchingNative = false;
 
-		basePath = Paths.get( "natives" ).resolve( basePath );
+		basePath = basePath.resolve( "natives" );
 		forceCreateDirectory( basePath );
 
-		if ( !Files.isRegularFile( libPath ) || libPath.getFileName().toString().toLowerCase().endsWith( ".jar" ) )
-			throw new IOException( "The library " + libPath.toString() + " either does not exist or is not a jar file." );
+		if ( !Files.isRegularFile( libPath ) || !libPath.getFileName().toString().toLowerCase().endsWith( ".jar" ) )
+			throw new IOException( "The library " + libPath.toString() + " either does not exist nor is a jar file." );
 
 		JarFile jar = new JarFile( libPath.toFile() );
 		Enumeration<JarEntry> entries = jar.entries();
@@ -583,7 +584,7 @@ public class IO
 					if ( Arrays.asList( OSInfo.NATIVE_SEARCH_PATHS ).contains( parent ) )
 						foundArchMatchingNative = true;
 
-					Path lib = Paths.get( newName ).resolve( basePath );
+					Path lib = basePath.resolve( newName );
 
 					if ( Files.exists( lib ) && nativesExtracted.contains( lib.toString() ) )
 						;
@@ -945,7 +946,7 @@ public class IO
 
 	public static String[] getNames( Path path )
 	{
-		return StreamSupport.stream( path.spliterator(), true ).toArray( String[]::new );
+		return StreamSupport.stream( path.spliterator(), true ).map( node -> node.getFileName().toString() ).toArray( String[]::new );
 	}
 
 	public static String getParentPath( @Nonnull String path )
@@ -1641,17 +1642,32 @@ public class IO
 
 	public static void setGroupReadWritePermissions( Path path ) throws IOException
 	{
-		Files.setPosixFilePermissions( path, Lists.newHashSet( PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_WRITE ) );
+		Set<PosixFilePermission> posixFilePermissions = Files.getPosixFilePermissions( path );
+		posixFilePermissions.add( PosixFilePermission.GROUP_READ );
+		posixFilePermissions.add( PosixFilePermission.GROUP_WRITE );
+		if ( Files.isDirectory( path ) )
+			posixFilePermissions.add( PosixFilePermission.GROUP_EXECUTE );
+		Files.setPosixFilePermissions( path, posixFilePermissions );
 	}
 
 	public static void setOthersReadWritePermissions( Path path ) throws IOException
 	{
-		Files.setPosixFilePermissions( path, Lists.newHashSet( PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_WRITE ) );
+		Set<PosixFilePermission> posixFilePermissions = Files.getPosixFilePermissions( path );
+		posixFilePermissions.add( PosixFilePermission.OTHERS_READ );
+		posixFilePermissions.add( PosixFilePermission.OTHERS_WRITE );
+		if ( Files.isDirectory( path ) )
+			posixFilePermissions.add( PosixFilePermission.OTHERS_EXECUTE );
+		Files.setPosixFilePermissions( path, posixFilePermissions );
 	}
 
 	public static void setOwnerReadWritePermissions( Path path ) throws IOException
 	{
-		Files.setPosixFilePermissions( path, Lists.newHashSet( PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE ) );
+		Set<PosixFilePermission> posixFilePermissions = Files.getPosixFilePermissions( path );
+		posixFilePermissions.add( PosixFilePermission.OWNER_READ );
+		posixFilePermissions.add( PosixFilePermission.OWNER_WRITE );
+		if ( Files.isDirectory( path ) )
+			posixFilePermissions.add( PosixFilePermission.OWNER_EXECUTE );
+		Files.setPosixFilePermissions( path, posixFilePermissions );
 	}
 
 	public static String toString( Path path )

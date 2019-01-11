@@ -164,7 +164,7 @@ public class ConfigRegistry
 	{
 		// WIP Copies config from resources and plugins to config directories.
 
-		Path configPath = Kernel.getPath( Kernel.PATH_CONFIG, true );
+		Path configPath = Kernel.getPathAndCreate( Kernel.PATH_CONFIG );
 
 		IO.extractResourceDirectory( "config", configPath, ConfigRegistry.class );
 	}

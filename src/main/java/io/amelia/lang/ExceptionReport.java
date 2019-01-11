@@ -24,7 +24,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import io.amelia.foundation.Kernel;
-import io.amelia.support.Objs;
+import io.amelia.support.Strs;
 
 /**
  * This class is used to analyze and report exceptions
@@ -216,6 +216,7 @@ public final class ExceptionReport
 		 * NullPointerException, ArrayIndexOutOfBoundsException, IOException, StackOverflowError, ClassFormatError
 		 */
 		addException( ReportingLevel.E_UNHANDLED, cause );
+		hasErrored = true;
 	}
 
 	public boolean hasErrored()
@@ -263,7 +264,7 @@ public final class ExceptionReport
 
 	public void printIgnorableToLog( Kernel.Logger logger )
 	{
-		logger.warning( printSevereToString() );
+		Strs.split( printIgnorableToString(), "\n" ).forEach( line -> logger.warning( line ) );
 	}
 
 	public String printIgnorableToString()
@@ -275,7 +276,7 @@ public final class ExceptionReport
 		if ( ignorableStream.get().count() > 0 )
 		{
 			builder.append( "We Encountered " ).append( ignorableStream.get().count() ).append( " Ignorable Exception(s):" ).append( "\n" );
-			ignorableStream.get().forEach( throwable -> builder.append( throwable.printStackTraceToString() ) );
+			ignorableStream.get().forEach( throwable -> builder.append( throwable.printStackTraceToString() ).append( "\n" ) );
 		}
 
 		return builder.toString();
@@ -283,7 +284,7 @@ public final class ExceptionReport
 
 	public void printSevereToLog( Kernel.Logger logger )
 	{
-		logger.warning( printSevereToString() );
+		Strs.split( printSevereToString(), "\n" ).forEach( line -> logger.severe( line ) );
 	}
 
 	public String printSevereToString()
@@ -295,7 +296,7 @@ public final class ExceptionReport
 		if ( severeStream.get().count() > 0 )
 		{
 			builder.append( "We Encountered " ).append( severeStream.get().count() ).append( " Severe Exception(s):" ).append( "\n" );
-			severeStream.get().forEach( throwable -> builder.append( throwable.printStackTraceToString() ) );
+			severeStream.get().forEach( throwable -> builder.append( throwable.printStackTraceToString() ).append( "\n" ) );
 		}
 
 		return builder.toString();
@@ -303,13 +304,8 @@ public final class ExceptionReport
 
 	public void printToLog( Kernel.Logger logger )
 	{
-		String ignorable = printIgnorableToString();
-		String severe = printSevereToString();
-
-		if ( !Objs.isEmpty( ignorable ) )
-			logger.warning( ignorable );
-		if ( !Objs.isEmpty( severe ) )
-			logger.severe( severe );
+		printIgnorableToLog( logger );
+		printSevereToLog( logger );
 	}
 
 	public String printToString()

@@ -11,7 +11,6 @@ package io.amelia.injection;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 import io.amelia.lang.ApplicationException;
 import io.amelia.support.IO;
@@ -70,14 +69,14 @@ public class MavenReference
 	 */
 	public Path basePath()
 	{
-		Path basePath = Paths.get( getGroup().replaceAll( "\\.", "/" ) + "/" + getName() + "/" + getVersion() ).resolve( Libraries.LIBRARY_DIR );
+		Path basePath = Libraries.LIBRARY_DIR.resolve( getGroup().replaceAll( "\\.", "/" ) + "/" + getName() + "/" + getVersion() );
 		try
 		{
 			IO.forceCreateDirectory( basePath );
 		}
 		catch ( IOException e )
 		{
-			throw ApplicationException.runtime( e );
+			throw new ApplicationException.Runtime( e );
 		}
 		return basePath;
 	}
@@ -139,7 +138,7 @@ public class MavenReference
 	 */
 	public Path jarPath()
 	{
-		return Paths.get( getName() + "-" + getVersion() + ".jar" ).resolve( basePath() );
+		return basePath().resolve( getName() + "-" + getVersion() + ".jar" );
 	}
 
 	/**
@@ -173,13 +172,13 @@ public class MavenReference
 	 */
 	public Path pomPath()
 	{
-		return Paths.get( getName() + "-" + getVersion() + ".pom" ).resolve( basePath() );
+		return basePath().resolve( getName() + "-" + getVersion() + ".pom" );
 	}
 
 	/**
 	 * Produces a Maven String
 	 *
-	 * @return Maven String, e.g., com.chiorichan:ChioriWebServer:9.3.0
+	 * @return Maven String, e.g., io.amelia:AmeliaCommonLib:1.0.0
 	 */
 	@Override
 	public String toString()

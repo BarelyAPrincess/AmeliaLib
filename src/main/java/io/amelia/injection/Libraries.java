@@ -43,7 +43,7 @@ public class Libraries implements LibrarySource
 
 	static
 	{
-		LIBRARY_DIR = Kernel.getPath( Kernel.PATH_LIBS );
+		LIBRARY_DIR = Kernel.getPathAndCreate( Kernel.PATH_LIBS );
 		INCLUDES_DIR = Paths.get( "local" ).resolve( LIBRARY_DIR );
 
 		try
@@ -158,7 +158,7 @@ public class Libraries implements LibrarySource
 		{
 			if ( !Files.isRegularFile( mavenLocalPom ) || !Files.isRegularFile( mavenLocalJar ) )
 			{
-				L.info( EnumColor.GOLD + "Downloading the library `" + lib.toString() + "` from url `" + urlJar + "`... Please Wait!" );
+				L.info( EnumColor.GOLD + "Downloading the library \"" + lib.toString() + "\" from url \"" + urlJar + "\"... Please Wait!" );
 
 				// Try download from JCenter Bintray Maven Repository
 				try
@@ -172,7 +172,7 @@ public class Libraries implements LibrarySource
 					String urlJarAlt = lib.mavenUrlAlt( "jar" );
 					String urlPomAlt = lib.mavenUrlAlt( "pom" );
 
-					L.warning( "Primary download location failed, trying secondary location `" + urlJarAlt + "`... Please Wait!" );
+					L.warning( "Primary download location failed, trying secondary location \"" + urlJarAlt + "\"... Please Wait!", Kernel.isDevelopment() ? e : null );
 
 					try
 					{
@@ -181,7 +181,7 @@ public class Libraries implements LibrarySource
 					}
 					catch ( IOException ee )
 					{
-						L.severe( "Primary and secondary download location have FAILED!" );
+						L.severe( "Primary and secondary download location have FAILED!", Kernel.isDevelopment() ? ee : null );
 						return false;
 					}
 				}
