@@ -75,7 +75,7 @@ public abstract class BindingResolver
 
 		// TODO WARNING! It's possible that a subclass could crash the application by making looping aliases. We should prevent this!
 		if ( namespaceToNamespaceMappings.containsKey( key ) )
-			result = get( namespace, namespaceToNamespaceMappings.get( key ), expectedClass );
+			result = get( namespace, namespaceToNamespaceMappings.get( key ), expectedClass, args );
 
 		// Check for already instigated instances.
 		if ( !result.isPresent() && instances.containsKey( key ) )

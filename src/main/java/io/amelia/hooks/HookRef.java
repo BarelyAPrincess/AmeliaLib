@@ -14,16 +14,20 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
 
+import javax.annotation.Nonnull;
+
+import io.amelia.foundation.Foundation;
 import io.amelia.lang.ApplicationException;
+import io.amelia.support.EnumColor;
 import io.amelia.support.Namespace;
 import io.amelia.support.Priority;
 
 public class HookRef implements Comparable<HookRef>
 {
 	private final Parameter[] parameters;
-	private Method method;
+	Method method;
 	private Namespace namespace;
-	private Priority priority;
+	Priority priority;
 
 	public HookRef( Method method )
 	{
@@ -38,10 +42,12 @@ public class HookRef implements Comparable<HookRef>
 		this.method = method;
 		this.priority = annotation.priority();
 		this.parameters = method.getParameters();
+
+		Foundation.L.info( "%s%s%s      Discovered hook method \"%s#%s\" with namespace \"%s\" at priority \"%s\".", EnumColor.BLACK, EnumColor.NEGATIVE, EnumColor.DARK_RED, method.getDeclaringClass().getName(), method.getName(), namespace.toString(), priority );
 	}
 
 	@Override
-	public int compareTo( HookRef other )
+	public int compareTo( @Nonnull HookRef other )
 	{
 		return Integer.compare( priority.intValue(), other.priority.intValue() );
 	}
@@ -56,7 +62,7 @@ public class HookRef implements Comparable<HookRef>
 		return priority;
 	}
 
-	public void invoke( Object... arguments )
+	public void invoke( Object... arguments ) throws ApplicationException.Error
 	{
 		if ( arguments.length != parameters.length )
 			throw new ApplicationException.Ignorable( "Parameter count does not match the provided argument count." );
@@ -74,7 +80,7 @@ public class HookRef implements Comparable<HookRef>
 		}
 		catch ( IllegalAccessException | InvocationTargetException e )
 		{
-			throw new ApplicationException.Ignorable( e );
+			throw new ApplicationException.Error( "Encountered an exception while attempting to invoke hook \"" + namespace.toString() + "\"", e );
 		}
 	}
 }

@@ -10,15 +10,21 @@
 package io.amelia.hooks;
 
 import org.reflections.Reflections;
+import org.reflections.scanners.MethodAnnotationsScanner;
 
 import java.util.Set;
 import java.util.TreeSet;
 
+import io.amelia.foundation.Foundation;
+import io.amelia.lang.ApplicationException;
+import io.amelia.support.EnumColor;
 import io.amelia.support.Namespace;
+import io.amelia.support.Streams;
 
 public class Hooks
 {
-	private static final Reflections reflections = new Reflections();
+	// TODO Cache annotated methods
+	private static final Reflections reflections = new Reflections( new MethodAnnotationsScanner() );
 	private static volatile Set<HookRef> HOOK_REFS = new TreeSet<>();
 
 	static
@@ -26,13 +32,17 @@ public class Hooks
 		refreshHooks();
 	}
 
-	public static synchronized void invoke( String namespace, Object... arguments )
+	public static synchronized void invoke( String namespace, Object... arguments ) throws ApplicationException.Error
 	{
 		Namespace ns = Namespace.of( namespace );
 		if ( ns.getNodeCount() < 3 )
 			throw new RuntimeException( "That namespace can't be less than three nodes in size! " + ns );
 		// This should be all it takes to find a specific hook and invoke them in the priority order.
-		HOOK_REFS.stream().filter( hookRef -> hookRef.getNamespace().startsWith( ns ) ).forEach( hookRef -> hookRef.invoke( arguments ) );
+		Foundation.L.info( "%sAttempting to invoke namespace \"%s\": ", EnumColor.RED, namespace );
+		Streams.forEachWithException( HOOK_REFS.stream().filter( hookRef -> hookRef.getNamespace().startsWith( ns ) ), hookRef -> {
+			Foundation.L.info( "%s       Found hook \"%s#%s\" at priority \"%s\"", EnumColor.RED, hookRef.method.getDeclaringClass().getName(), hookRef.method.getName(), hookRef.priority );
+			hookRef.invoke( arguments );
+		} );
 	}
 
 	public static void refreshHooks()
@@ -42,6 +52,7 @@ public class Hooks
 			HOOK_REFS.clear();
 			reflections.getMethodsAnnotatedWith( Hook.class ).forEach( method -> HOOK_REFS.add( new HookRef( method ) ) );
 		}
+
 	}
 
 	public Hooks()

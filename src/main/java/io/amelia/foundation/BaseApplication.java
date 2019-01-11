@@ -36,9 +36,9 @@ import io.amelia.looper.LooperRouter;
 import io.amelia.permissions.Permissions;
 import io.amelia.support.Encrypt;
 import io.amelia.support.EnumColor;
-import io.amelia.support.IO;
 import io.amelia.support.Objs;
 import io.amelia.support.Strs;
+import io.amelia.support.Sys;
 import io.amelia.users.Users;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
@@ -57,6 +57,9 @@ public abstract class BaseApplication implements VendorRegistrar, ExceptionRegis
 
 	public BaseApplication()
 	{
+		if ( Kernel.isDevelopment() )
+			Kernel.L.info( "%s%sApp is running in development mode.", EnumColor.DARK_RED, EnumColor.NEGATIVE );
+
 		optionParser.acceptsAll( Arrays.asList( "?", "h", "help" ), "Show the help" );
 		optionParser.acceptsAll( Arrays.asList( "v", "version" ), "Show the version" );
 
@@ -96,6 +99,8 @@ public abstract class BaseApplication implements VendorRegistrar, ExceptionRegis
 	@Override
 	public void fatalError( ExceptionReport report, boolean crashOnError )
 	{
+		if ( Objs.stackTraceAntiLoop( getClass(), "fatalError" ) )
+			return;
 		if ( crashOnError )
 			Foundation.setRunlevel( Runlevel.CRASHED, "The Application has crashed!" );
 	}
@@ -232,7 +237,7 @@ public abstract class BaseApplication implements VendorRegistrar, ExceptionRegis
 			// XXX Use Encrypt::hash as an alternative to Encrypt::uuid
 			env.computeValue( "instance-id", Encrypt::uuid, true );
 
-			Kernel.setAppPath( IO.buildPath( false, env.getString( "app-dir" ).orElse( null ) ) );
+			Kernel.setAppPath( env.getString( "app-dir" ).map( Paths::get ).orElse( Sys.getAppPath().orElseThrow( () -> new StartupException( "The app path is not specified nor could we resolve it." ) ) ) );
 			env.getStringsMap().filter( e -> e.getKey().endsWith( "-dir" ) ).forEach( e -> Kernel.setPath( e.getKey().substring( 0, e.getKey().length() - 4 ), Strs.split( e.getValue(), "/" ).toArray( String[]::new ) ) );
 
 			ConfigRegistry.config.setEnvironmentVariables( env.map() );

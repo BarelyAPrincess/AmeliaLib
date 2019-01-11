@@ -65,23 +65,14 @@ public final class Foundation
 
 	static
 	{
-		Hooks.invoke( "io.amelia.foundation.init" );
-
-		/* Infinite loop!
-		Kernel.setLogHandler( new LogHandler()
+		try
 		{
-			@Override
-			public void log( Level level, Class<?> source, String message, Object... args )
-			{
-				L.log( level, message, args );
-			}
-
-			@Override
-			public void log( Level level, Class<?> source, Throwable cause )
-			{
-				Strs.split( Exceptions.getStackTrace( cause ), "\n" ).forEach( str -> L.log( level, str ) );
-			}
-		} );*/
+			Hooks.invoke( "io.amelia.foundation.init" );
+		}
+		catch ( ApplicationException.Error e )
+		{
+			ExceptionReport.handleSingleException( e );
+		}
 
 		Kernel.setKernelHandler( new KernelHandler()
 		{
@@ -194,8 +185,8 @@ public final class Foundation
 			UUID nullUuid = UUID.fromString( ConfigRegistry.config.getString( ConfigKeys.UUID_NULL ) );
 			UUID rootUuid = UUID.fromString( ConfigRegistry.config.getString( ConfigKeys.UUID_ROOT ) );
 
-			entityNull = Bindings.resolveClass( EntitySubject.class, nullUuid, false ).orElseThrowCause( e -> new ApplicationException.Error( "Failed to create the NULL Entity.", e ) );
-			entityRoot = Bindings.resolveClass( EntitySubject.class, rootUuid, false ).orElseThrowCause( e -> new ApplicationException.Error( "Failed to create the ROOT Entity.", e ) );
+			entityNull = Bindings.resolveClass( EntitySubject.class, nullUuid ).orElseThrowCause( e -> new ApplicationException.Error( "Failed to create the NULL Entity.", e ) );
+			entityRoot = Bindings.resolveClass( EntitySubject.class, rootUuid ).orElseThrowCause( e -> new ApplicationException.Error( "Failed to create the ROOT Entity.", e ) );
 		}
 
 		// Indicates the application has begun the main loop

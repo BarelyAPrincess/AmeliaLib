@@ -38,7 +38,9 @@ import javax.annotation.Nullable;
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.foundation.Foundation;
 import io.amelia.foundation.Kernel;
+import io.amelia.hooks.Hooks;
 import io.amelia.lang.APINotice;
+import io.amelia.lang.ApplicationException;
 import io.amelia.support.BiFunctionWithException;
 import io.amelia.support.ConsumerWithException;
 import io.amelia.support.FunctionWithException;
@@ -57,7 +59,7 @@ public class Bindings
 {
 	public static final Kernel.Logger L = Kernel.getLogger( Bindings.class );
 	private static final BindingMap bindings = BindingMap.empty();
-	static final List<BindingResolver> resolvers = new ArrayList<>();
+	static final Set<BindingResolver> resolvers = new HashSet<>();
 	private static final WritableBinding root = new WritableBinding( "" );
 
 	@Nullable
@@ -131,7 +133,7 @@ public class Bindings
 		return new WritableBinding( packName );
 	}
 
-	public static void init() throws BindingsException.Error
+	public static void init() throws ApplicationException.Error
 	{
 		if ( !ConfigRegistry.isLoaded() )
 			throw new BindingsException.Error( "Bindings can not be initialized before the ConfigRegistry has finished loading." );
@@ -174,6 +176,8 @@ public class Bindings
 			else
 				Kernel.L.warning( "We found malformed arguments in the facade config. {facadeKey=" + child.getName() + "}" );
 		} );
+
+		Hooks.invoke( "io.amelia.bindings.init" );
 	}
 
 	private static <T> VoluntaryWithCause<T, BindingsException.Error> invokeConstructors( @Nonnull Class<? extends T> declaringClass, @Nonnull Predicate<Constructor> constructorPredicate, @Nonnull Object... args )
@@ -307,16 +311,16 @@ public class Bindings
 	}
 
 	@APINotice
-	public static void registerResolver( @Nonnull String namespace, @Nonnull BindingResolver bindingResolver ) throws BindingsException.Error
+	public static void registerResolver( @Nonnull String namespace, @Nonnull BindingResolver bindingResolver )
 	{
 		Objs.notEmpty( namespace );
 		Objs.notNull( bindingResolver );
 
 		Namespace ns = Namespace.of( namespace ).fixInvalidChars().normalizeAscii();
-		if ( ns.startsWith( "io.amelia" ) )
-			throw new BindingsException.Error( "Namespace \"io.amelia\" is reserved for internal use only." );
+		// if ( ns.startsWith( "io.amelia" ) )
+		//	throw new BindingsException.Ignorable( "Namespace \"io.amelia\" is reserved for internal use only." );
 		if ( ns.getNodeCount() < 3 )
-			throw new BindingsException.Error( "Resolvers can only be registered to namespaces with no less than 3 nodes." );
+			throw new BindingsException.Ignorable( "Resolvers can only be registered to namespaces with no less than 3 nodes." );
 		namespace = ns.getString();
 
 		bindingResolver.baseNamespace = namespace;
@@ -325,7 +329,8 @@ public class Bindings
 
 	public static <T> VoluntaryWithCause<T, BindingsException.Error> resolveClass( @Nonnull Class<? extends T> expectedClass, @Nonnull Object... args )
 	{
-		VoluntaryWithCause<T, BindingsException.Error> result = Voluntary.ofWithCause( getResolvers().map( bindingResolver -> bindingResolver.get( expectedClass, args ) ).filter( Objs::isNotNull ).map( obj -> ( T ) obj ).findAny() );
+		// TODO Implement resolver priority levels so resolvers can be overridden.
+		VoluntaryWithCause<T, BindingsException.Error> result = VoluntaryWithCause.ofWithCause( getResolvers().map( bindingResolver -> bindingResolver.get( expectedClass, args ) ).filter( Objs::isNotNull ).map( obj -> ( T ) obj ).findAny() );
 
 		if ( !result.isPresent() )
 			result = invokeConstructors( expectedClass, ( constructor ) -> true, args );
