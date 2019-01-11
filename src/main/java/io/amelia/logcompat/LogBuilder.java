@@ -50,7 +50,6 @@ public class LogBuilder
 		System.setErr( new PrintStream( new LoggerOutputStream( get( "SysErr" ), Level.SEVERE ), true ) );
 	}
 
-
 	public static void addFileHandler( String filename, boolean useColor, int archiveLimit, Level level )
 	{
 		try

@@ -16,7 +16,9 @@ import java.util.logging.Level;
 
 import io.amelia.foundation.Kernel;
 import io.amelia.support.EnumColor;
+import io.amelia.support.Exceptions;
 import io.amelia.support.Objs;
+import io.amelia.support.Strs;
 
 /**
  * Logger Instance
@@ -123,14 +125,16 @@ public class Logger
 		return logger.isLoggable( level );
 	}
 
-	public void log( Level l, String msg )
+	public void log( Level level, String message, Object... params )
 	{
+		message = params.length > 0 ? String.format( message, params ) : message;
+
 		try
 		{
 			if ( !Objs.stackTraceAntiLoop( java.util.logging.Logger.class, "log" ) || hasErrored )
-				FAILOVER_OUTPUT_STREAM.println( "Failover Logger [" + l.getName() + "] " + msg );
+				FAILOVER_OUTPUT_STREAM.println( "Failover Logger [" + level.getName() + "] " + message );
 			else
-				logger.log( l, ( LogBuilder.useColor() ? EnumColor.fromLevel( l ) : "" ) + msg );
+				logger.log( level, ( LogBuilder.useColor() ? EnumColor.fromLevel( level ) : "" ) + message, params );
 		}
 		catch ( Throwable t )
 		{
@@ -140,34 +144,24 @@ public class Logger
 		}
 	}
 
-	public void log( Level l, String msg, Object... params )
+	public void log( Level level, Throwable cause )
 	{
-		try
-		{
-			if ( !Objs.stackTraceAntiLoop( java.util.logging.Logger.class, "log" ) || hasErrored )
-				FAILOVER_OUTPUT_STREAM.println( "Failover Logger [" + l.getName() + "] " + msg );
-			else
-				logger.log( l, ( LogBuilder.useColor() ? EnumColor.fromLevel( l ) : "" ) + msg, params );
-		}
-		catch ( Throwable t )
-		{
-			markError( t );
-			if ( Kernel.isDevelopment() )
-				throw t;
-		}
+		Strs.split( Exceptions.getStackTrace( cause ), "\n" ).forEach( str -> log( level, str ) );
 	}
 
-	public void log( Level l, String msg, Throwable throwable )
+	public void log( Level level, Throwable cause, String message, Object... params )
 	{
+		message = params.length > 0 ? String.format( message, params ) : message;
+
 		try
 		{
 			if ( !Objs.stackTraceAntiLoop( java.util.logging.Logger.class, "log" ) || hasErrored )
 			{
-				FAILOVER_OUTPUT_STREAM.println( "Failover Logger [" + l.getName() + "] " + msg );
-				throwable.printStackTrace( FAILOVER_OUTPUT_STREAM );
+				FAILOVER_OUTPUT_STREAM.println( "Failover Logger [" + level.getName() + "] " + message );
+				cause.printStackTrace( FAILOVER_OUTPUT_STREAM );
 			}
 			else
-				logger.log( l, ( LogBuilder.useColor() ? EnumColor.fromLevel( l ) : "" ) + msg, throwable );
+				logger.log( level, ( LogBuilder.useColor() ? EnumColor.fromLevel( level ) : "" ) + message, cause );
 		}
 		catch ( Throwable tt )
 		{
