@@ -20,13 +20,21 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 
+import io.amelia.bindings.Bindings;
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.foundation.Foundation;
+import io.amelia.hooks.Hook;
 import io.amelia.support.Objs;
 import io.amelia.support.Streams;
 
 public class HoneyUsers extends Users
 {
+	@Hook( ns = "io.amelia.bindings.init" )
+	public static void hookRegisterResolver()
+	{
+		Bindings.registerResolver( "io.amelia.users", new UsersResolver() );
+	}
+
 	volatile Set<UserContext> users = new CopyOnWriteArraySet<>();
 	private boolean isDebugEnabled = ConfigRegistry.config.getValue( ConfigKeys.DEBUG_ENABLED );
 	private volatile Set<UserCreator> userCreators = new CopyOnWriteArraySet<>();
