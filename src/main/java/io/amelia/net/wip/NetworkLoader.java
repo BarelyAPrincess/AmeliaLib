@@ -23,9 +23,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 
-import io.amelia.bindings.Bindings;
-import io.amelia.bindings.FacadePriority;
-import io.amelia.bindings.WritableBinding;
 import io.amelia.foundation.Kernel;
 import io.amelia.lang.ApplicationException;
 import io.amelia.lang.NetworkException;
@@ -98,11 +95,6 @@ public class NetworkLoader
 	public static void init() throws ApplicationException.Error
 	{
 		// Initialize networking registration and so forth.
-		WritableBinding namespace = Bindings.getSystemNamespace( NetworkLoader.class );
-
-		assert namespace != null;
-
-		namespace.registerFacadeBinding( "facade", NetworkingService.class, NetworkingService::new, FacadePriority.NORMAL );
 	}
 
 	public static <N extends NetworkWorker> N initWorker( Class<N> workerClass )

@@ -58,6 +58,11 @@ public class Networking
 		return sslRegistry;
 	}
 
+	public static void heartbeat( long currentTicks )
+	{
+		// Ignore
+	}
+
 	public static void start() throws ApplicationException.Error
 	{
 		startNetworkService( new WebService() );

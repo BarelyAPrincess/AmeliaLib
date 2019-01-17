@@ -24,6 +24,7 @@ import java.util.List;
 import javax.net.ssl.SSLException;
 
 import io.amelia.bindings.BindingsException;
+import io.amelia.events.Events;
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.foundation.Foundation;
 import io.amelia.foundation.Kernel;
@@ -132,7 +133,7 @@ public class SslRegistry implements Mapping<String, SslContext>
 
 		if ( hostname != null )
 		{
-			SslCertificateMapEvent event = Foundation.getEvents().callEvent( new SslCertificateMapEvent( hostname ) );
+			SslCertificateMapEvent event = Events.getInstance().callEvent( new SslCertificateMapEvent( hostname ) );
 
 			if ( event.getSslContext() != null )
 				return event.getSslContext();
@@ -153,7 +154,7 @@ public class SslRegistry implements Mapping<String, SslContext>
 			}
 		}
 
-		SslCertificateDefaultEvent event = Foundation.getEvents().callEvent( new SslCertificateDefaultEvent( hostname ) );
+		SslCertificateDefaultEvent event = Events.getInstance().callEvent( new SslCertificateDefaultEvent( hostname ) );
 
 		if ( event.getSslContext() != null )
 			return event.getSslContext();

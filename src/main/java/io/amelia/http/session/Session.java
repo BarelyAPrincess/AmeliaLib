@@ -24,6 +24,7 @@ import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 
 import io.amelia.data.parcel.Parcel;
+import io.amelia.events.Events;
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.foundation.Foundation;
 import io.amelia.http.HoneyCookie;
@@ -167,7 +168,7 @@ public final class Session extends UserPermissible implements Kickable, Scriptin
 		if ( SessionRegistry.isDebug() )
 			SessionRegistry.L.info( EnumColor.DARK_AQUA + "Session Destroyed `" + this + "`" );
 
-		Foundation.getEvents().callEvent( new SessionDestroyEvent( this, reasonCode ) );
+		Events.getInstance().callEvent( new SessionDestroyEvent( this, reasonCode ) );
 
 		// Account Auth Section
 		if ( "token".equals( getVariable( "auth" ) ) )

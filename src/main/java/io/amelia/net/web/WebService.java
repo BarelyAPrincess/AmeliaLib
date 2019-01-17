@@ -143,7 +143,7 @@ public class WebService implements NetworkService
 				throw e instanceof StartupException ? ( StartupException ) e : new StartupException( e );
 		}
 
-		LooperRouter.getMainLooper().postTaskRepeatingLater( () -> {
+		LooperRouter.getMainLooper().postTaskRepeatingLater( entry -> {
 			for ( WeakReference<SocketChannel> ref : HttpInitializer.activeChannels )
 				if ( ref.get() == null )
 					HttpInitializer.activeChannels.remove( ref );

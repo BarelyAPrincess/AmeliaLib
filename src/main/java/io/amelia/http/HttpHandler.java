@@ -28,6 +28,7 @@ import io.amelia.data.apache.ApacheConfiguration;
 import io.amelia.data.apache.ApacheDirectiveException;
 import io.amelia.data.parcel.Parcel;
 import io.amelia.events.EventException;
+import io.amelia.events.Events;
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.foundation.Foundation;
 import io.amelia.foundation.Kernel;
@@ -636,7 +637,7 @@ public class HttpHandler extends SimpleChannelInboundHandler<Object>
 
 		try
 		{
-			Foundation.getEvents().callEventWithException( requestEvent );
+			Events.getInstance().callEventWithException( requestEvent );
 		}
 		catch ( EventException.Error ex )
 		{
@@ -1076,7 +1077,7 @@ public class HttpHandler extends SimpleChannelInboundHandler<Object>
 
 		try
 		{
-			Foundation.getEvents().callEventWithException( renderEvent );
+			Events.getInstance().callEventWithException( renderEvent );
 			if ( renderEvent.getSource() != null )
 			{
 				rendered.clear();

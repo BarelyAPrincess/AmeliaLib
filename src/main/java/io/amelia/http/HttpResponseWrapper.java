@@ -26,6 +26,7 @@ import java.util.logging.Level;
 import javax.annotation.Nullable;
 
 import io.amelia.data.parcel.ParcelLoader;
+import io.amelia.events.Events;
 import io.amelia.foundation.Foundation;
 import io.amelia.foundation.Kernel;
 import io.amelia.http.apache.ApacheHandler;
@@ -298,7 +299,7 @@ public class HttpResponseWrapper implements HttpScriptingResponse
 
 		// Trigger an internal Error Event to notify plugins of a possible problem.
 		HttpErrorEvent event = new HttpErrorEvent( request, httpCode, statusReason, Kernel.isDevelopment() );
-		Foundation.getEvents().callEvent( event );
+		Events.getInstance().callEvent( event );
 
 		httpCode = event.getHttpCode();
 		statusReason = event.getHttpReason();
@@ -438,7 +439,7 @@ public class HttpResponseWrapper implements HttpScriptingResponse
 		}
 
 		HttpExceptionEvent event = new HttpExceptionEvent( request, cause, Kernel.isDevelopment() );
-		Foundation.getEvents().callEvent( event );
+		Events.getInstance().callEvent( event );
 
 		int httpCode = event.getHttpCode();
 

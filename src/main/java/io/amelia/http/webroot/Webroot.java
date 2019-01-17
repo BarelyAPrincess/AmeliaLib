@@ -35,6 +35,7 @@ import io.amelia.data.apache.ApacheConfiguration;
 import io.amelia.database.Database;
 import io.amelia.database.DatabaseManager;
 import io.amelia.database.elegant.ElegantQueryTable;
+import io.amelia.events.Events;
 import io.amelia.foundation.ConfigData;
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.foundation.Env;
@@ -199,7 +200,7 @@ public class Webroot implements UserRoot
 				}
 			}
 
-			if ( Exceptions.tryCatch( () -> Foundation.getEvents().callEventWithException( new WebrootLoadEvent( this ) ), WebrootException.Error::new ).isCancelled() )
+			if ( Exceptions.tryCatch( () -> Events.getInstance().callEventWithException( new WebrootLoadEvent( this ) ), WebrootException.Error::new ).isCancelled() )
 				throw new WebrootException.Error( String.format( "Webroot '%s' was prevented from loading by an internal event.", webrootId ) );
 
 			if ( data.hasChild( "database" ) )
