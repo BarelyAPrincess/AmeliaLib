@@ -22,7 +22,7 @@ public class LogManager
 {
 	public static final LogManager INSTANCE = new LogManager();
 	private static final ConcurrentMap<String, LogReference> activeLogs = Maps.newConcurrentMap();
-	private static final ReferenceQueue<Object> referenceQueue = new ReferenceQueue<Object>();
+	private static final ReferenceQueue<Object> referenceQueue = new ReferenceQueue<>();
 
 	public static void close( LogEvent log )
 	{

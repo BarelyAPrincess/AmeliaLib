@@ -16,10 +16,10 @@ import java.util.logging.Level;
 public class LoggerOutputStream extends ByteArrayOutputStream
 {
 	private final Level level;
-	private final Logger log;
+	private final LibLogger log;
 	private final String separator = System.getProperty( "line.separator" );
 
-	public LoggerOutputStream( Logger log, Level level )
+	public LoggerOutputStream( LibLogger log, Level level )
 	{
 		super();
 		this.log = log;

@@ -13,7 +13,11 @@ import java.io.FileDescriptor;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.util.logging.Level;
+import java.util.logging.LogManager;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 
+import io.amelia.foundation.ConfigRegistry;
 import io.amelia.foundation.Kernel;
 import io.amelia.support.EnumColor;
 import io.amelia.support.Exceptions;
@@ -23,28 +27,31 @@ import io.amelia.support.Strs;
 /**
  * Logger Instance
  */
-public class Logger
+public class LibLogger
 {
 	public static final PrintStream FAILOVER_OUTPUT_STREAM = new PrintStream( new FileOutputStream( FileDescriptor.out ) );
-	private final String id;
-	private final java.util.logging.Logger logger;
+	private final String name;
+	private final Logger logger;
 	private boolean hasErrored = false;
 
 	/**
-	 * Attempts to find a logger based on the id provided. If you would like to use your own Logger, be sure to create it with the same id prior to using any of the built-in getLogger() methods or you will need to use the replaceLogger() method.
+	 * Attempts to find a logger based on the name provided. If you would like to use your own Logger, be sure to create it with the same name prior to using any of the built-in getLogger() methods or you will need to use the replaceLogger() method.
 	 *
-	 * @param id The logger id
+	 * @param name The logger name
 	 */
-	protected Logger( String id )
+	protected LibLogger( String name )
 	{
-		this.id = id;
-		java.util.logging.Logger logger = java.util.logging.Logger.getLogger( id );
+		this.name = name;
+		// We use the built-in Java LogManager to track our child loggers.
+		Logger logger = LogManager.getLogManager().getLogger( name );
 
 		if ( logger == null )
-			logger = new ChildLogger( id );
-
-		logger.setParent( LogBuilder.getRootLogger() );
-		logger.setLevel( Level.ALL );
+		{
+			logger = new ChildLogger( name );
+			logger.setParent( LogBuilder.getRootLogger() );
+			logger.setLevel( Level.ALL );
+			LogManager.getLogManager().addLogger( logger );
+		}
 
 		this.logger = logger;
 	}
@@ -90,12 +97,12 @@ public class Logger
 		log( Level.FINEST, var1 );
 	}
 
-	public String getId()
+	public String getName()
 	{
-		return id;
+		return name;
 	}
 
-	public java.util.logging.Logger getLogger()
+	public Logger getLogger()
 	{
 		return logger;
 	}
@@ -175,7 +182,7 @@ public class Logger
 	{
 		hasErrored = true;
 
-		FAILOVER_OUTPUT_STREAM.println( EnumColor.RED + "" + EnumColor.NEGATIVE + "The child logger \"" + getId() + "\" has thrown an unrecoverable exception!" );
+		FAILOVER_OUTPUT_STREAM.println( EnumColor.RED + "" + EnumColor.NEGATIVE + "The child logger \"" + getName() + "\" has thrown an unrecoverable exception!" );
 		FAILOVER_OUTPUT_STREAM.println( EnumColor.RED + "" + EnumColor.NEGATIVE + "Please report the following stacktrace/log to the application developer." );
 		if ( Kernel.isDevelopment() )
 			FAILOVER_OUTPUT_STREAM.println( EnumColor.RED + "" + EnumColor.NEGATIVE + "Developer Node: Calling the method \"Log.get( [log name] ).unmarkError()\" will reset the errored log state." );
@@ -251,6 +258,23 @@ public class Logger
 
 	public void warning( Throwable t )
 	{
-		log( Level.SEVERE, "Warning Exception", t );
+		log( Level.SEVERE, "Warning Exception Encountered", t );
+	}
+
+	public static class ChildLogger extends Logger
+	{
+		protected ChildLogger( String name )
+		{
+			super( name, null );
+		}
+
+		@Override
+		public void log( LogRecord logRecord )
+		{
+			if ( ConfigRegistry.isLoaded() && !ConfigRegistry.config.getBoolean( "console.hideLoggerName" ).orElse( false ) || Kernel.isDevelopment() )
+				logRecord.setMessage( "&7[" + getName() + "]&f " + logRecord.getMessage() );
+
+			super.log( logRecord );
+		}
 	}
 }

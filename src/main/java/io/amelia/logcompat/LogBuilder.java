@@ -23,10 +23,14 @@ import java.util.logging.FileHandler;
 import java.util.logging.Formatter;
 import java.util.logging.Handler;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
+
+import javax.annotation.Nullable;
 
 import io.amelia.foundation.Kernel;
 import io.amelia.support.IO;
+import io.amelia.support.Objs;
 import io.amelia.support.Streams;
 
 /**
@@ -34,9 +38,9 @@ import io.amelia.support.Streams;
  */
 public class LogBuilder
 {
+	private static final Set<LibLogger> LOGGERS = new HashSet<>();
 	private static final ConsoleHandler consoleHandler = new ConsoleHandler();
-	private static final Set<Logger> loggers = new HashSet<>();
-	private static final java.util.logging.Logger rootLogger = java.util.logging.Logger.getLogger( "" );
+	private static final Logger rootLogger = Logger.getLogger( "" );
 
 	static
 	{
@@ -54,7 +58,7 @@ public class LogBuilder
 	{
 		try
 		{
-			Path logPath = Paths.get( filename + ".log" ).resolve( Kernel.getPath( Kernel.PATH_LOGS ) );
+			Path logPath = Kernel.getPath( Kernel.PATH_LOGS ).resolve( filename + ".log" );
 
 			if ( Files.exists( logPath ) )
 			{
@@ -93,7 +97,7 @@ public class LogBuilder
 			Streams.forEachWithException( result.sorted( new IO.PathComparatorByCreated() ).limit( limit ), IO::deleteIfExists );
 	}
 
-	public static Logger get()
+	public static LibLogger get()
 	{
 		return get( "" );
 	}
@@ -101,30 +105,30 @@ public class LogBuilder
 	/**
 	 * Gets an instance of Log for provided loggerId. If the logger does not exist one will be created.
 	 *
-	 * @param id The logger id
+	 * @param name The logger name
 	 *
 	 * @return ConsoleLogger An empty loggerId will return the System Logger.
 	 */
-	public static Logger get( String id )
+	public static LibLogger get( @Nullable String name )
 	{
-		if ( id == null || id.length() == 0 )
-			id = "Core";
+		if ( Objs.isEmpty( name ) )
+			name = "Core";
 
-		for ( Logger log : loggers )
-			if ( log.getId().equals( id ) )
+		for ( LibLogger log : LOGGERS )
+			if ( log.getName().equals( name ) )
 				return log;
 
-		Logger log = new Logger( id );
-		loggers.add( log );
+		LibLogger log = new LibLogger( name );
+		LOGGERS.add( log );
 		return log;
 	}
 
-	public static Logger get( Class<?> logClass )
+	public static LibLogger get( Class<?> logClass )
 	{
 		return get( logClass.getSimpleName() );
 	}
 
-	public static java.util.logging.Logger getRootLogger()
+	public static Logger getRootLogger()
 	{
 		return rootLogger;
 	}

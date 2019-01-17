@@ -60,6 +60,6 @@ public class SimpleLogFormatter extends Formatter
 			msg.append( writer );
 		}
 
-		return EnumColor.transAltColors( msg.toString() );
+		return EnumColor.format( record.getLevel(), msg.toString() );
 	}
 }

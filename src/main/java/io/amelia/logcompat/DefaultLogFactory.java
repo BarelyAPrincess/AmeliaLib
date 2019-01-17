@@ -44,7 +44,7 @@ public class DefaultLogFactory extends InternalLoggerFactory
 
 	private class DefaultLog implements InternalLogger
 	{
-		Logger l;
+		LibLogger l;
 
 		DefaultLog( String name )
 		{
@@ -235,7 +235,7 @@ public class DefaultLogFactory extends InternalLoggerFactory
 		@Override
 		public String name()
 		{
-			return l.getId();
+			return l.getName();
 		}
 
 		@Override

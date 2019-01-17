@@ -106,7 +106,7 @@ public class DefaultLogFormatter extends Formatter
 		if ( !fancyConsole )
 			return EnumColor.removeAltColors( style );
 		else
-			return EnumColor.transAltColors( style );
+			return EnumColor.format( record.getLevel(), style );
 	}
 
 	public boolean useColor()
