@@ -36,6 +36,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -159,6 +160,16 @@ public class Maps
 			}
 		}
 		return false;
+	}
+
+	public static <K, V, R> R findValue( Map<K, V> map, Predicate<V> predicate, Function<Map.Entry<K, V>, R> mapping )
+	{
+		return map.entrySet().stream().filter( entry -> predicate.test( entry.getValue() ) ).findFirst().map( mapping ).orElse( null );
+	}
+
+	public static <K, V, R> R findKey( Map<K, V> map, Predicate<K> predicate, Function<Map.Entry<K, V>, R> mapping )
+	{
+		return map.entrySet().stream().filter( entry -> predicate.test( entry.getKey() ) ).findFirst().map( mapping ).orElse( null );
 	}
 
 	@SuppressWarnings( "unchecked" )

@@ -16,6 +16,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -78,34 +79,6 @@ public class Arrs
 				return mid;  // value found
 		}
 		return ~lo;  // value not present
-	}
-
-	public static <T> boolean contains( T[] arr, T t )
-	{
-		return Arrays.stream( arr ).anyMatch( t::equals );
-	}
-
-	public static boolean contains( int[] arr, int t )
-	{
-		return IntStream.of( arr ).anyMatch( x -> x == t );
-	}
-
-	public static boolean contains( byte[] arr, byte t )
-	{
-		return byteStream( arr ).anyMatch( ( ( Byte ) t )::equals );
-	}
-
-	public static boolean contains( char[] arr, char t )
-	{
-		return charStream( arr ).anyMatch( ( ( Character ) t )::equals );
-	}
-
-	public static byte[] primitiveByteArray( Byte[] bytes )
-	{
-		byte[] newBytes = new byte[bytes.length];
-		for ( int i = 0; i < bytes.length; i++ )
-			newBytes[i] = bytes[i];
-		return newBytes;
 	}
 
 	public static Stream<Byte> byteStream( byte[] bytes )
@@ -254,6 +227,26 @@ public class Arrs
 		return Arrays.stream( arr ).flatMap( Arrays::stream ).toArray( size -> Arrays.copyOf( arr[0], size ) );
 	}
 
+	public static <T> boolean contains( T[] arr, T t )
+	{
+		return Arrays.stream( arr ).anyMatch( t::equals );
+	}
+
+	public static boolean contains( int[] arr, int t )
+	{
+		return IntStream.of( arr ).anyMatch( x -> x == t );
+	}
+
+	public static boolean contains( byte[] arr, byte t )
+	{
+		return byteStream( arr ).anyMatch( ( ( Byte ) t )::equals );
+	}
+
+	public static boolean contains( char[] arr, char t )
+	{
+		return charStream( arr ).anyMatch( ( ( Character ) t )::equals );
+	}
+
 	public static <T> T[] limit( @Nonnull T[] arr, int limit )
 	{
 		return Arrays.stream( arr ).limit( limit ).toArray( size -> Arrays.copyOf( arr, size ) );
@@ -279,6 +272,14 @@ public class Arrs
 		return Stream.concat( Stream.of( first ), Arrays.stream( arr ) ).toArray( size -> Arrays.copyOf( arr, size ) );
 	}
 
+	public static byte[] primitiveByteArray( Byte[] bytes )
+	{
+		byte[] newBytes = new byte[bytes.length];
+		for ( int i = 0; i < bytes.length; i++ )
+			newBytes[i] = bytes[i];
+		return newBytes;
+	}
+
 	public static int[] push( @Nonnull int[] bytes, int b )
 	{
 		int[] newBytes = Arrays.copyOf( bytes, bytes.length + 1 );
@@ -298,6 +299,13 @@ public class Arrs
 		T[] newArray = Arrays.copyOf( arr, arr.length + 1 );
 		newArray[arr.length] = obj;
 		return newArray;
+	}
+
+	public static <T> T[] reverse( T[] values )
+	{
+		List<T> list = new ArrayList<>( Arrays.asList( values ) );
+		Collections.reverse( list );
+		return ( T[] ) list.toArray();
 	}
 
 	public static <T> T[] skip( @Nonnull T[] arr, int skip )

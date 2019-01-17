@@ -94,7 +94,7 @@ public class Tasks
 	static
 	{
 		// XXX Temporary workaround to make the Tasks work once again - be sure to use the new Looper feature to replace the deprecated Tasks.
-		LooperRouter.getMainLooper().postTaskRepeatingNext( () -> {
+		LooperRouter.getMainLooper().postTaskRepeatingNext( entry -> {
 			heartbeat( LooperRouter.getMainLooper().getLastPolledMillis() );
 		}, Delays.MILLIS_50 );
 	}

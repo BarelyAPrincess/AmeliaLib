@@ -14,7 +14,9 @@ import javax.annotation.Nonnull;
 
 import io.amelia.lang.ApplicationException;
 import io.amelia.looper.queue.DefaultQueue;
+import io.amelia.looper.queue.EntryAbstract;
 import io.amelia.looper.queue.EntryRunnable;
+import io.amelia.support.ConsumerWithException;
 import io.amelia.support.Objs;
 
 public interface LooperTaskTrait
@@ -207,7 +209,7 @@ public interface LooperTaskTrait
 
 		if ( isHeldByCurrentThread() )
 		{
-			task.execute();
+			task.execute( null );
 			return true;
 		}
 
@@ -249,6 +251,16 @@ public interface LooperTaskTrait
 			return delay;
 		}
 
+		@Override
+		protected void run0( EntryAbstract entry ) throws ApplicationException.Error
+		{
+			super.run0( entry );
+
+			// Repeat entry unless the queue is quitting.
+			if ( !queue.isQuitting() )
+				queue.postEntry( new RepeatingTaskEntry( queue, task, when + delay, delay, isAsync() ) );
+		}
+
 		/**
 		 * Updates the delay on the next iteration of this repeating task.
 		 * Notice: won't affect the current pending task.
@@ -261,16 +273,6 @@ public interface LooperTaskTrait
 			if ( delay < 50 )
 				throw new IllegalArgumentException( "RepeatingTask delay can't be less than 50 milliseconds. Anything less could cause looper lag issues." );
 			this.delay = delay;
-		}
-
-		@Override
-		protected void run0() throws ApplicationException.Error
-		{
-			super.run0();
-
-			// Repeat entry unless the queue is quitting.
-			if ( !queue.isQuitting() )
-				queue.postEntry( new RepeatingTaskEntry( queue, task, when + delay, delay, isAsync() ) );
 		}
 	}
 
@@ -341,11 +343,11 @@ public interface LooperTaskTrait
 		}
 
 		@Override
-		protected void run0() throws ApplicationException.Error
+		protected void run0( EntryAbstract entry ) throws ApplicationException.Error
 		{
 			try
 			{
-				task.execute();
+				task.execute( entry );
 			}
 			catch ( ApplicationException.Error e )
 			{
@@ -353,7 +355,7 @@ public interface LooperTaskTrait
 			}
 			catch ( Exception e )
 			{
-				throw ApplicationException.error( e );
+				throw new ApplicationException.Error( e );
 			}
 		}
 	}

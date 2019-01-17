@@ -19,6 +19,8 @@ import java.util.function.Supplier;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import io.amelia.foundation.Kernel;
+
 /**
  * An expanded container object which may or may not contain a non-null value and/or exception, is similar to {@link Optional} but adds error handling.
  * If a value is present, {@code isPresent()} will return {@code true} and {@code get()} will return the value.
@@ -175,6 +177,7 @@ public class Voluntary<Type>
 
 	public static <T, C extends Exception> VoluntaryWithCause<T, C> ofWithCause( @Nonnull Optional<T> value )
 	{
+		Kernel.L.debug( "" + value.orElse( null ) );
 		return ( VoluntaryWithCause<T, C> ) value.map( VoluntaryWithCause::ofWithCause ).orElseGet( VoluntaryWithCause::emptyWithCause );
 	}
 
@@ -220,7 +223,7 @@ public class Voluntary<Type>
 	 */
 	Voluntary( Type value )
 	{
-		this.value = Objs.notNull( value );
+		this.value = Objs.notNull( value instanceof Voluntary ? ( ( Voluntary<Type> ) value ).orElse( null ) : value );
 	}
 
 	/**

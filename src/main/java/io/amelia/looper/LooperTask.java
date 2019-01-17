@@ -9,13 +9,17 @@
  */
 package io.amelia.looper;
 
+import io.amelia.looper.queue.EntryAbstract;
+
 @FunctionalInterface
 public interface LooperTask<E extends Exception>
 {
 	/**
 	 * Computes a result, or throws an exception if unable to do so.
 	 *
+	 * @param entry The EntryAbstract that contained this LooperTask
+	 *
 	 * @throws E if unable to compute a result
 	 */
-	void execute() throws E;
+	void execute( EntryAbstract entry ) throws E;
 }

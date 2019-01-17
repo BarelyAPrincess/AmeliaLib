@@ -11,36 +11,39 @@ package io.amelia.support;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
-import java.io.PrintWriter;
+import java.util.Arrays;
 import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 
 import io.amelia.lang.ApplicationException;
-import io.netty.util.CharsetUtil;
 
 public class Exceptions
 {
-	private Exceptions()
+	public static String getStackTrace( @Nonnull Throwable throwable )
 	{
-		// Static Access
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		throwable.printStackTrace( new PrintStream( out ) );
+		return Strs.encodeDefault( out.toByteArray() );
 	}
 
-	public static void tryCatch( Callback<Exception> fn ) throws ApplicationException.Error
-	{
-		tryCatch( fn, ApplicationException.Error::new );
-	}
-
-	public static <Cause extends Exception> void tryCatch( Callback<Exception> fn, Function<Exception, Cause> mapper ) throws Cause
+	public static <Rtn> Rtn muteTryCatch( SupplierWithException<Rtn, Exception> supplier, Supplier<Rtn> altSupplier )
 	{
 		try
 		{
-			fn.call();
+			return supplier.get();
 		}
 		catch ( Exception e )
 		{
-			throw mapper.apply( e );
+			return altSupplier.get();
 		}
+	}
+
+	public static String stackTraceToString( StackTraceElement[] stackTrace )
+	{
+		return Arrays.stream( stackTrace ).map( StackTraceElement::toString ).collect( Collectors.joining( "\n" ) );
 	}
 
 	public static <Rtn> Rtn tryCatch( SupplierWithException<Rtn, Exception> fn ) throws ApplicationException.Error
@@ -48,7 +51,12 @@ public class Exceptions
 		return tryCatch( fn, ApplicationException.Error::new );
 	}
 
-	public static <Rtn, Cause extends Exception> Rtn tryCatch( SupplierWithException<Rtn, Exception> fn, Function<Exception, Cause> mapper ) throws Cause
+	public static void tryCatch( Callback<Exception> fn ) throws ApplicationException.Error
+	{
+		tryCatch( fn, ApplicationException.Error::new );
+	}
+
+	public static <Rtn, Exp extends Exception, Cause extends Exception> Rtn tryCatch( SupplierWithException<Rtn, Exp> fn, Function<Exp, Cause> mapper ) throws Cause
 	{
 		try
 		{
@@ -56,14 +64,56 @@ public class Exceptions
 		}
 		catch ( Exception e )
 		{
-			throw mapper.apply( e );
+			try
+			{
+				throw mapper.apply( ( Exp ) e );
+			}
+			catch ( ClassCastException ee )
+			{
+				throw new RuntimeException( e );
+			}
 		}
 	}
 
-	public static String getStackTrace( @Nonnull Throwable throwable )
+	public static <Exp extends Exception, Cause extends Exception> void tryCatch( Callback<Exp> fn, Function<Exp, Cause> mapper ) throws Cause
 	{
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		throwable.printStackTrace( new PrintStream( out ) );
-		return Strs.encodeDefault( out.toByteArray() );
+		try
+		{
+			fn.call();
+		}
+		catch ( Exception e )
+		{
+			try
+			{
+				throw mapper.apply( ( Exp ) e );
+			}
+			catch ( ClassCastException ee )
+			{
+				throw new RuntimeException( e );
+			}
+		}
+	}
+
+	public static <Rtn, Exp extends Exception, Cause extends Exception> Rtn tryCatchOrNotPresent( SupplierWithException<Voluntary<Rtn>, Cause> fn, Function<Cause, Exp> mapper ) throws Exp
+	{
+		Voluntary<Rtn> result;
+
+		try
+		{
+			result = fn.get();
+		}
+		catch ( Exception e )
+		{
+			throw mapper.apply( ( Cause ) e );
+		}
+
+		if ( result == null || !result.isPresent() )
+			throw mapper.apply( null );
+		return result.get();
+	}
+
+	private Exceptions()
+	{
+		// Static Access
 	}
 }

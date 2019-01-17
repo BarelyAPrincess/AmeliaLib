@@ -28,7 +28,7 @@ public abstract class FileWatcher
 	public FileWatcher( Path path )
 	{
 		this.path = path;
-		task = looper.postTaskRepeatingNext( () -> {
+		task = looper.postTaskRepeatingNext( entry -> {
 			boolean changesDetected = false;
 			lastCheck = DateAndTime.epoch();
 

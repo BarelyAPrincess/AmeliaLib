@@ -12,7 +12,6 @@ package io.amelia.support;
 import org.fusesource.jansi.Ansi;
 
 import java.util.Arrays;
-import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -21,139 +20,113 @@ import java.util.stream.Collectors;
 
 /**
  * All supported color values for chat
+ *
+ * TODO Implement background color codes
  */
 public enum EnumColor
 {
 	/**
 	 * Represents black
 	 */
-	BLACK( '0', 0x00 ),
+	BLACK( Ansi.ansi().fgBright( Ansi.Color.BLACK ).boldOff().toString(), '0', 0x00 ),
 	/**
 	 * Represents dark blue
 	 */
-	DARK_BLUE( '1', 0x1 ),
+	DARK_BLUE( Ansi.ansi().fgBright( Ansi.Color.BLUE ).boldOff().toString(), '1', 0x1 ),
 	/**
 	 * Represents dark green
 	 */
-	DARK_GREEN( '2', 0x2 ),
+	DARK_GREEN( Ansi.ansi().fgBright( Ansi.Color.GREEN ).boldOff().toString(), '2', 0x2 ),
 	/**
 	 * Represents dark blue (aqua)
 	 */
-	DARK_AQUA( '3', 0x3 ),
+	DARK_AQUA( Ansi.ansi().fgBright( Ansi.Color.CYAN ).boldOff().toString(), '3', 0x3 ),
 	/**
 	 * Represents dark red
 	 */
-	DARK_RED( '4', 0x4 ),
+	DARK_RED( Ansi.ansi().fgBright( Ansi.Color.RED ).boldOff().toString(), '4', 0x4 ),
 	/**
 	 * Represents dark purple
 	 */
-	DARK_PURPLE( '5', 0x5 ),
+	DARK_PURPLE( Ansi.ansi().fgBright( Ansi.Color.MAGENTA ).boldOff().toString(), '5', 0x5 ),
 	/**
 	 * Represents gold
 	 */
-	GOLD( '6', 0x6 ),
+	GOLD( Ansi.ansi().fgBright( Ansi.Color.YELLOW ).boldOff().toString(), '6', 0x6 ),
 	/**
 	 * Represents gray
 	 */
-	GRAY( '7', 0x7 ),
+	GRAY( Ansi.ansi().fgBright( Ansi.Color.WHITE ).boldOff().toString(), '7', 0x7 ),
 	/**
 	 * Represents dark gray
 	 */
-	DARK_GRAY( '8', 0x8 ),
+	DARK_GRAY( Ansi.ansi().fgBright( Ansi.Color.BLACK ).bold().toString(), '8', 0x8 ),
 	/**
 	 * Represents blue
 	 */
-	BLUE( '9', 0x9 ),
+	BLUE( Ansi.ansi().fgBright( Ansi.Color.BLUE ).bold().toString(), '9', 0x9 ),
 	/**
 	 * Represents green
 	 */
-	GREEN( 'a', 0xA ),
+	GREEN( Ansi.ansi().fgBright( Ansi.Color.GREEN ).bold().toString(), 'a', 0xA ),
 	/**
 	 * Represents aqua
 	 */
-	AQUA( 'b', 0xB ),
+	AQUA( Ansi.ansi().fgBright( Ansi.Color.CYAN ).bold().toString(), 'b', 0xB ),
 	/**
 	 * Represents red
 	 */
-	RED( 'c', 0xC ),
+	RED( Ansi.ansi().fgBright( Ansi.Color.RED ).bold().toString(), 'c', 0xC ),
 	/**
 	 * Represents light purple
 	 */
-	LIGHT_PURPLE( 'd', 0xD ),
+	LIGHT_PURPLE( Ansi.ansi().fgBright( Ansi.Color.MAGENTA ).bold().toString(), 'd', 0xD ),
 	/**
 	 * Represents yellow
 	 */
-	YELLOW( 'e', 0xE ),
+	YELLOW( Ansi.ansi().fgBright( Ansi.Color.YELLOW ).bold().toString(), 'e', 0xE ),
 	/**
 	 * Represents white
 	 */
-	WHITE( 'f', 0xF ),
+	WHITE( Ansi.ansi().fgBright( Ansi.Color.WHITE ).bold().toString(), 'f', 0xF ),
 	/**
 	 * Represents magical characters that change around randomly
 	 */
-	MAGIC( 'k', 0x10, true ),
+	MAGIC( Ansi.ansi().a( Ansi.Attribute.BLINK_SLOW ).toString(), 'k', 0x10, true ),
 	/**
 	 * Makes the text bold.
 	 */
-	BOLD( 'l', 0x11, true ),
+	BOLD( Ansi.ansi().a( Ansi.Attribute.INTENSITY_BOLD ).toString(), 'l', 0x11, true ),
 	/**
 	 * Makes a line appear through the text.
 	 */
-	STRIKETHROUGH( 'm', 0x12, true ),
+	STRIKETHROUGH( Ansi.ansi().a( Ansi.Attribute.STRIKETHROUGH_ON ).toString(), 'm', 0x12, true ),
 	/**
 	 * Makes the text appear underlined.
 	 */
-	UNDERLINE( 'n', 0x13, true ),
+	UNDERLINE( Ansi.ansi().a( Ansi.Attribute.UNDERLINE ).toString(), 'n', 0x13, true ),
 	/**
 	 * Makes the text italic.
 	 */
-	ITALIC( 'o', 0x14, true ),
+	ITALIC( Ansi.ansi().a( Ansi.Attribute.ITALIC ).toString(), 'o', 0x14, true ),
 	/**
 	 * Resets all previous chat colors or formats.
 	 */
-	RESET( 'r', 0x15 ),
+	RESET( Ansi.ansi().a( Ansi.Attribute.RESET ).fg( Ansi.Color.DEFAULT ).toString(), 'r', 0x15 ),
 
-	FAINT( 'z', 0x16 ),
+	FAINT( Ansi.ansi().a( Ansi.Attribute.INTENSITY_FAINT ).toString(), 'z', 0x16 ),
 
-	NEGATIVE( 'x', 0x17 );
+	NEGATIVE( Ansi.ansi().a( Ansi.Attribute.NEGATIVE_ON ).toString(), 'x', 0x17 );
 
 	/**
 	 * The special character which prefixes all chat color codes. Use this if you need to dynamically convert color
 	 * codes from your custom format.
 	 */
 	public static final char COLOR_CHAR = '\u00A7';
+	public static final String QUOTATION_COLOR = EnumColor.AQUA.getColorString();
 	private static final Map<Character, EnumColor> BY_CHAR = new HashMap<>();
 	private static final Map<Integer, EnumColor> BY_ID = new HashMap<>();
-	private static final Pattern STRIP_COLOR_PATTERN = Pattern.compile( "(?i)" + String.valueOf( COLOR_CHAR ) + "[0-9A-FK-OR]" );
-	private static Map<EnumColor, String> replacements = new EnumMap<>( EnumColor.class );
-
-	static
-	{
-		replacements.put( EnumColor.BLACK, Ansi.ansi().fg( Ansi.Color.BLACK ).boldOff().toString() );
-		replacements.put( EnumColor.DARK_BLUE, Ansi.ansi().fg( Ansi.Color.BLUE ).boldOff().toString() );
-		replacements.put( EnumColor.DARK_GREEN, Ansi.ansi().fg( Ansi.Color.GREEN ).boldOff().toString() );
-		replacements.put( EnumColor.DARK_AQUA, Ansi.ansi().fg( Ansi.Color.CYAN ).boldOff().toString() );
-		replacements.put( EnumColor.DARK_RED, Ansi.ansi().fg( Ansi.Color.RED ).boldOff().toString() );
-		replacements.put( EnumColor.DARK_PURPLE, Ansi.ansi().fg( Ansi.Color.MAGENTA ).boldOff().toString() );
-		replacements.put( EnumColor.GOLD, Ansi.ansi().fg( Ansi.Color.YELLOW ).boldOff().toString() );
-		replacements.put( EnumColor.GRAY, Ansi.ansi().fg( Ansi.Color.WHITE ).boldOff().toString() );
-		replacements.put( EnumColor.DARK_GRAY, Ansi.ansi().fg( Ansi.Color.BLACK ).bold().toString() );
-		replacements.put( EnumColor.BLUE, Ansi.ansi().fg( Ansi.Color.BLUE ).bold().toString() );
-		replacements.put( EnumColor.GREEN, Ansi.ansi().fg( Ansi.Color.GREEN ).bold().toString() );
-		replacements.put( EnumColor.AQUA, Ansi.ansi().fg( Ansi.Color.CYAN ).bold().toString() );
-		replacements.put( EnumColor.RED, Ansi.ansi().fg( Ansi.Color.RED ).bold().toString() );
-		replacements.put( EnumColor.LIGHT_PURPLE, Ansi.ansi().fg( Ansi.Color.MAGENTA ).bold().toString() );
-		replacements.put( EnumColor.YELLOW, Ansi.ansi().fg( Ansi.Color.YELLOW ).bold().toString() );
-		replacements.put( EnumColor.WHITE, Ansi.ansi().fg( Ansi.Color.WHITE ).bold().toString() );
-		replacements.put( EnumColor.MAGIC, Ansi.ansi().a( Ansi.Attribute.BLINK_SLOW ).toString() );
-		replacements.put( EnumColor.BOLD, Ansi.ansi().a( Ansi.Attribute.INTENSITY_BOLD ).toString() );
-		replacements.put( EnumColor.STRIKETHROUGH, Ansi.ansi().a( Ansi.Attribute.STRIKETHROUGH_ON ).toString() );
-		replacements.put( EnumColor.UNDERLINE, Ansi.ansi().a( Ansi.Attribute.UNDERLINE ).toString() );
-		replacements.put( EnumColor.ITALIC, Ansi.ansi().a( Ansi.Attribute.ITALIC ).toString() );
-		replacements.put( EnumColor.FAINT, Ansi.ansi().a( Ansi.Attribute.INTENSITY_FAINT ).toString() );
-		replacements.put( EnumColor.NEGATIVE, Ansi.ansi().a( Ansi.Attribute.NEGATIVE_ON ).toString() );
-		replacements.put( EnumColor.RESET, Ansi.ansi().a( Ansi.Attribute.RESET ).fg( Ansi.Color.DEFAULT ).toString() );
-	}
+	private static final Pattern STRIP_COLOR_PATTERN = Pattern.compile( "(?i)" + COLOR_CHAR + "[0-9A-FK-OR]" );
 
 	static
 	{
@@ -162,6 +135,52 @@ public enum EnumColor
 			BY_ID.put( color.intCode, color );
 			BY_CHAR.put( color.code, color );
 		}
+	}
+
+	public static String format( Level level, String rawMessage )
+	{
+		rawMessage = translateAlternateColorCodes( '&', rawMessage );
+
+		StringBuilder finalMessage = new StringBuilder();
+		EnumColor lastFgColor = null;
+		// EnumColor lastBgColor = null;
+		EnumColor lastFormat = null;
+		boolean quoteStart = false;
+		for ( int i = 0; i < rawMessage.length(); i++ )
+			if ( rawMessage.charAt( i ) == COLOR_CHAR )
+			{
+				i++;
+				EnumColor enumColor = getByChar( rawMessage.charAt( i ) );
+				if ( enumColor != null )
+					if ( enumColor.isColor() )
+						lastFgColor = enumColor;
+					else if ( enumColor.isFormat() )
+						lastFormat = enumColor;
+				finalMessage.append( enumColor.getColorString() );
+			}
+			else if ( rawMessage.charAt( i ) == '"' )
+			{
+				// TODO Make this a configurable option with added regex patterns
+				quoteStart = !quoteStart;
+				if ( quoteStart )
+					// TODO Change quotation color based log level
+					finalMessage.append( QUOTATION_COLOR ).append( '"' );
+				else
+				{
+					finalMessage.append( '"' );
+					if ( lastFgColor != null )
+						finalMessage.append( lastFgColor.getColorString() );
+					if ( lastFormat != null )
+						finalMessage.append( lastFormat.getColorString() );
+					// TODO Offer reset color and format separate
+					if ( lastFgColor == null && lastFormat == null )
+						finalMessage.append( RESET.getColorString() );
+				}
+			}
+			else
+				finalMessage.append( rawMessage.charAt( i ) );
+
+		return finalMessage.toString() + EnumColor.RESET.getColorString();
 	}
 
 	public static EnumColor fromLevel( Level var1 )
@@ -277,22 +296,6 @@ public enum EnumColor
 		return STRIP_COLOR_PATTERN.matcher( input ).replaceAll( "" );
 	}
 
-	public static String format( String var1 )
-	{
-		var1 = translateAlternateColorCodes( '&', var1 ) + EnumColor.RESET;
-
-		for ( EnumColor color : values() )
-			if ( replacements.containsKey( color ) )
-				var1 = var1.replaceAll( "(?i)" + color.toString(), replacements.get( color ) );
-			else
-				var1 = var1.replaceAll( "(?i)" + color.toString(), "" );
-
-		// TODO Make this a configurable option
-		Pattern qutationPattern = Pattern.compile( "\".*?\"" );
-
-		return var1;
-	}
-
 	/**
 	 * Translates a string using an alternate color code character into a string that uses the internal
 	 * ConsoleColor.COLOR_CODE color code character. The alternate color code character will only be replaced if it is
@@ -316,17 +319,19 @@ public enum EnumColor
 	}
 
 	private final char code;
+	private final String colorString;
 	private final int intCode;
 	private final boolean isFormat;
 	private final String toString;
 
-	EnumColor( char code, int intCode )
+	EnumColor( String colorString, char code, int intCode )
 	{
-		this( code, intCode, false );
+		this( colorString, code, intCode, false );
 	}
 
-	EnumColor( char code, int intCode, boolean isFormat )
+	EnumColor( String colorString, char code, int intCode, boolean isFormat )
 	{
+		this.colorString = colorString;
 		this.code = code;
 		this.intCode = intCode;
 		this.isFormat = isFormat;
@@ -341,6 +346,11 @@ public enum EnumColor
 	public char getChar()
 	{
 		return code;
+	}
+
+	public String getColorString()
+	{
+		return colorString;
 	}
 
 	/**

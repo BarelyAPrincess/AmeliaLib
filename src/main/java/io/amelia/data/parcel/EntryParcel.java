@@ -12,7 +12,9 @@ package io.amelia.data.parcel;
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 
+import io.amelia.lang.ApplicationException;
 import io.amelia.looper.queue.DefaultQueue;
+import io.amelia.looper.queue.EntryAbstract;
 import io.amelia.looper.queue.EntryRunnable;
 import io.amelia.support.Objs;
 
@@ -53,8 +55,9 @@ public class EntryParcel extends EntryRunnable
 	}
 
 	@Override
-	protected void run0()
+	protected void run0( EntryAbstract entry ) throws ApplicationException.Error
 	{
-		// TODO
+		// TODO?
+		parcelCarrier.getTargetReceiver().handleParcel( parcelCarrier );
 	}
 }

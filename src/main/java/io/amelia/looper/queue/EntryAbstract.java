@@ -11,7 +11,10 @@ package io.amelia.looper.queue;
 
 import javax.annotation.Nonnull;
 
+import io.amelia.foundation.Kernel;
 import io.amelia.looper.AbstractLooper;
+import io.amelia.support.DateAndTime;
+import io.amelia.support.Exceptions;
 import io.amelia.support.Maths;
 
 public abstract class EntryAbstract implements Comparable<EntryAbstract>
@@ -19,7 +22,9 @@ public abstract class EntryAbstract implements Comparable<EntryAbstract>
 	protected final boolean async;
 	protected final long id = AbstractLooper.getGloballyUniqueId();
 	protected final DefaultQueue queue;
-
+	// Traceback for looper creation debug, only populated during development mode.
+	protected final StackTraceElement[] stackTraceElements = Kernel.isDevelopment() ? Thread.currentThread().getStackTrace() : new StackTraceElement[0];
+	protected final long timestamp = DateAndTime.epoch();
 	/**
 	 * Indicates when the entry has been processed by the queue
 	 * <p>
@@ -62,9 +67,34 @@ public abstract class EntryAbstract implements Comparable<EntryAbstract>
 		return Maths.nonZero( Long.compare( getWhen(), entryAbstract.getWhen() ), Long.compare( getId(), entryAbstract.getId() ) ).orElse( 0 );
 	}
 
+	public String getCreationStackTrace()
+	{
+		return Exceptions.stackTraceToString( stackTraceElements );
+	}
+
+	public long getCreationTimestamp()
+	{
+		return timestamp;
+	}
+
 	public long getId()
 	{
 		return id;
+	}
+
+	public long getLastOverloadMillis()
+	{
+		return queue.getLastOverloadMillis();
+	}
+
+	public long getLastPolledMillis()
+	{
+		return queue.getLastPolledMillis();
+	}
+
+	public long getLoopStartMillis()
+	{
+		return queue.getLoopStartMillis();
 	}
 
 	public int getPositionInQueue()

@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.foundation.Kernel;
 
-public class Namespace extends NodeStack<Namespace>
+public class Namespace extends NodeStack<Namespace> implements Comparable<Namespace>
 {
 	private static final List<String> tldMaps = new ArrayList<>();
 

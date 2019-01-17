@@ -19,10 +19,12 @@ import java.util.function.Predicate;
 
 import javax.annotation.Nonnull;
 
+import io.amelia.foundation.Kernel;
 import io.amelia.lang.ApplicationException;
 import io.amelia.looper.AbstractLooper;
 import io.amelia.looper.LooperTaskTrait;
 import io.amelia.support.DateAndTime;
+import io.amelia.support.Exceptions;
 
 /**
  * Low-level class holding the list of {@link EntryAbstract entries} and sometimes {@link Runnable tasks}.
@@ -35,7 +37,7 @@ public class DefaultQueue extends AbstractQueue
 	protected final NavigableSet<EntryAbstract> entries = new TreeSet<>();
 	/**
 	 * We use {@link WeakReference} to prevent a circular reference that negates the benefit of the GC.
-	 * Sometimes this isn't an issue but some JVMs ain't smart enough to detect these types of bugs.
+	 * Most the time this isn't an issue but some JVM GCs aren't smart enough to detect these types references.
 	 */
 	private WeakReference<AbstractLooper<DefaultQueue>.LooperControl> looperControl;
 
@@ -43,8 +45,13 @@ public class DefaultQueue extends AbstractQueue
 	{
 		this.looperControl = new WeakReference<>( looperControl );
 
-		// We add a manual TaskEntry, which is executed first to signal an infallible start-up of the looper.
-		entries.add( new LooperTaskTrait.TaskEntry( this, looperControl::signalInfallibleStartup, 0 ) );
+		// We add a manual TaskEntry, which is executed first to signal an infallible startup of the looper.
+		entries.add( new LooperTaskTrait.TaskEntry( this, entry -> {
+			Kernel.L.info( "signalInfallibleStartup traceback:\n" + Exceptions.stackTraceToString( Thread.currentThread().getStackTrace() ) );
+			Kernel.L.info( "creation traceback:\n" + entry.getCreationStackTrace() );
+
+			looperControl.signalInfallibleStartup();
+		}, 0 ) );
 	}
 
 	public void cancel( long id )
@@ -174,6 +181,12 @@ public class DefaultQueue extends AbstractQueue
 		}
 	}
 
+	@Override
+	public int getPendingEntryCount()
+	{
+		return entries.size();
+	}
+
 	AbstractLooper<DefaultQueue> getLooper()
 	{
 		return looperControl == null || looperControl.get() == null ? null : looperControl.get().getLooper();
@@ -298,7 +311,7 @@ public class DefaultQueue extends AbstractQueue
 	}
 
 	@Override
-	protected Result processEntry( EntryAbstract activeEntry, long now )
+	protected Result processEntry( EntryAbstract activeEntry, long loopStartMillis, long lastPolledMillis, long lastOverloadMillis )
 	{
 		lock.writeLock().lock();
 		try
@@ -307,7 +320,7 @@ public class DefaultQueue extends AbstractQueue
 			{
 				// We filter out the remaining entries looking for anything besides just more CheckpointEntry instances.
 				// This allows for all remaining CheckpointEntry instances that may be in a row to receive the same answer.
-				boolean hasMoreEntries = entries.stream().filter( e -> !( e instanceof EntryCheckpoint ) ).count() > 0;
+				boolean hasMoreEntries = entries.stream().anyMatch( e -> !( e instanceof EntryCheckpoint ) );
 
 				BiPredicate<AbstractLooper, Boolean> predicate = ( ( EntryCheckpoint ) activeEntry ).predicate;
 
@@ -326,7 +339,7 @@ public class DefaultQueue extends AbstractQueue
 			}
 			else
 			{
-				if ( now < activeEntry.getWhen() )
+				if ( loopStartMillis < activeEntry.getWhen() )
 					return Result.WAITING;
 				else
 					return Result.SUCCESS;

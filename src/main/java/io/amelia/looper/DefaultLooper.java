@@ -68,10 +68,10 @@ public final class DefaultLooper extends AbstractLooper<DefaultQueue> implements
 	}
 
 	@Override
-	protected void tick( long loopStartMillis )
+	protected void tick( long loopStartMillis, long lastPolledMillis, long lastOverloadMillis )
 	{
 		// Call the actual loop logic.
-		AbstractQueue.Result result = getQueue().next( loopStartMillis );
+		AbstractQueue.Result result = getQueue().next( loopStartMillis, lastPolledMillis, lastOverloadMillis );
 
 		// A queue entry was successful returned, process it and then recycle it.
 		if ( result == AbstractQueue.Result.SUCCESS )

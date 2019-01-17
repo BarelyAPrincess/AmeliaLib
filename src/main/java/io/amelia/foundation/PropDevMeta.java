@@ -14,7 +14,11 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Properties;
+
+import javax.annotation.Nonnull;
 
 import io.amelia.lang.ApplicationException;
 import io.amelia.support.IO;
@@ -23,27 +27,46 @@ public class PropDevMeta implements DevMetaProvider
 {
 	private Properties prop = new Properties();
 
-	public PropDevMeta() throws ApplicationException.Error
+	public PropDevMeta() throws ApplicationException.Error, IOException
 	{
 		this( "build.properties" );
 	}
 
-	public PropDevMeta( File propFile ) throws FileNotFoundException, ApplicationException.Error
+	public PropDevMeta( @Nonnull Path propFile ) throws IOException, ApplicationException.Error
 	{
-		this( new FileInputStream( propFile ) );
+		loadProp( Files.newInputStream( propFile ) );
 	}
 
-	public PropDevMeta( String fileName ) throws ApplicationException.Error
+	public PropDevMeta( @Nonnull File propFile ) throws FileNotFoundException, ApplicationException.Error
+	{
+		loadProp( new FileInputStream( propFile ) );
+	}
+
+	public PropDevMeta( @Nonnull String fileName ) throws ApplicationException.Error, IOException
 	{
 		this( Kernel.class, fileName );
 	}
 
-	public PropDevMeta( Class<?> cls, String fileName ) throws ApplicationException.Error
+	public PropDevMeta( @Nonnull Class<?> cls, @Nonnull String fileName ) throws ApplicationException.Error, IOException
 	{
-		this( cls.getClassLoader().getResourceAsStream( fileName ) );
+		InputStream is = cls.getClassLoader().getResourceAsStream( fileName );
+		if ( is == null )
+			Kernel.L.warning( "The DevMeta file \"" + fileName + "\" does not exist!" );
+		else
+			loadProp( is );
 	}
 
-	public PropDevMeta( InputStream is ) throws ApplicationException.Error
+	public PropDevMeta( @Nonnull InputStream is ) throws ApplicationException.Error
+	{
+		loadProp( is );
+	}
+
+	public String getProperty( @Nonnull String key )
+	{
+		return prop.getProperty( key );
+	}
+
+	private void loadProp( @Nonnull InputStream is ) throws ApplicationException.Error
 	{
 		try
 		{
@@ -57,10 +80,5 @@ public class PropDevMeta implements DevMetaProvider
 		{
 			IO.closeQuietly( is );
 		}
-	}
-
-	public String getProperty( String key )
-	{
-		return prop.getProperty( key );
 	}
 }

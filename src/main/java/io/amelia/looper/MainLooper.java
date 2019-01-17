@@ -43,12 +43,12 @@ public abstract class MainLooper extends AbstractLooper<DefaultQueue> implements
 	public abstract ParcelReceiver getParcelReceiver();
 
 	@Override
-	protected final void tick( long loopStartMillis )
+	protected final void tick( long loopStartMillis, long lastPolledMillis, long lastOverloadMillis )
 	{
 		// Call the actual loop logic.
-		DefaultQueue.Result result = getQueue().next( loopStartMillis );
+		DefaultQueue.Result result = getQueue().next( loopStartMillis, lastPolledMillis, lastOverloadMillis );
 
-		// A queue entry was successful returned and can now be ran then recycled.
+		// A queue entry was successfully returned and can now be invoked.
 		if ( result == DefaultQueue.Result.SUCCESS )
 		{
 			// As of now, the only entry returned on the SUCCESS result is the EntryRunnable (or more so TaskEntry and ParcelEntry).

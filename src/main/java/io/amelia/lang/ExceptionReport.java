@@ -275,11 +275,11 @@ public final class ExceptionReport
 
 		if ( ignorableStream.get().count() > 0 )
 		{
-			builder.append( "We Encountered " ).append( ignorableStream.get().count() ).append( " Ignorable Exception(s):" ).append( "\n" );
-			ignorableStream.get().forEach( throwable -> builder.append( throwable.printStackTraceToString() ).append( "\n" ) );
+			builder.append( "We Encountered " ).append( ignorableStream.get().count() ).append( " Ignorable Exception(s):" );
+			ignorableStream.get().forEach( throwable -> builder.append( "\n\t" ).append( throwable.printStackTraceToString() ) );
 		}
 
-		return builder.toString();
+		return builder.append( "\n" ).toString();
 	}
 
 	public void printSevereToLog( Kernel.Logger logger )
@@ -295,11 +295,11 @@ public final class ExceptionReport
 
 		if ( severeStream.get().count() > 0 )
 		{
-			builder.append( "We Encountered " ).append( severeStream.get().count() ).append( " Severe Exception(s):" ).append( "\n" );
-			severeStream.get().forEach( throwable -> builder.append( throwable.printStackTraceToString() ).append( "\n" ) );
+			builder.append( "We Encountered " ).append( severeStream.get().count() ).append( " Severe Exception(s):" );
+			severeStream.get().forEach( throwable -> builder.append( "\n\t" ).append( throwable.printStackTraceToString() ) );
 		}
 
-		return builder.toString();
+		return builder.append( "\n" ).toString();
 	}
 
 	public void printToLog( Kernel.Logger logger )

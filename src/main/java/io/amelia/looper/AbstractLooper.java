@@ -23,8 +23,8 @@ import java.util.function.Consumer;
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.foundation.Kernel;
 import io.amelia.lang.ExceptionReport;
-import io.amelia.looper.queue.EntryAbstract;
 import io.amelia.looper.queue.AbstractQueue;
+import io.amelia.looper.queue.EntryAbstract;
 
 /**
  * The Looper is intended to be interfaced by the thread that intends to execute tasks or oversee the process.
@@ -214,6 +214,8 @@ public abstract class AbstractLooper<Q extends AbstractQueue>
 	 */
 	public void joinLoop()
 	{
+		Kernel.L.fine( "joinLoop()" );
+
 		thread = Thread.currentThread();
 
 		// Attempt to acquire the lock on the Looper, as to force outside calls to only process while Looper is asleep.
@@ -233,7 +235,7 @@ public abstract class AbstractLooper<Q extends AbstractQueue>
 				// Stores when the loop started.
 				final long loopStartMillis = System.currentTimeMillis();
 
-				tick( loopStartMillis );
+				tick( loopStartMillis, lastPolledMillis, lastOverloadMillis );
 
 				// Update the time taken during this iteration.
 				lastPolledMillis = System.currentTimeMillis() - loopStartMillis;
@@ -261,11 +263,11 @@ public abstract class AbstractLooper<Q extends AbstractQueue>
 				else
 					isOverloaded = false;
 
-				// Cycle time was under the 50 millis minimum, so we wait the remainder of time. This also gives the Looper a chance to process awaiting calls.
+				// Cycle time was under the 50 millis minimum, so we wait the remainder of time. This also gives the looper a chance to process awaiting calls.
 				if ( lastPolledMillis < 50L )
 					blockingCondition.await( 50 - lastPolledMillis, TimeUnit.MILLISECONDS );
 
-				// If we are overloaded and the last time we processed calls was over 1 second ago, a force the Looper to momentarily sleep for 20 millis.
+				// If we are overloaded and the last time we processed calls was over 1 second ago, a force the looper to momentarily sleep for 20 millis.
 				// Technically, this only stands to make an overloaded application, even more overloaded, but it's a necessary evil.
 				if ( isOverloaded && loopStartMillis - lastOverloadMillis > 1000L )
 				{
@@ -374,7 +376,7 @@ public abstract class AbstractLooper<Q extends AbstractQueue>
 
 	}
 
-	protected abstract void tick( long loopStartMillis );
+	protected abstract void tick( long loopStartMillis, long lastPolledMillis, long lastOverloadMillis );
 
 	@Override
 	public String toString()
@@ -435,7 +437,7 @@ public abstract class AbstractLooper<Q extends AbstractQueue>
 		{
 			if ( exceptionHandler == null )
 			{
-				ExceptionReport.handleSingleException( exception );
+				ExceptionReport.handleSingleException( exception, true );
 				quitUnsafe();
 			}
 			else

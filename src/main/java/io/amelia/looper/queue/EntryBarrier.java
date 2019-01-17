@@ -53,7 +53,7 @@ public class EntryBarrier extends EntryRunnable
 	}
 
 	@Override
-	protected void run0()
+	protected void run0( EntryAbstract entry )
 	{
 		if ( !predicate.test( queue.getLooper() ) )
 			cancel();

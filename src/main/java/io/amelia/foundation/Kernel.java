@@ -13,9 +13,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -102,7 +104,7 @@ public class Kernel
 			final ArrayDeque<Runnable> mTasks = new ArrayDeque<>();
 			Runnable mActive;
 
-			public synchronized void execute( final Runnable r )
+			public synchronized void execute( @Nonnull final Runnable r )
 			{
 				mTasks.offer( () -> {
 					try
@@ -147,6 +149,11 @@ public class Kernel
 
 	public static ExceptionRegistrar getExceptionRegistrar()
 	{
+		if ( exceptionRegistrar == null )
+			exceptionRegistrar = ( report, crashOnError ) -> {
+				if ( report.hasErrored() && crashOnError )
+					throw new RuntimeException( "The Kernel exception handler is unset and the application needed to crash!" );
+			};
 		return exceptionRegistrar;
 	}
 
@@ -346,10 +353,12 @@ public class Kernel
 
 	private static class BuiltinLogHandler implements LogHandler
 	{
+		SimpleDateFormat timestamp = new SimpleDateFormat( "HH:mm:ss.SSS" );
+
 		@Override
 		public void log( Level level, Class<?> source, String message, Object... args )
 		{
-			message = EnumColor.format( "[" + level.getName() + "] " + ( args.length > 0 ? String.format( message, args ) : message ) );
+			message = EnumColor.format( level, EnumColor.DARK_GRAY + timestamp.format( new Date() ) + " [" + EnumColor.fromLevel( level ) + level.getName() + EnumColor.DARK_GRAY + "] " + EnumColor.fromLevel( level ) + ( args.length > 0 ? String.format( message, args ) : message ) );
 
 			if ( level.intValue() <= Level.INFO.intValue() )
 				System.out.println( message );

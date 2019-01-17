@@ -28,6 +28,9 @@ public abstract class AbstractQueue
 	private Condition blockingCondition = lock.writeLock().newCondition();
 	private boolean isBlocking = false;
 	private boolean isPolling = false;
+	private long lastOverloadMillis = 0L;
+	private long lastPolledMillis = 0L;
+	private long loopStartMillis = 0L;
 
 	public AbstractQueue()
 	{
@@ -68,7 +71,24 @@ public abstract class AbstractQueue
 
 	public abstract long getEarliestEntry();
 
+	public long getLastOverloadMillis()
+	{
+		return lastOverloadMillis;
+	}
+
+	public long getLastPolledMillis()
+	{
+		return lastPolledMillis;
+	}
+
 	public abstract long getLatestEntry();
+
+	public long getLoopStartMillis()
+	{
+		return loopStartMillis;
+	}
+
+	public abstract int getPendingEntryCount();
 
 	public boolean hasFlag( Flag flag )
 	{
@@ -133,8 +153,12 @@ public abstract class AbstractQueue
 		return lock.isWriteLockedByCurrentThread();
 	}
 
-	public Result next( long now )
+	public Result next( long loopStartMillis, long lastPolledMillis, long lastOverloadMillis )
 	{
+		this.loopStartMillis = loopStartMillis;
+		this.lastPolledMillis = lastPolledMillis;
+		this.lastOverloadMillis = lastOverloadMillis;
+
 		isPolling = true;
 		try
 		{
@@ -169,7 +193,7 @@ public abstract class AbstractQueue
 								{
 									// Ignore
 								}
-								return next( now );
+								return next( loopStartMillis, lastPolledMillis, lastOverloadMillis );
 							}
 							finally
 							{
@@ -179,7 +203,7 @@ public abstract class AbstractQueue
 					}
 					else
 					{
-						activeResult = processEntry( activeEntry, now );
+						activeResult = processEntry( activeEntry, loopStartMillis, lastPolledMillis, lastOverloadMillis );
 
 						if ( activeResult == null )
 						{
@@ -237,12 +261,14 @@ public abstract class AbstractQueue
 	/**
 	 * Process the active entry.
 	 *
-	 * @param activeEntry The active entry
-	 * @param now         What's the current epoch
+	 * @param activeEntry        The active entry
+	 * @param loopStartMillis    What is the start millis
+	 * @param lastPolledMillis   What was the last polled millis
+	 * @param lastOverloadMillis What was the last overload millis
 	 *
 	 * @return The Result associated with the provided entry, returning null indicates an entry type that's internally handled.
 	 */
-	protected abstract Result processEntry( EntryAbstract activeEntry, long now );
+	protected abstract Result processEntry( EntryAbstract activeEntry, long loopStartMillis, long lastPolledMillis, long lastOverloadMillis );
 
 	public abstract void quit( boolean removePendingMessages );
 
@@ -279,11 +305,10 @@ public abstract class AbstractQueue
 		 */
 		ASYNC,
 		/**
-		 * Indicates the {@link #next(long)} can and will block while the queue is empty.
+		 * Indicates the {@link #next(long, long, long)} can and will block while the queue is empty.
 		 * This flag is default on any non-system queues to save CPU time.
 		 */
-		BLOCKING
-	}
+		BLOCKING}
 
 	public enum Result
 	{

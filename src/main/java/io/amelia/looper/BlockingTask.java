@@ -13,6 +13,7 @@ import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 
 import io.amelia.foundation.Kernel;
+import io.amelia.looper.queue.EntryAbstract;
 import io.amelia.support.Objs;
 
 /**
@@ -30,11 +31,11 @@ public final class BlockingTask<E extends Exception> implements LooperTask<E>
 	}
 
 	@Override
-	public void execute() throws E
+	public void execute( EntryAbstract entry ) throws E
 	{
 		try
 		{
-			mTask.execute();
+			mTask.execute( entry );
 		}
 		finally
 		{

@@ -119,7 +119,7 @@ public class Libraries implements LibrarySource
 		if ( !Files.isRegularFile( libPath ) )
 			return false;
 
-		L.info( EnumColor.GRAY + "Loading the library `" + IO.relPath( libPath ) + "`" );
+		L.info( EnumColor.GRAY + "Loading the library \"" + IO.relPath( libPath ) + "\"" );
 
 		try
 		{
@@ -187,7 +187,7 @@ public class Libraries implements LibrarySource
 				}
 			}
 
-			L.info( "Loading library `" + lib.toString() + "` from file `" + mavenLocalJar + "`..." );
+			L.info( "Loading library \"" + lib.toString() + "\" from file \"" + mavenLocalJar + "\"..." );
 
 			LibraryClassLoader.addPath( mavenLocalJar );
 		}
@@ -204,7 +204,7 @@ public class Libraries implements LibrarySource
 		}
 		catch ( IOException e )
 		{
-			L.severe( "We had a problem trying to extract native libraries from jar file '" + lib.jarPath() + "'", e );
+			L.severe( "We had a problem trying to extract native libraries from jar file \"" + lib.jarPath() + "\"", e );
 		}
 
 		return true;

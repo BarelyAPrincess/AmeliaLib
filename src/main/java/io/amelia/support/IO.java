@@ -35,7 +35,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.PosixFilePermission;
-import java.nio.file.attribute.PosixFilePermissions;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
@@ -555,7 +554,7 @@ public class IO
 		forceCreateDirectory( basePath );
 
 		if ( !Files.isRegularFile( libPath ) || !libPath.getFileName().toString().toLowerCase().endsWith( ".jar" ) )
-			throw new IOException( "The library " + libPath.toString() + " either does not exist nor is a jar file." );
+			throw new IOException( "The library \"" + libPath.toString() + "\" either does not exist nor is a jar file." );
 
 		JarFile jar = new JarFile( libPath.toFile() );
 		Enumeration<JarEntry> entries = jar.entries();
@@ -578,7 +577,7 @@ public class IO
 
 					String parent = internal.getParentFile().getName();
 
-					if ( parent.startsWith( os ) || parent.startsWith( "windows" ) || parent.startsWith( "linux" ) || parent.startsWith( "darwin" ) || parent.startsWith( "osx" ) || parent.startsWith( "solaris" ) || parent.startsWith( "cygwin" ) || parent.startsWith( "mingw" ) || parent.startsWith( "msys" ) )
+					if ( parent.startsWith( os ) || parent.startsWith( "win" ) || parent.startsWith( "linux" ) || parent.startsWith( "darwin" ) || parent.startsWith( "osx" ) || parent.startsWith( "solaris" ) || parent.startsWith( "cygwin" ) || parent.startsWith( "mingw" ) || parent.startsWith( "msys" ) )
 						newName = parent + "/" + newName;
 
 					if ( Arrays.asList( OSInfo.NATIVE_SEARCH_PATHS ).contains( parent ) )
@@ -587,13 +586,12 @@ public class IO
 					Path lib = basePath.resolve( newName );
 
 					if ( Files.exists( lib ) && nativesExtracted.contains( lib.toString() ) )
-						;
-					L.warning( EnumColor.GOLD + "We found more than one library with the same destination '" + lib.toString() + "', if these files for different architectures, they must be in separate directories, i.e., windows, linux-x86, linux-x86_64, etc." );
+						L.warning( EnumColor.GOLD + "We found native libraries destined for the directory within jar file \"" + lib.toString() + "\". We either didn't detect the arch or it's missing, e.g., windows, linux-x86, linux-x86_64, etc." );
 
 					if ( Files.exists( lib ) )
 					{
 						forceCreateDirectory( lib );
-						L.info( EnumColor.GOLD + "Extracting native library '" + entry.getName() + "' to '" + lib.toString() + "'." );
+						L.info( EnumColor.GOLD + "Extracting native library \"" + entry.getName() + "\" to \"" + lib.toString() + "\"." );
 						InputStream is = jar.getInputStream( entry );
 						OutputStream out = Files.newOutputStream( lib );
 						byte[] buf = new byte[0x1000];
@@ -622,8 +620,11 @@ public class IO
 
 		if ( nativesExtracted.size() > 0 )
 		{
-			if ( !foundArchMatchingNative )
-				L.warning( "We found native libraries contained within jar '" + libPath.toString() + "' but according to conventions none of them had the required architecture, the dependency may fail to load the required native if our theory is correct." );
+			// TODO Be more verbose about natives found or not
+			if ( foundArchMatchingNative )
+				L.warning( "We found native libraries within jar file \"" + libPath.toString() + "\", they were successfully added to the classpath." );
+			else
+				L.warning( "We found native libraries within jar file \"" + libPath.toString() + "\", however, specified arch conventions didn't match and you may encounter native dependency issues later." );
 
 			String path = basePath.toString().contains( " " ) ? "\"" + basePath.toString() + "\"" : basePath.toString();
 			System.setProperty( "java.library.path", System.getProperty( "java.library.path" ) + ":" + path );
@@ -1834,6 +1835,8 @@ public class IO
 
 	/**
 	 * Separate class for native platform ID which is only loaded when native libs are loaded.
+	 *
+	 * TODO This inner-class could likely benefit from massive improvements for modern os's and cpus
 	 */
 	public static class OSInfo
 	{
@@ -1853,7 +1856,7 @@ public class IO
 					boolean knownOs = true;
 					String osName;
 					// let the user override it.
-					osName = System.getProperty( "chiori.os-name" );
+					osName = System.getProperty( "sys.os-name" );
 					if ( osName == null )
 					{
 						String sysOs = System.getProperty( "os.name" );
@@ -2085,6 +2088,11 @@ public class IO
 										cpuNames.add( "armv4t" );
 										cpuNames.add( "armv4" );
 										break;
+
+									case "x86_64":
+										cpuNames.add( "x86_64" );
+										cpuNames.add( "64" );
+										cpuNames.add( "32" );
 									default:
 										cpuNames.add( cpuName );
 										break;
@@ -2105,20 +2113,18 @@ public class IO
 					}
 
 					// Finally, search paths.
-					final int cpuCount = cpuNames.size();
-					String[] searchPaths = new String[cpuCount];
+					List<String> searchPaths = new ArrayList<>();
 					if ( knownOs && knownCpu )
-						for ( int i = 0; i < cpuCount; i++ )
+						for ( String name : cpuNames )
 						{
-							final String name = cpuNames.get( i );
-							searchPaths[i] = osName + "-" + name;
+							searchPaths.add( osName + "-" + name );
+							searchPaths.add( osName + name );
 						}
-					else
-						searchPaths = new String[0];
 
-					return new Object[] {osName, cpuName, osName + "-" + cpuName, searchPaths};
+					return new Object[] {osName, cpuName, osName + "-" + cpuName, searchPaths.toArray( new String[0] )};
 				}
 			} );
+
 			OS_ID = strings[0].toString();
 			CPU_ID = strings[1].toString();
 			ARCH_NAME = strings[2].toString();

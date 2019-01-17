@@ -34,10 +34,11 @@ public abstract class EntryRunnable extends EntryAbstract implements Runnable
 		Runnable runnable = () -> {
 			try
 			{
-				run0();
+				run0( this );
 			}
 			catch ( ApplicationException.Error error )
 			{
+				// TODO Should we try finding who scheduled the runnable for more information?
 				queue.getLooperControl().handleException( error );
 			}
 		};
@@ -48,5 +49,5 @@ public abstract class EntryRunnable extends EntryAbstract implements Runnable
 			runnable.run();
 	}
 
-	protected abstract void run0() throws ApplicationException.Error;
+	protected abstract void run0( EntryAbstract entry ) throws ApplicationException.Error;
 }

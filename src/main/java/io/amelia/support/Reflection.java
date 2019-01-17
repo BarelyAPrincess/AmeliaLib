@@ -10,7 +10,10 @@
 package io.amelia.support;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -80,6 +83,50 @@ public class Reflection
 			throw new IllegalStateException( "Could not retrieve the Thread StackTrace." );
 
 		callHistory.add( stackTrace[2] );
+	}
+
+	private static void printModifiers( int modifiers, StringBuilder result )
+	{
+		if ( Modifier.isPublic( modifiers ) )
+			result.append( "public " );
+		else if ( Modifier.isPrivate( modifiers ) )
+			result.append( "private " );
+		else if ( Modifier.isProtected( modifiers ) )
+			result.append( "protected " );
+		if ( Modifier.isStatic( modifiers ) )
+			result.append( "static " );
+		if ( Modifier.isFinal( modifiers ) )
+			result.append( "final " );
+	}
+
+	// TODO Can be expanded
+	public static String readoutField( Field field )
+	{
+		StringBuilder result = new StringBuilder();
+		for ( Annotation annotation : field.getAnnotations() )
+			result.append( "@" ).append( annotation.annotationType().getSimpleName() ).append( " " );
+		printModifiers( field.getModifiers(), result );
+		result.append( field.getType().getSimpleName() ).append( field.getName() ).append( " " ).append( " = (value?)" );
+		return result.toString();
+	}
+
+	// TODO I think this method could have even more added to it.
+	public static String readoutMethod( Method method )
+	{
+		StringBuilder result = new StringBuilder();
+		for ( Annotation annotation : method.getAnnotations() )
+			result.append( "@" ).append( annotation.annotationType().getSimpleName() ).append( " " );
+		printModifiers( method.getModifiers(), result );
+		result.append( method.getReturnType().getSimpleName() ).append( " " ).append( method.getName() ).append( "(" );
+		for ( Parameter parameter : method.getParameters() )
+		{
+			for ( Annotation annotation : parameter.getAnnotations() )
+				result.append( " @" ).append( annotation.annotationType().getSimpleName() );
+			result.append( " " ).append( parameter.getType().getSimpleName() ).append( " " ).append( parameter.getName() );
+		}
+		if ( method.getParameterCount() > 0 )
+			result.append( " " );
+		return result.append( ")" ).toString();
 	}
 
 	public static void wasSuperCalled( Method method )

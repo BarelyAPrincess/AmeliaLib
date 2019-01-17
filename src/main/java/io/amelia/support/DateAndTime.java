@@ -65,13 +65,6 @@ public class DateAndTime
 		return System.currentTimeMillis() / 1000;
 	}
 
-	public static String formatDuration( long l )
-	{
-		Duration duration = new Duration( l );
-		PeriodFormatter formatter = new PeriodFormatterBuilder().appendDays().appendSuffix( " Day(s) " ).appendHours().appendSuffix( " Hour(s) " ).appendMinutes().appendSuffix( " Minute(s) " ).appendSeconds().appendSuffix( " Second(s)" ).toFormatter();
-		return formatter.print( duration.toPeriod() );
-	}
-
 	public static int getSecondsIn( String type )
 	{
 		type = type.toLowerCase();
@@ -226,7 +219,7 @@ public class DateAndTime
 	 *
 	 * @return Human readable duration string
 	 */
-	public static String readoutDuration( Number seconds )
+	public static String formatDuration( Number seconds )
 	{
 		Duration duration = new Duration( seconds );
 		PeriodFormatter formatter = new PeriodFormatterBuilder().appendDays().appendSuffix( " Day(s) " ).appendHours().appendSuffix( " Hour(s) " ).appendMinutes().appendSuffix( " Minute(s) " ).appendSeconds().appendSuffix( " Second(s)" ).toFormatter();
@@ -234,11 +227,11 @@ public class DateAndTime
 	}
 
 	/**
-	 * See {@link #readoutDuration(Number)}
+	 * See {@link #formatDuration(Number)}
 	 */
-	public static String readoutDuration( String seconds )
+	public static String formatDuration( String seconds )
 	{
-		return readoutDuration( Objs.castToInt( seconds ) );
+		return formatDuration( Objs.castToLong( seconds ) );
 	}
 
 	private DateAndTime()
