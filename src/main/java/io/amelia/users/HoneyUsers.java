@@ -21,18 +21,19 @@ import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 
 import io.amelia.bindings.Bindings;
+import io.amelia.bindings.Hook;
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.foundation.Foundation;
-import io.amelia.hooks.Hook;
+import io.amelia.lang.ApplicationException;
 import io.amelia.support.Objs;
 import io.amelia.support.Streams;
 
 public class HoneyUsers extends Users
 {
 	@Hook( ns = "io.amelia.bindings.init" )
-	public static void hookRegisterResolver()
+	public static void hookRegisterResolver() throws ApplicationException.Error
 	{
-		Bindings.registerResolver( "io.amelia.users", new UsersResolver() );
+		Bindings.getBindingForClass( HoneyUsers.class ).addResolver( new UsersResolver() );
 	}
 
 	volatile Set<UserContext> users = new CopyOnWriteArraySet<>();
