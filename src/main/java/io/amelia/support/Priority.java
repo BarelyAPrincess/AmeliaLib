@@ -9,6 +9,8 @@
  */
 package io.amelia.support;
 
+import java.util.function.Function;
+
 /**
  * Represents an event's priority in execution
  */
@@ -53,4 +55,29 @@ public enum Priority
 	{
 		return value;
 	}
-}
+
+	public static class Comparator<Obj> implements java.util.Comparator<Obj>
+	{
+		private final Function<Obj, Priority> priorityMethod;
+
+		public Comparator( Function<Obj, Priority> priorityMethod )
+		{
+			this.priorityMethod = priorityMethod;
+		}
+
+		@Override
+		public int compare( Obj o1, Obj o2 )
+		{
+			if ( o1 == null && o2 == null )
+				return 0;
+			if ( o1 == null )
+				return 1;
+			if ( o2 == null )
+				return -1;
+
+			Priority p1 = priorityMethod.apply( o1 );
+			Priority p2 = priorityMethod.apply( o2 );
+
+			return p1.compareTo( p2 );
+		}
+	}}

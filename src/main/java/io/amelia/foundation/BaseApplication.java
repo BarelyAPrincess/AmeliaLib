@@ -22,10 +22,10 @@ import java.util.UUID;
 import javax.annotation.Nonnull;
 
 import io.amelia.bindings.Bindings;
+import io.amelia.bindings.BindingsException;
 import io.amelia.data.ContainerBase;
 import io.amelia.data.parcel.ParcelInterface;
 import io.amelia.data.parcel.ParcelReceiver;
-import io.amelia.hooks.Hooks;
 import io.amelia.lang.ApplicationException;
 import io.amelia.lang.ExceptionRegistrar;
 import io.amelia.lang.ExceptionReport;
@@ -33,13 +33,11 @@ import io.amelia.lang.ReportingLevel;
 import io.amelia.lang.StartupException;
 import io.amelia.lang.StartupInterruptException;
 import io.amelia.looper.LooperRouter;
-import io.amelia.permissions.Permissions;
 import io.amelia.support.Encrypt;
 import io.amelia.support.EnumColor;
 import io.amelia.support.Objs;
 import io.amelia.support.Strs;
 import io.amelia.support.Sys;
-import io.amelia.users.Users;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -99,10 +97,10 @@ public abstract class BaseApplication implements VendorRegistrar, ExceptionRegis
 	@Override
 	public void fatalError( ExceptionReport report, boolean crashOnError )
 	{
-		if ( Objs.stackTraceAntiLoop( getClass(), "fatalError" ) )
+		if ( !Objs.stackTraceAntiLoop( getClass(), "fatalError" ) )
 			return;
-		if ( crashOnError )
-			Foundation.setRunlevel( Runlevel.CRASHED, "The Application has crashed!" );
+		if ( report.hasErrored() && crashOnError )
+			Foundation.setRunlevel( Runlevel.CRASHED );
 	}
 
 	public Env getEnv()
@@ -127,17 +125,6 @@ public abstract class BaseApplication implements VendorRegistrar, ExceptionRegis
 		return optionSet;
 	}
 
-	@SuppressWarnings( "unchecked" )
-	public <T extends Permissions> T getPermissions()
-	{
-		return ( T ) getPermissions( Permissions.class );
-	}
-
-	public <T extends Permissions> T getPermissions( Class<T> expectedClass )
-	{
-		return Bindings.resolveClass( expectedClass ).orElseThrowCause( e -> new ApplicationException.Runtime( "The Permissions implementation is missing.", e ) );
-	}
-
 	public Optional<String> getStringArgument( String arg )
 	{
 		return Optional.ofNullable( optionSet.valuesOf( arg ) ).filter( l -> l.size() > 0 ).map( l -> ( String ) l.get( 0 ) );
@@ -146,17 +133,6 @@ public abstract class BaseApplication implements VendorRegistrar, ExceptionRegis
 	public Optional<List<String>> getStringListArgument( String arg )
 	{
 		return Optional.ofNullable( ( List<String> ) optionSet.valuesOf( arg ) );
-	}
-
-	@SuppressWarnings( "unchecked" )
-	public <T extends Users> T getUsers()
-	{
-		return ( T ) getUsers( Users.class );
-	}
-
-	public <T extends Users> T getUsers( Class<T> expectedClass )
-	{
-		return Bindings.resolveClass( expectedClass ).orElseThrowCause( e -> new ApplicationException.Runtime( "The Users implementation is missing.", e ) );
 	}
 
 	public VendorMeta getVendorMeta()
@@ -247,8 +223,8 @@ public abstract class BaseApplication implements VendorRegistrar, ExceptionRegis
 				envNode.setValue( entry.getKey().replace( '-', '_' ), entry.getValue() );
 			envNode.addFlag( ContainerBase.Flags.READ_ONLY, ContainerBase.Flags.NO_SAVE );
 
-			Hooks.invoke( "io.amelia.app.parse" );
-
+			// ConfigRegistry should load here!
+			Bindings.getBindingForClass( Foundation.class ).invokeHook( "parse" );
 			Bindings.init();
 
 			parse();

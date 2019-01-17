@@ -11,8 +11,10 @@ package io.amelia.foundation;
 
 import io.amelia.data.parcel.ParcelReceiver;
 import io.amelia.lang.ApplicationException;
+import io.amelia.lang.ExceptionReport;
 import io.amelia.looper.MainLooper;
 import io.amelia.looper.queue.EntryAbstract;
+import io.amelia.support.Exceptions;
 
 public class FoundationLooper extends MainLooper
 {
@@ -53,7 +55,7 @@ public class FoundationLooper extends MainLooper
 	protected void quit( boolean removePendingMessages )
 	{
 		if ( !canQuit() )
-			throw ApplicationException.runtime( "FoundationLooper is not permitted to quit." );
+			throw new ApplicationException.Runtime( "FoundationLooper is not permitted to quit." );
 
 		super.quit( removePendingMessages );
 	}

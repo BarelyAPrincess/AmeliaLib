@@ -11,11 +11,11 @@ package io.amelia.plugins;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Optional;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 
+import io.amelia.bindings.Singular;
 import io.amelia.foundation.Kernel;
 import io.amelia.lang.PluginDependencyUnknownException;
 import io.amelia.lang.PluginException;
@@ -24,6 +24,7 @@ import io.amelia.lang.PluginNotFoundException;
 import io.amelia.plugins.loader.PluginLoader;
 import io.amelia.support.VoluntaryWithCause;
 
+@Singular
 public interface Plugins<Subclass extends BasePlugin>
 {
 	Kernel.Logger L = Kernel.getLogger( Plugins.class );

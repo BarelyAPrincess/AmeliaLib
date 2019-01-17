@@ -9,17 +9,26 @@
  */
 package io.amelia.bindings;
 
-import java.lang.reflect.Modifier;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Map;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
-import io.amelia.support.Objs;
-import io.amelia.support.StringLengthComparator;
-import io.amelia.support.Strs;
+import io.amelia.foundation.Foundation;
+import io.amelia.lang.ExceptionReport;
+import io.amelia.support.Namespace;
+import io.amelia.support.Priority;
+import io.amelia.support.Reflection;
 import io.amelia.support.Voluntary;
 
 /**
@@ -29,168 +38,180 @@ import io.amelia.support.Voluntary;
  *
  * }
  * </pre>
+ * <br />
+ *
+ * @see io.amelia.foundation.Foundation#addClassToClassAlias(Class, Class)
+ * @see io.amelia.foundation.Foundation#addClassToNamespaceAlias(Class, Namespace)
  */
-public abstract class BindingResolver
+public class BindingResolver
 {
-	private final Map<Class<?>, Class<?>> classToClassMappings = new HashMap<>();
-	private final Map<Class<?>, String> classToNamespaceMappings = new HashMap<>();
-	private final Map<String, Object> instances = new HashMap<>();
-	private final Map<String, String> namespaceToNamespaceMappings = new HashMap<>();
-	private final Map<String, Supplier<Object>> suppliers = new HashMap<>();
-
-	@Nonnull
-	String baseNamespace = "";
+	private final List<Mapping> mappings = new CopyOnWriteArrayList<>();
+	private final Priority priority;
 	private String defaultKey = null;
 
-	protected final void addAlias( String sourceNamespace, String targetNamespace )
+	public BindingResolver( Priority priority ) throws BindingsException.Error
 	{
-		sourceNamespace = Bindings.normalizeNamespace( sourceNamespace );
-		if ( sourceNamespace.startsWith( baseNamespace ) )
-			sourceNamespace = Strs.trimAll( sourceNamespace.substring( baseNamespace.length() ), '.' );
-
-		targetNamespace = Bindings.normalizeNamespace( targetNamespace );
-		if ( targetNamespace.startsWith( baseNamespace ) )
-			targetNamespace = Strs.trimAll( targetNamespace.substring( baseNamespace.length() ), '.' );
-
-		namespaceToNamespaceMappings.put( sourceNamespace, targetNamespace );
+		this.priority = priority;
+		initMappings();
 	}
 
-	protected final void addAlias( Class<?> sourceClass, String targetNamespace )
+	public void addObject( @Nonnull Object object ) throws BindingsException.Error
 	{
-		targetNamespace = Bindings.normalizeNamespace( targetNamespace );
-		if ( targetNamespace.startsWith( baseNamespace ) )
-			targetNamespace = Strs.trimAll( targetNamespace.substring( baseNamespace.length() ), '.' );
+		if ( object instanceof Supplier )
+			throw new BindingsException.Error( "Added object can't be a supplier, use #setSupplier method instead." );
 
-		classToNamespaceMappings.put( sourceClass, targetNamespace );
+		Mapping mapping = getResolverMapping( object.getClass() );
+		mapping.addObject( object );
 	}
 
-	protected final void addAlias( Class<?> sourceClass, Class<?> targetClass )
+	public Priority getPriority()
 	{
-		classToClassMappings.put( sourceClass, targetClass );
+		return priority;
 	}
 
-	protected <T> Voluntary<T> get( @Nonnull String namespace, @Nonnull final String key, @Nonnull Class<T> expectedClass, @Nonnull Object... args )
+	@Nonnull
+	public Mapping getResolverMapping( @Nullable Class<?> fromClass )
 	{
-		Voluntary<T> result = Voluntary.empty();
-
-		// TODO WARNING! It's possible that a subclass could crash the application by making looping aliases. We should prevent this!
-		if ( namespaceToNamespaceMappings.containsKey( key ) )
-			result = get( namespace, namespaceToNamespaceMappings.get( key ), expectedClass, args );
-
-		// Check for already instigated instances.
-		if ( !result.isPresent() && instances.containsKey( key ) )
-			try
-			{
-				result = Voluntary.of( ( T ) instances.get( key ) );
-			}
-			catch ( ClassCastException e )
-			{
-				// Ignore
-			}
-
-		if ( !result.isPresent() && suppliers.containsKey( key ) )
-			try
-			{
-				result = Voluntary.of( ( T ) suppliers.get( key ) );
-			}
-			catch ( ClassCastException e )
-			{
-				// Ignore
-			}
-
-		if ( !result.isPresent() )
-			result = Bindings.invokeMethods( this, method -> {
-				if ( expectedClass.isAssignableFrom( method.getReturnType() ) )
-				{
-					if ( method.isAnnotationPresent( ProvidesBinding.class ) )
-					{
-						String provides = method.getAnnotation( ProvidesBinding.class ).value();
-						String fullNamespace = Bindings.normalizeNamespace( provides );
-						if ( fullNamespace.equals( namespace ) || Strs.trimStart( fullNamespace, baseNamespace ).equals( namespace ) || provides.equals( key ) )
-							return true;
-					}
-					return method.getName().equals( key );
-				}
-				return false;
-			}, namespace, args );
-
-		if ( !result.isPresent() )
-			result = Bindings.invokeFields( this, field -> {
-				if ( expectedClass.isAssignableFrom( field.getType() ) )
-				{
-					if ( field.isAnnotationPresent( ProvidesBinding.class ) )
-					{
-						String provides = field.getAnnotation( ProvidesBinding.class ).value();
-						String fullNamespace = Bindings.normalizeNamespace( provides );
-						if ( fullNamespace.equals( namespace ) || Strs.trimStart( fullNamespace, baseNamespace ).equals( namespace ) || provides.equals( key ) )
-							return true;
-					}
-					return field.getName().equals( key );
-				}
-				return false;
-			}, namespace );
-
-		return result;
+		return mappings.stream().filter( entry -> entry.fromClass == fromClass ).findFirst().orElseGet( () -> {
+			Mapping mapping = new Mapping( fromClass );
+			mappings.add( mapping );
+			return mapping;
+		} );
 	}
 
-	protected <T> T get( @Nonnull String namespace, @Nonnull Class<T> expectedClass, @Nonnull Object... args )
+	@Nullable
+	public Mapping getResolverMapping( @Nullable String key )
 	{
-		// If the requested key is empty, we use the default
-		if ( Objs.isEmpty( namespace ) )
-			if ( Objs.isEmpty( defaultKey ) )
-				return null;
-			else
-				namespace = defaultKey;
+		return mappings.stream().filter( entry -> entry.keys.contains( key == null || key.length() == 0 ? defaultKey : key ) ).findFirst().orElse( null );
+	}
 
-		String subNamespace;
-		if ( namespace.startsWith( baseNamespace ) )
-			subNamespace = Strs.trimAll( namespace.substring( baseNamespace.length() ), '.' );
-		else
+	public void initMappings() throws BindingsException.Error
+	{
+		Bindings.L.info( "Initializing Binding Resolver \"" + getClass().getName() + "\"." );
+
+		for ( Method method : getClass().getMethods() )
 		{
-			namespace = baseNamespace + "." + namespace;
-			subNamespace = namespace;
+			if ( method.isAnnotationPresent( ProvidesClass.class ) )
+			{
+				Class<?> providesClass = method.getAnnotation( ProvidesClass.class ).value();
+				if ( !providesClass.isAssignableFrom( method.getReturnType() ) )
+					throw new BindingsException.Error( "The method \"" + method.getName() + "\" provides class \"" + providesClass.getName() + "\" but the return type of \"" + method.getReturnType().getName() + "\" is not assignable." );
+
+				InternalBinding internalBinding = Bindings.getChild( providesClass );
+				if ( internalBinding != null )
+					internalBinding.addResolver( this );
+
+				Mapping mapping = getResolverMapping( providesClass );
+				mapping.setSingular( method.isAnnotationPresent( Singular.class ) );
+				mapping.setSupplier( () -> {
+					try
+					{
+						method.setAccessible( true );
+						return method.invoke( this, Foundation.resolveParameters( method.getParameters() ) );
+					}
+					catch ( IllegalAccessException | InvocationTargetException | BindingsException.Error e )
+					{
+						ExceptionReport.handleSingleException( e );
+					}
+					return null;
+				} );
+				mapping.addKey( method.getName() );
+
+				Bindings.L.info( "    -> Found mapping for class \"" + providesClass.getName() + "\" with method \"" + Reflection.readoutMethod( method ) + "\"." );
+			}
+
+			if ( method.isAnnotationPresent( ProvidesBinding.class ) )
+			{
+				Namespace providesNamespace = Namespace.of( method.getAnnotation( ProvidesBinding.class ).value() );
+
+				InternalBinding internalBinding = Bindings.getChild( providesNamespace.getParent() );
+				if ( internalBinding != null )
+					internalBinding.addResolver( this );
+
+				Mapping mapping = getResolverMapping( providesNamespace.getLocalName() );
+				if ( mapping != null )
+				{
+					mapping.setSingular( method.isAnnotationPresent( Singular.class ) );
+					mapping.setSupplier( () -> {
+						try
+						{
+							method.setAccessible( true );
+							return method.invoke( this, Foundation.resolveParameters( method.getParameters() ) );
+						}
+						catch ( IllegalAccessException | InvocationTargetException | BindingsException.Error e )
+						{
+							ExceptionReport.handleSingleException( e );
+						}
+						return null;
+					} );
+					mapping.addKey( method.getName() );
+
+					Bindings.L.info( "    -> Found mapping for namespace \"" + providesNamespace.getString() + "\" with method \"" + Reflection.readoutMethod( method ) + "\"." );
+				}
+			}
 		}
 
-		// Convert namespaces to friendly keys
-		Object obj = get( namespace, Strs.toCamelCase( subNamespace ), expectedClass, args );
+		for ( Field field : getClass().getFields() )
+		{
+			if ( field.isAnnotationPresent( ProvidesClass.class ) )
+			{
+				Class<?> providesClass = field.getAnnotation( ProvidesClass.class ).value();
+				if ( !providesClass.isAssignableFrom( field.getType() ) )
+					throw new BindingsException.Error( "The field \"" + field.getName() + "\" provides class \"" + providesClass.getName() + "\" but the declared type \"" + field.getType().getName() + "\" is not assignable." );
 
-		if ( obj == null )
-			obj = get( namespace, Strs.toCamelCase( namespace ), expectedClass, args );
+				InternalBinding internalBinding = Bindings.getChild( providesClass );
+				if ( internalBinding != null )
+					internalBinding.addResolver( this );
 
-		return ( T ) obj;
-	}
+				Mapping mapping = getResolverMapping( providesClass );
+				mapping.setSingular( field.isAnnotationPresent( Singular.class ) );
+				mapping.setSupplier( () -> {
+					try
+					{
+						field.setAccessible( true );
+						return field.get( this );
+					}
+					catch ( IllegalAccessException e )
+					{
+						ExceptionReport.handleSingleException( e );
+					}
+					return null;
+				} );
+				mapping.addKey( field.getName() );
 
-	/**
-	 * Called when a class needs resolving.
-	 * Each registered resolver will be called for this purpose, first to return non-null will succeed.
-	 *
-	 * @param expectedClass
-	 * @param <T>
-	 *
-	 * @return
-	 */
-	protected <T> T get( @Nonnull Class<T> expectedClass, @Nonnull Object... args )
-	{
-		Object obj = null;
+				Bindings.L.info( "    -> Found mapping for class \"" + providesClass.getName() + "\" with field \"" + Reflection.readoutField( field ) + "\"." );
+			}
 
-		if ( classToClassMappings.containsKey( expectedClass ) )
-			obj = get( classToClassMappings.get( expectedClass ), args );
+			if ( field.isAnnotationPresent( ProvidesBinding.class ) )
+			{
+				Namespace providesNamespace = Namespace.of( field.getAnnotation( ProvidesBinding.class ).value() );
 
-		if ( obj == null && classToNamespaceMappings.containsKey( expectedClass ) )
-			obj = get( classToNamespaceMappings.get( expectedClass ), expectedClass, args );
+				InternalBinding internalBinding = Bindings.getChild( providesNamespace.getParent() );
+				if ( internalBinding != null )
+					internalBinding.addResolver( this );
 
-		if ( obj == null )
-			obj = Bindings.invokeMethods( this, method -> expectedClass.isAssignableFrom( method.getReturnType() ), args );
+				Mapping mapping = getResolverMapping( providesNamespace.getLocalName() );
+				if ( mapping != null )
+				{
+					mapping.setSingular( field.isAnnotationPresent( Singular.class ) );
+					mapping.setSupplier( () -> {
+						try
+						{
+							field.setAccessible( true );
+							return field.get( this );
+						}
+						catch ( IllegalAccessException e )
+						{
+							ExceptionReport.handleSingleException( e );
+						}
+						return null;
+					} );
+					mapping.addKey( field.getName() );
 
-		if ( obj == null )
-			obj = Bindings.invokeFields( this, field -> expectedClass.isAssignableFrom( field.getType() ) );
-
-		return ( T ) obj;
-	}
-
-	public boolean isRegistered()
-	{
-		return Bindings.resolvers.contains( this );
+					Bindings.L.info( "    -> Found mapping for namespace \"" + providesNamespace.getString() + "\" with field \"" + Reflection.readoutField( field ) + "\"." );
+				}
+			}
+		}
 	}
 
 	protected void setDefault( String defaultKey )
@@ -198,24 +219,168 @@ public abstract class BindingResolver
 		this.defaultKey = defaultKey;
 	}
 
-	public static class Comparator implements java.util.Comparator<BindingResolver>
+	public class Mapping<Obj>
 	{
-		private StringLengthComparator comparator;
+		// Would the next attempt to set anything be overridden or produce an exception?
+		boolean allowOverride = false;
+		// The original class this mapping represents
+		Class<Obj> fromClass;
+		// Available instances for this mapping
+		List<Obj> instances = new ArrayList<>();
+		// Alias keys that map to this mapping
+		Set<String> keys = new HashSet<>();
+		// Enforce a single object per mapping rule
+		boolean singular;
+		// An available supplier to produce this object
+		Supplier<Obj> supplier;
+		// Alias to another Class
+		Class<?> toClass;
+		// Alias to another Namespace
+		Namespace toNamespace;
 
-		public Comparator()
+		private Mapping( @Nonnull Class<Obj> fromClass )
 		{
-			this( true );
+			this.fromClass = fromClass;
 		}
 
-		public Comparator( boolean ascendingOrder )
+		public void addKey( @Nullable String key )
 		{
-			comparator = new StringLengthComparator( ascendingOrder );
+			keys.add( key );
 		}
 
-		@Override
-		public int compare( BindingResolver left, BindingResolver right )
+		public void addObject( @Nonnull Obj obj ) throws BindingsException.Error
 		{
-			return comparator.compare( left.baseNamespace, right.baseNamespace );
+			if ( !fromClass.isAssignableFrom( obj.getClass() ) )
+				throw new BindingsException.Error( "The class \"" + fromClass.getName() + "\" is not assignable from object class \"" + obj.getClass().getName() + "\"." );
+
+			noToNamespace();
+			noToClass();
+			if ( singular )
+				noInstances();
+
+			instances.add( obj );
+		}
+
+		/**
+		 * By default this resolver will not allow previously set mappings to be overridden.
+		 * When you allow override, the previous mapping will be removed, otherwise an exception will be thrown.
+		 */
+		public void allowOverride()
+		{
+			this.allowOverride = true;
+		}
+
+		public <T> Stream<T> getObjects()
+		{
+			return instances.stream().map( obj -> ( T ) obj );
+		}
+
+		private void noInstances() throws BindingsException.Error
+		{
+			if ( instances.size() > 0 )
+				if ( allowOverride )
+					instances.clear();
+				else
+					throw new BindingsException.Error( "This mapping for class \"" + fromClass.getName() + "\" already has instances." );
+		}
+
+		private void noSupplier() throws BindingsException.Error
+		{
+			if ( supplier != null )
+				if ( allowOverride )
+					supplier = null;
+				else
+					throw new BindingsException.Error( "This mapping for class \"" + fromClass.getName() + "\" has a supplier set." );
+		}
+
+		private void noToClass() throws BindingsException.Error
+		{
+			if ( toClass != null )
+				if ( allowOverride )
+					toClass = null;
+				else
+					throw new BindingsException.Error( "This mapping for class \"" + fromClass.getName() + "\" has a toClass set to \"" + toClass.getName() + "\"." );
+		}
+
+		private void noToNamespace() throws BindingsException.Error
+		{
+			if ( toNamespace != null )
+				if ( allowOverride )
+					toNamespace = null;
+				else
+					throw new BindingsException.Error( "This mapping for class \"" + fromClass.getName() + "\" has a toNamespace set to \"" + toNamespace.getString() + "\"." );
+		}
+
+		public <T> Voluntary<T> resolve( Voluntary<T> result )
+		{
+			if ( !result.isPresent() )
+			{
+				if ( instances.size() > 0 )
+					result = Voluntary.of( ( T ) instances.get( 0 ) );
+
+				if ( !result.isPresent() && supplier != null )
+				{
+					Obj obj = supplier.get();
+					if ( obj != null )
+					{
+						instances.add( obj );
+						result = Voluntary.of( ( T ) obj );
+					}
+				}
+
+				if ( !result.isPresent() && toClass != null )
+					result = Foundation.make( toClass );
+
+				if ( !result.isPresent() && toNamespace != null )
+					result = Foundation.make( toNamespace );
+			}
+
+			return result;
+		}
+
+		public void setSingular( boolean singular ) throws BindingsException.Error
+		{
+			if ( singular && instances.size() > 0 )
+				if ( allowOverride )
+					instances = instances.stream().limit( 1 ).collect( Collectors.toList() );
+				else
+					throw new BindingsException.Error( "Can't make mapping singular when it contains more than one instance." );
+
+			this.singular = singular;
+		}
+
+		public void setSupplier( @Nonnull Supplier<Obj> supplier ) throws BindingsException.Error
+		{
+			noToClass();
+			noToNamespace();
+
+			this.supplier = supplier;
+			allowOverride = false;
+		}
+
+		public void setToClass( @Nonnull Class<?> toClass ) throws BindingsException.Error
+		{
+			noToNamespace();
+			noInstances();
+			noSupplier();
+
+			this.toClass = toClass;
+			allowOverride = false;
+		}
+
+		public void setToNamespace( @Nonnull Namespace toNamespace ) throws BindingsException.Error
+		{
+			noToClass();
+			noInstances();
+			noSupplier();
+
+			this.toNamespace = toNamespace;
+			allowOverride = false;
+		}
+
+		public void unmap()
+		{
+			mappings.remove( this );
 		}
 	}
 }

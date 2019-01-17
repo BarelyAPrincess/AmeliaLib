@@ -15,12 +15,11 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Used to label a method or field as having a dynamic value inside BindingResolvers.
- * Meaning the returned value should NEVER be mapped to a namespace for reuse at a later time.
+ * Specifies the namespace used for a method/constructor parameter.
  */
-@Target( {ElementType.METHOD, ElementType.FIELD} )
 @Retention( RetentionPolicy.RUNTIME )
-public @interface DynamicBinding
+@Target( ElementType.PARAMETER )
+public @interface ParameterNamespace
 {
-
+	String value();
 }

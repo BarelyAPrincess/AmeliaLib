@@ -9,17 +9,19 @@
  */
 package io.amelia.bindings;
 
-import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-/**
- * Instructs the BindingResolver which class to instigate to fulfill a parameter requirement.
- */
+import io.amelia.support.Priority;
+
+import static java.lang.annotation.ElementType.METHOD;
+
 @Retention( RetentionPolicy.RUNTIME )
-@Target( ElementType.PARAMETER )
-public @interface BindingClass
+@Target( value = {METHOD} )
+public @interface Hook
 {
-	Class<?> value();
+	String ns() default "";
+
+	Priority priority() default Priority.NORMAL;
 }

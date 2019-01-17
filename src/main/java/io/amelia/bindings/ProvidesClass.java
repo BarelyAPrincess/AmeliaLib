@@ -7,21 +7,20 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.hooks;
+package io.amelia.bindings;
 
+import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import io.amelia.support.Priority;
-
-import static java.lang.annotation.ElementType.METHOD;
-
+/**
+ * Annotates methods and fields from within binding provider class to indicate the full provided namespace.
+ * This is recommended when possible to save the {@link Bindings} having to calculate the namespace through abstraction.
+ */
+@Target( {ElementType.FIELD, ElementType.METHOD} )
 @Retention( RetentionPolicy.RUNTIME )
-@Target( value = {METHOD} )
-public @interface Hook
+public @interface ProvidesClass
 {
-	String ns() default "";
-
-	Priority priority() default Priority.NORMAL;
+	Class<?> value();
 }

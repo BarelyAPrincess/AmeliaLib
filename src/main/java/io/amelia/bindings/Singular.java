@@ -14,9 +14,13 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * Used to label a class as only having one singular instance allowed, all other classes can be instigated as many times as requested.
+ * This annotation is commonly used on the Permissions, Users, Events, Plugins, and other systems.
+ */
+@Target( {ElementType.TYPE, ElementType.FIELD, ElementType.METHOD} )
 @Retention( RetentionPolicy.RUNTIME )
-@Target( ElementType.PARAMETER )
-public @interface BindingNamespace
+public @interface Singular
 {
-	String value();
+
 }

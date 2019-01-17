@@ -20,12 +20,16 @@ import java.util.concurrent.ConcurrentHashMap;
 import javax.annotation.Nonnull;
 
 import io.amelia.bindings.Bindings;
+import io.amelia.bindings.BindingsException;
+import io.amelia.foundation.Foundation;
 import io.amelia.foundation.Kernel;
 import io.amelia.foundation.RegistrarBase;
+import io.amelia.bindings.Hook;
 import io.amelia.lang.ApplicationException;
 import io.amelia.lang.DeprecatedDetail;
 import io.amelia.lang.ReportingLevel;
 import io.amelia.support.ConsumerWithException;
+import io.amelia.support.Exceptions;
 import io.amelia.support.Objs;
 import io.amelia.support.Priority;
 
@@ -33,15 +37,15 @@ public class Events
 {
 	public static final Kernel.Logger L = Kernel.getLogger( Events.class );
 
-	@SuppressWarnings( "unchecked" )
-	public static <T extends Events> T getInstance()
+	@Hook( ns = "io.amelia.bindings.init" )
+	public static void hookRegisterResolver() throws BindingsException.Error
 	{
-		return ( T ) getInstance( Events.class );
+		Bindings.getBindingForClass( Events.class ).addResolver( new EventsResolver() );
 	}
 
-	public static <T extends Events> T getInstance( Class<T> expectedClass )
+	public static Events getInstance()
 	{
-		return Bindings.resolveClass( expectedClass ).orElseThrowCause( e -> new ApplicationException.Runtime( "The Events implementation is missing.", e ) );
+		return Exceptions.tryCatchOrNotPresent( () -> Foundation.make( Events.class ), exp -> new ApplicationException.Runtime( "The Events implementation failed!", exp ) );
 	}
 
 	private Map<Class<? extends AbstractEvent>, EventHandlers> handlers = new ConcurrentHashMap<>();

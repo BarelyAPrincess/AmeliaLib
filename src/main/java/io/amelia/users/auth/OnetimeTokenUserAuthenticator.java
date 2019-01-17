@@ -51,7 +51,7 @@ public class OnetimeTokenUserAuthenticator extends UserAuthenticator
 			e.printStackTrace();
 		} */
 
-		LooperRouter.getMainLooper().postTaskRepeatingAt( () -> {
+		LooperRouter.getMainLooper().postTaskRepeatingAt( entry -> {
 			try
 			{
 				int deleted = db.table( "accounts_token" ).delete().where( "expires" ).moreThan( 0 ).and().where( "expires" ).lessThan( DateAndTime.epoch() ).executeWithException().count();

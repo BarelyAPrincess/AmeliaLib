@@ -42,7 +42,7 @@ public abstract class DefaultApplication extends BaseApplication
 	public void onRunlevelChange( Runlevel previousRunlevel, Runlevel currentRunlevel ) throws ApplicationException.Error
 	{
 		if ( currentRunlevel == Runlevel.MAINLOOP )
-			LooperRouter.getMainLooper().postTaskRepeatingLater( () -> Tasks.heartbeat( LooperRouter.getMainLooper().getLastPolledMillis() ), 50L, 50L );
+			LooperRouter.getMainLooper().postTaskRepeatingLater( entry -> Tasks.heartbeat( LooperRouter.getMainLooper().getLastPolledMillis() ), 50L, 50L );
 		if ( currentRunlevel == Runlevel.SHUTDOWN )
 		{
 			Foundation.L.info( "Shutting Down Task Manager..." );
