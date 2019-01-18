@@ -19,11 +19,12 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 
-import io.amelia.bindings.Hook;
 import io.amelia.data.parcel.ParcelChecker;
 import io.amelia.foundation.ConfigData;
 import io.amelia.foundation.ConfigLoader;
 import io.amelia.foundation.ConfigRegistry;
+import io.amelia.foundation.Foundation;
+import io.amelia.foundation.Hook;
 import io.amelia.foundation.Kernel;
 import io.amelia.lang.ConfigException;
 import io.amelia.lang.ParcelException;
@@ -116,7 +117,7 @@ public class HoneyStorage
 		return rootBackend;
 	}
 
-	@Hook( ns = "io.amelia.foundation.parse" )
+	@Hook( hookClass = Foundation.class, hookAction = Foundation.HOOK_ACTION_PARSE )
 	public static void hookFoundationParse() throws StorageException.Error
 	{
 		addConfigLoader( ConfigRegistry.LOADER );
