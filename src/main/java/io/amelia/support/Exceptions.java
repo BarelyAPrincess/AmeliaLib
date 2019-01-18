@@ -29,6 +29,11 @@ public class Exceptions
 		return Strs.encodeDefault( out.toByteArray() );
 	}
 
+	public static String getStackTrace()
+	{
+		return stackTraceToString( Thread.currentThread().getStackTrace() );
+	}
+
 	public static <Rtn> Rtn muteTryCatch( SupplierWithException<Rtn, Exception> supplier, Supplier<Rtn> altSupplier )
 	{
 		try
@@ -94,7 +99,7 @@ public class Exceptions
 		}
 	}
 
-	public static <Rtn, Exp extends Exception, Cause extends Exception> Rtn tryCatchOrNotPresent( SupplierWithException<Voluntary<Rtn>, Cause> fn, Function<Cause, Exp> mapper ) throws Exp
+	public static <Rtn, Cause extends Exception, Exp extends Exception> Rtn tryCatchOrNotPresent( SupplierWithException<Voluntary<Rtn>, Cause> fn, Function<Cause, Exp> mapper ) throws Exp
 	{
 		Voluntary<Rtn> result;
 
@@ -104,6 +109,8 @@ public class Exceptions
 		}
 		catch ( Exception e )
 		{
+			if ( e instanceof RuntimeException )
+				throw ( RuntimeException ) e;
 			throw mapper.apply( ( Cause ) e );
 		}
 

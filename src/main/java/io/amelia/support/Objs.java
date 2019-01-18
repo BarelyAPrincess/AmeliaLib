@@ -980,6 +980,16 @@ public class Objs
 		if ( obj == null )
 			throw new NullPointerException( String.format( message, values ) );
 
+		Supplier<IllegalArgumentException> expSupplier = () -> new IllegalArgumentException( String.format( message, values ) );
+
+		if ( obj instanceof String )
+		{
+			// Just a reflection avoidance route.
+			if ( ( ( String ) obj ).length() == 0 )
+				throw expSupplier.get();
+			return obj;
+		}
+
 		Method methodIsEmpty = getMethodSafe( obj, "isEmpty" );
 		Method methodHasPendingEntries = getMethodSafe( obj, "hasPendingEntries" );
 		Method methodLength = getMethodSafe( obj, "length" );
@@ -987,24 +997,24 @@ public class Objs
 		Method methodGetNameCount = getMethodSafe( obj, "getNameCount" );
 
 		if ( methodIsEmpty != null && invokeMethodSafe( obj, methodIsEmpty, false ) )
-			throw new IllegalArgumentException( String.format( message, values ) );
+			throw expSupplier.get();
 
 		if ( methodHasPendingEntries != null && invokeMethodSafe( obj, methodHasPendingEntries, false ) )
-			throw new IllegalArgumentException( String.format( message, values ) );
+			throw expSupplier.get();
 
 		if ( methodLength != null )
 		{
 			if ( methodLength.getReturnType() == Long.class && invokeMethodSafe( obj, methodLength, -1L ) == 0L )
-				throw new IllegalArgumentException( String.format( message, values ) );
+				throw expSupplier.get();
 			else if ( methodLength.getReturnType() == Integer.class && invokeMethodSafe( obj, methodLength, -1 ) == 0 )
-				throw new IllegalArgumentException( String.format( message, values ) );
+				throw expSupplier.get();
 		}
 
 		if ( methodSize != null && invokeMethodSafe( obj, methodSize, -1 ) == 0 )
-			throw new IllegalArgumentException( String.format( message, values ) );
+			throw expSupplier.get();
 
 		if ( methodGetNameCount != null && invokeMethodSafe( obj, methodGetNameCount, -1 ) == 0 )
-			throw new IllegalArgumentException( String.format( message, values ) );
+			throw expSupplier.get();
 
 		return obj;
 	}

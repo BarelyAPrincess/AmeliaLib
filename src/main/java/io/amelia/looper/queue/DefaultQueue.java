@@ -47,8 +47,8 @@ public class DefaultQueue extends AbstractQueue
 
 		// We add a manual TaskEntry, which is executed first to signal an infallible startup of the looper.
 		entries.add( new LooperTaskTrait.TaskEntry( this, entry -> {
-			Kernel.L.info( "signalInfallibleStartup traceback:\n" + Exceptions.stackTraceToString( Thread.currentThread().getStackTrace() ) );
-			Kernel.L.info( "creation traceback:\n" + entry.getCreationStackTrace() );
+			// Kernel.L.info( "signalInfallibleStartup traceback:\n" + Exceptions.stackTraceToString( Thread.currentThread().getStackTrace() ) );
+			// Kernel.L.info( "creation traceback:\n" + entry.getCreationStackTrace() );
 
 			looperControl.signalInfallibleStartup();
 		}, 0 ) );
@@ -359,7 +359,7 @@ public class DefaultQueue extends AbstractQueue
 			return;
 
 		if ( !getLooper().isLockedByCurrentThread() )
-			throw ApplicationException.runtime( "Looper must be locked by this thread to quit the LooperQueue." );
+			throw new ApplicationException.Runtime( "Looper must be locked by this thread to quit the LooperQueue." );
 
 		final long now = System.currentTimeMillis();
 		lock.writeLock().lock();

@@ -74,7 +74,7 @@ public class PropDevMeta implements DevMetaProvider
 		}
 		catch ( IOException e )
 		{
-			throw ApplicationException.error( e );
+			throw new ApplicationException.Error( e );
 		}
 		finally
 		{

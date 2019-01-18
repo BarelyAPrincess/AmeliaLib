@@ -29,7 +29,7 @@ public abstract class EntryRunnable extends EntryAbstract implements Runnable
 	public synchronized void run()
 	{
 		if ( queue.getActiveEntry() != this )
-			throw ApplicationException.runtime( "Entry can only be ran while it's the active entry for the queue!" );
+			throw new ApplicationException.Runtime( "Entry can only be ran while it's the active entry for the queue!" );
 
 		Runnable runnable = () -> {
 			try

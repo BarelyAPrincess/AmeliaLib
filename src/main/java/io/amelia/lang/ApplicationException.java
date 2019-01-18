@@ -13,66 +13,6 @@ import javax.annotation.Nonnull;
 
 public final class ApplicationException
 {
-	public static Error error( String message )
-	{
-		return new Error( message );
-	}
-
-	public static Error error( String message, Throwable cause )
-	{
-		return new Error( message, cause );
-	}
-
-	public static Error error( Throwable cause )
-	{
-		return new Error( cause );
-	}
-
-	public static Ignorable ignorable( String message )
-	{
-		return new Ignorable( message );
-	}
-
-	public static Ignorable ignorable( Throwable cause )
-	{
-		return new Ignorable( cause );
-	}
-
-	public static Ignorable ignorable( String message, Throwable cause )
-	{
-		return new Ignorable( message, cause );
-	}
-
-	public static Notice notice( String message, Throwable cause )
-	{
-		return new Notice( message, cause );
-	}
-
-	public static Notice notice( Throwable cause )
-	{
-		return new Notice( cause );
-	}
-
-	public static Notice notice( String message )
-	{
-		return new Notice( message );
-	}
-
-	public static Runtime runtime( String message )
-	{
-		return new Runtime( message );
-	}
-
-	public static Runtime runtime( Throwable cause )
-	{
-		return new Runtime( cause );
-	}
-
-	public static Runtime runtime( String message, Throwable cause )
-	{
-		return new Runtime( message, cause );
-	}
-
 	private ApplicationException()
 	{
 		// Static
@@ -118,7 +58,7 @@ public final class ApplicationException
 			super( message, cause );
 			this.level = level;
 
-			if ( cause.getClass().isAssignableFrom( getClass() ) )
+			if ( cause != null && cause.getClass().isAssignableFrom( getClass() ) )
 				throw new IllegalArgumentException( "The cause argument can't be same class. {cause: " + cause.getClass() + ", this: " + getClass() + "}" );
 		}
 
@@ -127,7 +67,7 @@ public final class ApplicationException
 			super( cause );
 			this.level = level;
 
-			if ( cause.getClass().isAssignableFrom( getClass() ) )
+			if ( cause != null && cause.getClass().isAssignableFrom( getClass() ) )
 				throw new IllegalArgumentException( "The cause argument can't be same class. {cause: " + cause.getClass() + ", this: " + getClass() + "}" );
 		}
 

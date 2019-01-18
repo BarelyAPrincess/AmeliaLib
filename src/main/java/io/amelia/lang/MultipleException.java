@@ -10,18 +10,20 @@
 package io.amelia.lang;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Stream;
 
 /**
  * Used for when multiple exceptions were thrown
  */
-public class MultipleException extends Exception
+public class MultipleException extends ApplicationException.Error
 {
 	private final List<ExceptionContext> exceptions = new ArrayList<>();
 
 	public MultipleException( List<ExceptionContext> exceptions )
 	{
+		super( exceptions.stream().sorted( Comparator.comparingInt( o -> o.getReportingLevel().level ) ).map( ExceptionContext::getReportingLevel ).findFirst().orElse( ReportingLevel.E_ERROR ) );
 		this.exceptions.addAll( exceptions );
 	}
 

@@ -181,7 +181,7 @@ public abstract class NodeStack<Self extends NodeStack> implements Cloneable
 		 * The other way around should be true and likely means someone got their strings backwards.
 		 */
 		if ( containsRegex( namespace ) )
-			throw ApplicationException.runtime( "The namespace \"" + namespace + "\" contains wildcard/regex. This is usually a bug or the check was backwards." );
+			throw new ApplicationException.Runtime( "The namespace \"" + namespace + "\" contains wildcard/regex. This is usually a bug or the check was backwards." );
 
 		return prepareRegexp().matcher( namespace ).matches();
 	}

@@ -51,7 +51,7 @@ public final class LooperRouter
 	public static MainLooper getMainLooper()
 	{
 		if ( mainLooper == null )
-			throw ApplicationException.runtime( "The main looper must be set!" );
+			throw new ApplicationException.Runtime( "The main looper must be set!" );
 		return mainLooper;
 	}
 
