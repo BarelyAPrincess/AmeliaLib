@@ -23,7 +23,6 @@ import java.util.List;
 
 import javax.net.ssl.SSLException;
 
-import io.amelia.bindings.BindingsException;
 import io.amelia.events.Events;
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.foundation.Foundation;
@@ -138,8 +137,8 @@ public class SslRegistry implements Mapping<String, SslContext>
 			if ( event.getSslContext() != null )
 				return event.getSslContext();
 
-			try
-			{
+			//try
+			//{
 				DomainMapping mapping = DomainTree.parseDomain( hostname ).getDomainMapping();
 				if ( mapping != null )
 				{
@@ -147,11 +146,11 @@ public class SslRegistry implements Mapping<String, SslContext>
 					if ( context != null )
 						return context;
 				}
-			}
-			catch ( BindingsException.Ignorable e )
+			/*}
+			catch ( Exception e )
 			{
-				Networking.L.info( "Could not find the NetworkRegistry is missing, defaulting to server SSL certificate." );
-			}
+				Networking.L.info( "The NetworkRegistry is missing, defaulting to server SSL certificate." );
+			}*/
 		}
 
 		SslCertificateDefaultEvent event = Events.getInstance().callEvent( new SslCertificateDefaultEvent( hostname ) );
