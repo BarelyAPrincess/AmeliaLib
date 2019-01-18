@@ -21,8 +21,6 @@ import java.util.UUID;
 
 import javax.annotation.Nonnull;
 
-import io.amelia.bindings.Bindings;
-import io.amelia.bindings.BindingsException;
 import io.amelia.data.ContainerBase;
 import io.amelia.data.parcel.ParcelInterface;
 import io.amelia.data.parcel.ParcelReceiver;
@@ -224,8 +222,9 @@ public abstract class BaseApplication implements VendorRegistrar, ExceptionRegis
 			envNode.addFlag( ContainerBase.Flags.READ_ONLY, ContainerBase.Flags.NO_SAVE );
 
 			// ConfigRegistry should load here!
-			Bindings.getBindingForClass( Foundation.class ).invokeHook( "parse" );
-			Bindings.init();
+			Foundation.invokeHook( Foundation.class, Foundation.HOOK_ACTION_PARSE );
+			if ( !ConfigRegistry.isLoaded() )
+				throw new ApplicationException.Error( "ConfigRegistry did not initialize as expected." );
 
 			parse();
 		}

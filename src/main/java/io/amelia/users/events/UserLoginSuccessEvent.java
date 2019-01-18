@@ -21,7 +21,7 @@ public class UserLoginSuccessEvent extends UserEvent
 
 	public UserLoginSuccessEvent( UserPermissible userPermissible, UserResult result )
 	{
-		super( result.getUser(), userPermissible );
+		super( result.getContext(), userPermissible );
 		this.result = result;
 	}
 

@@ -18,15 +18,10 @@ import io.amelia.permissions.PermissibleEntity;
 public abstract class UserCreator
 {
 	private final String name;
-	private boolean isDefault;
 
-	public UserCreator( String name, boolean isDefault )
+	public UserCreator( String name )
 	{
 		this.name = name;
-		this.isDefault = isDefault;
-
-		if ( isDefault )
-			Foundation.getUsers().getUserCreators().forEach( backend -> backend.isDefault = false );
 	}
 
 	public abstract UserContext create( UUID uuid ) throws UserException.Error;
@@ -42,11 +37,6 @@ public abstract class UserCreator
 	}
 
 	public abstract boolean hasUser( UUID uuid );
-
-	public boolean isDefault()
-	{
-		return isDefault;
-	}
 
 	public abstract boolean isEnabled();
 
@@ -82,10 +72,4 @@ public abstract class UserCreator
 	 * @throws UserException.Error per implementation
 	 */
 	public abstract void save( UserContext userContext ) throws UserException.Error;
-
-	public void setDefault()
-	{
-		Foundation.getUsers().getUserCreators().forEach( backend -> backend.isDefault = false );
-		this.isDefault = true;
-	}
 }

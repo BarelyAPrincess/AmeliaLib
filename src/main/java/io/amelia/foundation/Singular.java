@@ -7,21 +7,20 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.bindings;
+package io.amelia.foundation;
 
+import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import io.amelia.support.Priority;
-
-import static java.lang.annotation.ElementType.METHOD;
-
+/**
+ * Used to label a class as only having one singular instance allowed, all other classes can be instigated as many times as requested.
+ * This annotation is commonly used on the Permissions, Users, Events, Plugins, and other systems.
+ */
+@Target( {ElementType.TYPE, ElementType.FIELD, ElementType.METHOD} )
 @Retention( RetentionPolicy.RUNTIME )
-@Target( value = {METHOD} )
-public @interface Hook
+public @interface Singular
 {
-	String ns() default "";
 
-	Priority priority() default Priority.NORMAL;
 }

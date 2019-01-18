@@ -21,13 +21,13 @@ public class UserLoginFailedEvent extends UserEvent
 
 	UserLoginFailedEvent( UserPermissible userPermissible, UserResult result )
 	{
-		super( result.getUser(), userPermissible );
+		super( result.getContext(), userPermissible );
 		this.result = result;
 	}
 
 	public UserLoginFailedEvent( UserResult result )
 	{
-		super( result.getUser() );
+		super( result.getContext() );
 		this.result = result;
 	}
 

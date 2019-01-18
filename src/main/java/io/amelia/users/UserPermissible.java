@@ -130,7 +130,7 @@ public abstract class UserPermissible extends Permissible implements EntitySubje
 			if ( auth != null )
 			{
 				Foundation.getUsers().getUser( result );
-				user = result.getUser();
+				user = result.getContext();
 
 				if ( user == null )
 					return result;

@@ -13,10 +13,11 @@ import java.util.UUID;
 
 import javax.annotation.Nonnull;
 
-import io.amelia.foundation.EntityPrincipal;
+import io.amelia.foundation.EntitySubject;
 import io.amelia.lang.ReportingLevel;
+import io.amelia.permissions.PermissibleEntity;
 
-public class UserResult implements EntityPrincipal
+public class UserResult implements EntitySubject
 {
 	@Nonnull
 	private final UUID uuid;
@@ -41,20 +42,33 @@ public class UserResult implements EntityPrincipal
 		return new UserException.Error( userContext, descriptiveReason, cause );
 	}
 
+	@Override
+	public UserContext getContext()
+	{
+		return userContext;
+	}
+
 	@Nonnull
 	public DescriptiveReason getDescriptiveReason()
 	{
 		return descriptiveReason;
 	}
 
+	@Override
+	public UserEntity getEntity()
+	{
+		return getContext().getEntity();
+	}
+
+	@Override
+	public PermissibleEntity getPermissibleEntity()
+	{
+		return getContext().getPermissibleEntity();
+	}
+
 	public ReportingLevel getReportingLevel()
 	{
 		return descriptiveReason.getReportingLevel();
-	}
-
-	public UserContext getUser()
-	{
-		return userContext;
 	}
 
 	public boolean hasCause()

@@ -19,33 +19,37 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nonnull;
 
-import io.amelia.bindings.Bindings;
-import io.amelia.bindings.BindingsException;
 import io.amelia.foundation.Foundation;
+import io.amelia.foundation.Hook;
 import io.amelia.foundation.Kernel;
+import io.amelia.foundation.ProvidesClass;
 import io.amelia.foundation.RegistrarBase;
-import io.amelia.bindings.Hook;
+import io.amelia.foundation.Singular;
 import io.amelia.lang.ApplicationException;
 import io.amelia.lang.DeprecatedDetail;
 import io.amelia.lang.ReportingLevel;
 import io.amelia.support.ConsumerWithException;
-import io.amelia.support.Exceptions;
 import io.amelia.support.Objs;
 import io.amelia.support.Priority;
 
+@Singular
 public class Events
 {
 	public static final Kernel.Logger L = Kernel.getLogger( Events.class );
+	private static Events instance;
 
-	@Hook( ns = "io.amelia.bindings.init" )
-	public static void hookRegisterResolver() throws BindingsException.Error
-	{
-		Bindings.getBindingForClass( Events.class ).addResolver( new EventsResolver() );
-	}
-
+	@ProvidesClass( Events.class )
 	public static Events getInstance()
 	{
-		return Exceptions.tryCatchOrNotPresent( () -> Foundation.make( Events.class ), exp -> new ApplicationException.Runtime( "The Events implementation failed!", exp ) );
+		if ( instance == null )
+			instance = new Events();
+		return instance;
+	}
+
+	@Hook( hookClass = Foundation.class, hookAction = Foundation.HOOK_ACTION_INIT )
+	public static void hookRegisterResolver() throws ApplicationException.Error
+	{
+		Foundation.initProviders( Events.class );
 	}
 
 	private Map<Class<? extends AbstractEvent>, EventHandlers> handlers = new ConcurrentHashMap<>();

@@ -15,7 +15,7 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 
-import io.amelia.bindings.Singular;
+import io.amelia.foundation.Singular;
 import io.amelia.foundation.Kernel;
 import io.amelia.lang.PluginDependencyUnknownException;
 import io.amelia.lang.PluginException;

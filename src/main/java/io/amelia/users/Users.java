@@ -10,16 +10,21 @@
 package io.amelia.users;
 
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 
 import io.amelia.data.TypeBase;
+import io.amelia.foundation.EntitySubject;
 import io.amelia.foundation.Kernel;
+import io.amelia.foundation.Singular;
 import io.amelia.lang.ReportingLevel;
 import io.amelia.support.Encrypt;
 
+@Singular
 public abstract class Users
 {
 	public static final Kernel.Logger L = Kernel.getLogger( Users.class );
@@ -30,12 +35,16 @@ public abstract class Users
 		Kernel.setPath( PATH_USERS, Kernel.PATH_STORAGE, "users" );
 	}
 
-	public final UserCreatorMemory MEMORY = new UserCreatorMemory();
+	public final UserCreatorMemory MEMORY;
 	public final ReportingLevel[] reportingLevelSeverityArray = new ReportingLevel[] {ReportingLevel.E_ERROR, ReportingLevel.L_SECURITY, ReportingLevel.L_ERROR, ReportingLevel.L_EXPIRED, ReportingLevel.L_DENIED};
+	protected final Set<UserCreator> userCreators = new CopyOnWriteArraySet<>();
+	public String defaultUserCreator = "memory";
 	protected boolean isDebugEnabled = false;
+	protected volatile Set<UserContext> users = new CopyOnWriteArraySet<>();
 
 	public Users()
 	{
+		MEMORY = new UserCreatorMemory( this );
 		addUserCreator( MEMORY );
 	}
 
@@ -44,6 +53,11 @@ public abstract class Users
 	abstract UserContext createUser( @Nonnull UUID uuid ) throws UserException.Error;
 
 	public abstract UserContext createUser( @Nonnull UUID uuid, @Nonnull UserCreator userCreator ) throws UserException.Error;
+
+	public EntitySubject createVirtualUser( UUID uuid )
+	{
+		return new UserContext( MEMORY, uuid, false );
+	}
 
 	public String generateUuid()
 	{
@@ -54,7 +68,10 @@ public abstract class Users
 		return uuid;
 	}
 
-	public abstract UserCreator getDefaultCreator();
+	public UserCreator getDefaultUserCreator()
+	{
+		return getUserCreator( defaultUserCreator ).orElse( MEMORY );
+	}
 
 	public String getDisplayNameFormat()
 	{
@@ -73,6 +90,8 @@ public abstract class Users
 
 	abstract Stream<UserContext> getUsers();
 
+	protected abstract boolean hasUserCreator( String userCreatorName );
+
 	public boolean isDebugEnabled()
 	{
 		return isDebugEnabled;
@@ -87,6 +106,13 @@ public abstract class Users
 	public void setDebugEnabled( boolean isDebugEnabled )
 	{
 		this.isDebugEnabled = isDebugEnabled;
+	}
+
+	public void setDefaultUserCreator( String defaultUserCreator )
+	{
+		if ( !hasUserCreator( defaultUserCreator ) )
+			throw new UserException.Runtime( "The UserCreator \"" + defaultUserCreator + "\" does not exist!" );
+		this.defaultUserCreator = defaultUserCreator;
 	}
 
 	abstract void unload( @Nonnull UUID uuid ) throws UserException.Error;

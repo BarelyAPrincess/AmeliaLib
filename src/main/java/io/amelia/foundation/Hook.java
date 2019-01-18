@@ -7,19 +7,23 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.bindings;
+package io.amelia.foundation;
 
-import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-/**
- * Specifies the namespace used for a method/constructor parameter.
- */
+import io.amelia.support.Priority;
+
+import static java.lang.annotation.ElementType.METHOD;
+
 @Retention( RetentionPolicy.RUNTIME )
-@Target( ElementType.PARAMETER )
-public @interface ParameterNamespace
+@Target( value = {METHOD} )
+public @interface Hook
 {
-	String value();
+	Class<?> hookClass();
+
+	String hookAction() default "default";
+
+	Priority priority() default Priority.NORMAL;
 }

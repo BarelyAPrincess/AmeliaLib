@@ -22,9 +22,9 @@ import io.amelia.support.VoluntaryBoolean;
 
 class UserCreatorMemory extends UserCreator
 {
-	public UserCreatorMemory()
+	public UserCreatorMemory( Users users )
 	{
-		super( "memory", Foundation.getUsers().getUserCreators().noneMatch( UserCreator::isDefault ) );
+		super( "memory" );
 
 		Events.getInstance().listen( Foundation.getApplication(), PermissibleEntityEvent.class, this::onPermissibleEntityEvent );
 	}
