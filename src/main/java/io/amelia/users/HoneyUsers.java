@@ -13,37 +13,54 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 
-import io.amelia.bindings.Bindings;
-import io.amelia.bindings.Hook;
 import io.amelia.foundation.ConfigRegistry;
+import io.amelia.foundation.EntityPrincipal;
 import io.amelia.foundation.Foundation;
+import io.amelia.foundation.Hook;
+import io.amelia.foundation.ProvidesClass;
 import io.amelia.lang.ApplicationException;
 import io.amelia.support.Objs;
 import io.amelia.support.Streams;
 
 public class HoneyUsers extends Users
 {
-	@Hook( ns = "io.amelia.bindings.init" )
-	public static void hookRegisterResolver() throws ApplicationException.Error
+	private static HoneyUsers instance;
+
+	@ProvidesClass( EntityPrincipal.class )
+	public static UserResult getEntityPrincipal( UUID uuid )
 	{
-		Bindings.getBindingForClass( HoneyUsers.class ).addResolver( new UsersResolver() );
+		return getInstance().getUser( uuid );
 	}
 
-	volatile Set<UserContext> users = new CopyOnWriteArraySet<>();
-	private boolean isDebugEnabled = ConfigRegistry.config.getValue( ConfigKeys.DEBUG_ENABLED );
-	private volatile Set<UserCreator> userCreators = new CopyOnWriteArraySet<>();
+	@ProvidesClass( Users.class )
+	public static HoneyUsers getInstance()
+	{
+		if ( instance == null )
+			instance = new HoneyUsers();
+		return instance;
+	}
+
+	@Hook( hookClass = Foundation.class, hookAction = Foundation.HOOK_ACTION_INIT )
+	public static void hookBindingsInit() throws ApplicationException.Error
+	{
+		Foundation.initProviders( HoneyUsers.class );
+	}
+
+	protected boolean isDebugEnabled = ConfigRegistry.config.getValue( ConfigKeys.DEBUG_ENABLED );
+
+	public HoneyUsers()
+	{
+		super();
+	}
 
 	@Override
 	public void addUserCreator( UserCreator userCreator )
 	{
-		// UserCreator userCreator = new UserCreatorStorage( name, storageBackend, isDefault );
 		userCreators.add( userCreator );
 		userCreator.load();
 	}
@@ -51,7 +68,7 @@ public class HoneyUsers extends Users
 	@Override
 	public UserContext createUser( @Nonnull UUID uuid ) throws UserException.Error
 	{
-		return createUser( uuid, getDefaultCreator() );
+		return createUser( uuid, getDefaultUserCreator() );
 	}
 
 	@Override
@@ -62,12 +79,6 @@ public class HoneyUsers extends Users
 		UserContext userContext = userCreator.create( uuid );
 		users.add( userContext );
 		return userContext;
-	}
-
-	@Override
-	public UserCreator getDefaultCreator()
-	{
-		return getUserCreators().filter( UserCreator::isDefault ).filter( UserCreator::isEnabled ).findAny().orElse( MEMORY );
 	}
 
 	@Override
@@ -167,6 +178,12 @@ public class HoneyUsers extends Users
 	public Stream<UserContext> getUsers()
 	{
 		return users.stream();
+	}
+
+	@Override
+	protected boolean hasUserCreator( String userCreatorName )
+	{
+		return userCreators.stream().anyMatch( userCreator -> userCreatorName.equals( userCreator.name() ) );
 	}
 
 	@Override
