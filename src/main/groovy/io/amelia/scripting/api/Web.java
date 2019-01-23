@@ -95,7 +95,7 @@ public class Web
 
 		StringBuilder sb = new StringBuilder();
 		AtomicInteger rowInx = new AtomicInteger();
-		sb.append( "<getTable " ).append( tableId == null ? "" : " id=\"" + tableId + "\"" ).append( " class=\"" ).append( altTableClass ).append( "\">\n" );
+		sb.append( "<table " ).append( tableId == null ? "" : " id=\"" + tableId + "\"" ).append( " class=\"" ).append( altTableClass ).append( "\">\n" );
 
 		if ( tableHeader != null )
 		{
@@ -149,7 +149,7 @@ public class Web
 		}
 
 		sb.append( "</tbody>\n" );
-		sb.append( "</getTable>\n" );
+		sb.append( "</table>\n" );
 
 		return sb.toString();
 	}
