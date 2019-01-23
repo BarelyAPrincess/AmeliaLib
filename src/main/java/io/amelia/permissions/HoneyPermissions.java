@@ -381,7 +381,7 @@ public class HoneyPermissions extends Permissions
 	@Override
 	protected Voluntary<Permission> getNodeByLocalName( @Nonnull String name )
 	{
-		return Voluntary.of( permissions.stream().filter( perm -> name.equalsIgnoreCase( perm.getName() ) ).findAny() );
+		return Voluntary.of( permissions.stream().filter( perm -> name.equalsIgnoreCase( perm.getLocalName() ) ).findAny() );
 	}
 
 	/**
@@ -458,7 +458,7 @@ public class HoneyPermissions extends Permissions
 	protected Permission getRootNode( String name )
 	{
 		for ( Permission perm : permissions )
-			if ( !perm.hasParent() && perm.getName().equalsIgnoreCase( name ) )
+			if ( !perm.hasParent() && perm.getLocalName().equalsIgnoreCase( name ) )
 				return perm;
 		return null;
 	}
