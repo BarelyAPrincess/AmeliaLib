@@ -271,7 +271,7 @@ public interface LooperTaskTrait
 		{
 			// XXX This is a precaution and could be backed off in the near future.
 			if ( delay < 50 )
-				throw new IllegalArgumentException( "RepeatingTask delay can't be less than 50 milliseconds. Anything less could cause looper lag issues." );
+				throw new IllegalArgumentException( "RepeatingTask delay can't be less than 50 milliseconds. Anything less could cause looper lag issues. Make sure you're specifying time delays using the \"" + Delays.class.getName() + "\" class." );
 			this.delay = delay;
 		}
 	}

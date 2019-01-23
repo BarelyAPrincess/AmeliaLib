@@ -671,7 +671,7 @@ public class Objs
 		return optional.isPresent() ? ifPresentFunction.apply( optional.get() ) : notPresentSupplier.get();
 	}
 
-	public static <T, R, E extends Exception> R ifPresent( @Nonnull VoluntaryWithCause<T, ?> optional, @Nonnull FunctionWithException<T, R, E> ifPresentFunction, SupplierWithException<R, E> notPresentSupplier ) throws E
+	public static <T, R, E extends Exception> R ifPresent( @Nonnull Voluntary<T> optional, @Nonnull FunctionWithException<T, R, E> ifPresentFunction, SupplierWithException<R, E> notPresentSupplier ) throws E
 	{
 		return optional.isPresent() ? ifPresentFunction.apply( optional.get() ) : notPresentSupplier.get();
 	}

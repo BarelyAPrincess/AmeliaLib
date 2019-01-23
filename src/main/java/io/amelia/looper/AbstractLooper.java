@@ -22,6 +22,7 @@ import java.util.function.Consumer;
 
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.foundation.Kernel;
+import io.amelia.lang.ApplicationException;
 import io.amelia.lang.ExceptionReport;
 import io.amelia.looper.queue.AbstractQueue;
 import io.amelia.looper.queue.EntryAbstract;
@@ -209,10 +210,22 @@ public abstract class AbstractLooper<Q extends AbstractQueue>
 		return thread != null;
 	}
 
+	public void joinLoopSafe()
+	{
+		try
+		{
+			joinLoop();
+		}
+		catch ( ApplicationException.Error e )
+		{
+			ExceptionReport.handleSingleException( e );
+		}
+	}
+
 	/**
 	 * Joins the thread to this looper until it quits.
 	 */
-	public void joinLoop()
+	public void joinLoop() throws ApplicationException.Error
 	{
 		Kernel.L.fine( "joinLoop()" );
 
@@ -287,7 +300,7 @@ public abstract class AbstractLooper<Q extends AbstractQueue>
 		}
 		catch ( Throwable t )
 		{
-			ExceptionReport.handleSingleException( t );
+			throw new ApplicationException.Error( "Exception thrown in joinLoop()", t );
 		}
 		finally
 		{
@@ -402,8 +415,7 @@ public abstract class AbstractLooper<Q extends AbstractQueue>
 		/**
 		 * Indicates the Looper will auto-quit once the queue is empty.
 		 */
-		AUTO_QUIT
-	}
+		AUTO_QUIT}
 
 	/**
 	 * LooperControl exposes sensitive and/or volatile methods and fields outside the package.

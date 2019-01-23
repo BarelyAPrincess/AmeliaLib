@@ -298,7 +298,7 @@ public class Voluntary<Type>
 	 * @throws NullPointerException if the mapping function is null or returns
 	 *                              a null result
 	 */
-	public <U> Voluntary<U> flatMap( @Nonnull Function<? super Type, Voluntary<U>> mapper )
+	public <U, Cause extends Exception> Voluntary<U> flatMap( @Nonnull FunctionWithException<? super Type, Voluntary<U>, Cause> mapper ) throws Cause
 	{
 		Objs.notNull( mapper );
 		if ( isPresent() )
@@ -307,7 +307,7 @@ public class Voluntary<Type>
 			return empty();
 	}
 
-	public <U> Voluntary<U> flatMapCompatible( @Nonnull Function<? super Type, Optional<U>> mapper )
+	public <U, Cause extends Exception> Voluntary<U> flatMapCompatible( @Nonnull FunctionWithException<? super Type, Optional<U>, Cause> mapper ) throws Cause
 	{
 		Objs.notNull( mapper );
 		if ( isPresent() )
@@ -356,7 +356,7 @@ public class Voluntary<Type>
 	 * If Voluntary has no value, the value will be retrieved from the supplied voluntary.
 	 * If the supplied Voluntary has not errored, this Voluntary's cause will be copied.
 	 */
-	public <T extends Type> Voluntary<T> ifAbsentGet( Supplier<Voluntary<T>> supplier )
+	public <T extends Type, Cause extends Exception> Voluntary<T> ifAbsentGet( SupplierWithException<Voluntary<T>, Cause> supplier ) throws Cause
 	{
 		if ( !isPresent() )
 			return supplier.get();
@@ -446,7 +446,7 @@ public class Voluntary<Type>
 	 * {@code map} returns an {@code Voluntary<FileInputStream>} for the desired
 	 * file if one exists.
 	 */
-	public <U> Voluntary<U> map( @Nonnull Function<? super Type, ? extends U> mapper )
+	public <U, Cause extends Exception> Voluntary<U> map( @Nonnull FunctionWithException<? super Type, ? extends U, Cause> mapper ) throws Cause
 	{
 		if ( isPresent() )
 			return Voluntary.ofNullable( mapper.apply( value ) );
@@ -494,6 +494,11 @@ public class Voluntary<Type>
 	 * @throws NullPointerException if value is not present and {@code other} is
 	 *                              null
 	 */
+	public <Cause extends Exception> Type orElseGet( SupplierWithException<? extends Type, Cause> other ) throws Cause
+	{
+		return value != null ? value : other.get();
+	}
+
 	public Type orElseGet( Supplier<? extends Type> other )
 	{
 		return value != null ? value : other.get();

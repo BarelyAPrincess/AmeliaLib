@@ -41,7 +41,7 @@ import io.amelia.support.Encrypt;
 import io.amelia.support.IO;
 import io.amelia.support.Maps;
 import io.amelia.support.Strs;
-import io.amelia.support.VoluntaryWithCause;
+import io.amelia.support.Voluntary;
 
 public class ParcelLoader
 {
@@ -373,20 +373,20 @@ public class ParcelLoader
 		TODO Implement
 	} */
 
-	public static <ValueType, ExceptionClass extends ApplicationException.Error> Map<String, Object> encodeMap( ContainerWithValue<? extends ContainerWithValue, ValueType, ExceptionClass> encoded )
+	public static <ValueType, ExceptionClass extends ApplicationException.Error> Map<String, Object> encodeMap( ContainerWithValue<? extends ContainerWithValue, ValueType, ExceptionClass> container )
 	{
 		Map<String, Object> map = new HashMap<>();
 
-		encoded.getChildren().forEach( child -> {
-			VoluntaryWithCause<ValueType, ExceptionClass> value = child.getValue();
+		container.getChildren().forEach( child -> {
+			Voluntary<ValueType> value = child.getValue();
 
 			if ( child.hasChildren() )
 			{
-				map.put( child.getName(), encodeMap( child ) );
+				map.put( child.getLocalName(), encodeMap( child ) );
 				value.ifPresent( o -> map.put( "__value", o ) );
 			}
 			else
-				value.ifPresent( o -> map.put( child.getName(), o ) );
+				value.ifPresent( o -> map.put( child.getLocalName(), o ) );
 		} );
 
 		return map;

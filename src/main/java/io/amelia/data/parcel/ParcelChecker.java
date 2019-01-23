@@ -18,9 +18,9 @@ import javax.annotation.Nullable;
 import io.amelia.data.ContainerBase;
 import io.amelia.data.ContainerWithValue;
 import io.amelia.data.ValueTypesTrait;
-import io.amelia.lang.ApplicationException;
 import io.amelia.lang.ParcelException;
 import io.amelia.support.Streams;
+import io.amelia.support.Voluntary;
 import io.amelia.support.VoluntaryWithCause;
 
 public class ParcelChecker
@@ -40,7 +40,7 @@ public class ParcelChecker
 			return;
 
 		Streams.forEachWithException( container.getChildren(), child -> {
-			Node otherNode = node.getChild( child.getName() );
+			Node otherNode = node.getChild( child.getLocalName() );
 			if ( otherNode == null )
 				throw new ParcelException.Error( "The path " + child.getCurrentPath() + " is not permitted!" );
 			enforce( otherNode, child, flags );
@@ -49,34 +49,26 @@ public class ParcelChecker
 
 	private static <ContainerClass extends ContainerWithValue<ContainerClass, Object, ?>> void enforce( @Nonnull Node node, @Nonnull ContainerClass container, @Nonnull EnumSet<CheckerFlag> flags ) throws ParcelException.Error
 	{
-		VoluntaryWithCause value = container.getValue();
+		Voluntary value = container.getValue();
 		if ( node.getValueFlag() == ValueFlag.DENIED && value.isPresent() )
 			throw new ParcelException.Error( "The path " + node.getCurrentPath() + " had a value, however, this is NOT PERMITTED!" );
 		if ( node.getValueFlag() == ValueFlag.REQUIRED && !value.isPresent() )
 			if ( node.hasDefault() )
-			{
-				try
-				{
-					container.setValue( node.getDefault() );
-				}
-				catch ( ApplicationException.Error e )
-				{
-					throw new ParcelException.Error( e );
-				}
-			}
+				container.setValue( node.getDefault() );
 			else
 				throw new ParcelException.Error( "The path " + node.getCurrentPath() + " has no value and one is REQUIRED!" );
 		if ( !flags.contains( CheckerFlag.IGNORE_TYPE_MISMATCH ) && !node.getValueType().isType( value.orElse( null ) ) )
 			throw new ParcelException.Error( "The path " + node.getCurrentPath() + " was expected to be type " + node.getValueType().name() + " but found {" + container.getValue().orElse( "null" ) + "} instead." );
 
 		Streams.forEachWithException( node.getChildren(), child -> {
-			ContainerWithValue otherChild = container.getChild( child.getName() );
+			ContainerWithValue otherChild = container.getChild( child.getLocalName() );
 			if ( otherChild == null && !flags.contains( CheckerFlag.IGNORE_MISSING ) )
 				throw new ParcelException.Error( "The path " + child.getCurrentPath() + " was missing!" );
 			else if ( otherChild != null )
 				enforce( child, otherChild, flags );
 		} );
 	}
+
 	private final Node root = new Node();
 
 	public ParcelChecker()
@@ -136,7 +128,7 @@ public class ParcelChecker
 		public boolean isType( @Nullable Object def )
 		{
 			ValueTypesTrait tester = () -> VoluntaryWithCause.ofWithCause( def );
-			VoluntaryWithCause result = VoluntaryWithCause.emptyWithCause();
+			Voluntary result = VoluntaryWithCause.emptyWithCause();
 
 			if ( this == BOOLEAN )
 				return tester.getBoolean().isPresent();

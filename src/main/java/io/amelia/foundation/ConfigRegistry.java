@@ -16,6 +16,7 @@ import java.nio.file.Path;
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 
+import io.amelia.data.ContainerBase;
 import io.amelia.data.TypeBase;
 import io.amelia.lang.ConfigException;
 import io.amelia.support.IO;
@@ -49,7 +50,7 @@ public class ConfigRegistry
 			ConfigData config = configs.get();
 			if ( config == null )
 				throw new ConfigException.Error( null, "There is no configuration to commit, you must first begin." );
-			Streams.forEachWithException( config.getChildren(), child -> config.setChild( child, true ) );
+			Streams.forEachWithException( config.getChildren(), child -> config.addChild( null, child, ContainerBase.ConflictStrategy.MERGE ) );
 			configs.remove();
 			loaded = true;
 		}
@@ -155,7 +156,7 @@ public class ConfigRegistry
 	public static void setObject( String key, Object value ) throws ConfigException.Error
 	{
 		if ( value instanceof ConfigData )
-			config.getChildOrCreate( key ).setChild( ( ConfigData ) value, false );
+			config.getChildOrCreate( key ).addChild( null, ( ConfigData ) value, ContainerBase.ConflictStrategy.OVERWRITE );
 		else
 			config.getChildOrCreate( key ).setValue( value );
 	}

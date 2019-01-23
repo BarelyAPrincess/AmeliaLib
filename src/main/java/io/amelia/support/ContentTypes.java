@@ -30,12 +30,12 @@ public class ContentTypes
 
 	public static void clearType( String ext ) throws ConfigException.Error
 	{
-		getConfigData().destroyChild( ext );
+		getConfigData().childDestroy( ext );
 	}
 
 	public static Stream<String> getAllTypes()
 	{
-		return getConfigData().getChildren().map( ContainerWithValue::getValue ).filter( VoluntaryWithCause::isPresent ).map( VoluntaryWithCause::get ).map( Objs::castToString );
+		return getConfigData().getChildren().map( ContainerWithValue::getValue ).filter( Voluntary::isPresent ).map( Voluntary::get ).map( Objs::castToString );
 	}
 
 	private static ConfigData getConfigData()
@@ -56,7 +56,7 @@ public class ContentTypes
 	public static Stream<String> getContentTypes( @Nonnull String filename )
 	{
 		String ext = Strs.regexCapture( filename, "\\.(\\w+)$" );
-		return Stream.concat( getConfigData().getChildren().filter( child -> child.getName().equalsIgnoreCase( ext ) && child.hasValue() ).flatMap( child -> Strs.split( child.getString().get(), "," ) ), Stream.of( "application/octet-stream" ) );
+		return Stream.concat( getConfigData().getChildren().filter( child -> child.getLocalName().equalsIgnoreCase( ext ) && child.hasValue() ).flatMap( child -> Strs.split( child.getString().get(), "," ) ), Stream.of( "application/octet-stream" ) );
 	}
 
 	@Nonnull

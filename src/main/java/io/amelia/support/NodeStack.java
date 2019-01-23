@@ -52,7 +52,7 @@ public abstract class NodeStack<Self extends NodeStack> implements Cloneable
 	{
 		this.creator = creator;
 		this.glue = glue;
-		this.nodes = nodes; // Strs.toLowerCase()?
+		this.nodes = Arrs.removeEmptyStrings( nodes ); // Strs.toLowerCase()?
 	}
 
 	protected NodeStack( NonnullBiFunction<Self, String[], Self> creator, String glue, Collection<String> nodes )
@@ -69,14 +69,9 @@ public abstract class NodeStack<Self extends NodeStack> implements Cloneable
 		this.nodes = new String[0];
 	}
 
-	@SuppressWarnings( "unchecked" )
-	public Self append( @Nonnull String name )
+	public Self append( @Nonnull String... names )
 	{
-		return append( new String[] {name} );
-	}
-
-	public Self append( @Nonnull String[] names )
-	{
+		names = Arrs.removeEmptyStrings( names );
 		if ( names.length == 0 )
 			return ( Self ) this;
 		for ( String name : names )
@@ -84,6 +79,21 @@ public abstract class NodeStack<Self extends NodeStack> implements Cloneable
 				throw new IllegalArgumentException( "Appended string MUST NOT contain the glue character." );
 		this.nodes = Arrs.concat( this.nodes, names );
 		return ( Self ) this;
+	}
+
+	public Self append( @Nonnull Namespace namespace )
+	{
+		if ( namespace.isEmpty() )
+			return ( Self ) this;
+		this.nodes = Arrs.concat( this.nodes, namespace.nodes );
+		return ( Self ) this;
+	}
+
+	public Self appendAndCreate( @Nonnull Namespace namespace )
+	{
+		if ( namespace.isEmpty() )
+			return ( Self ) this;
+		return create( Arrs.concat( this.nodes, namespace.nodes ) );
 	}
 
 	public Self appendAndCreate( @Nonnull String node )

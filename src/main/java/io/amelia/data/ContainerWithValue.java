@@ -29,8 +29,10 @@ import javax.annotation.Nullable;
 import io.amelia.data.parcel.Parcel;
 import io.amelia.foundation.Kernel;
 import io.amelia.lang.ApplicationException;
+import io.amelia.lang.ContainerException;
 import io.amelia.lang.ParcelableException;
 import io.amelia.support.BiFunctionWithException;
+import io.amelia.support.Namespace;
 import io.amelia.support.Objs;
 import io.amelia.support.Pair;
 import io.amelia.support.Voluntary;
@@ -62,7 +64,7 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 
 	public final int addValueChangeListener( ContainerListener.OnValueChange<BaseClass, ValueType> function, ContainerListener.Flags... flags )
 	{
-		return addListener( new ContainerListener.Container( LISTENER_VALUE_CHANGE, flags )
+		return listenerAdd( new ContainerListener.Container( LISTENER_VALUE_CHANGE, flags )
 		{
 			@Override
 			public void call( Object[] objs )
@@ -74,7 +76,7 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 
 	public final int addValueRemoveListener( ContainerListener.OnValueRemove<BaseClass, ValueType> function, ContainerListener.Flags... flags )
 	{
-		return addListener( new ContainerListener.Container( LISTENER_VALUE_REMOVE, flags )
+		return listenerAdd( new ContainerListener.Container( LISTENER_VALUE_REMOVE, flags )
 		{
 			@Override
 			public void call( Object[] objs )
@@ -86,7 +88,7 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 
 	public final int addValueStoreListener( ContainerListener.OnValueStore<BaseClass, ValueType> function, ContainerListener.Flags... flags )
 	{
-		return addListener( new ContainerListener.Container( LISTENER_VALUE_STORE, flags )
+		return listenerAdd( new ContainerListener.Container( LISTENER_VALUE_STORE, flags )
 		{
 			@Override
 			public void call( Object[] objs )
@@ -96,12 +98,12 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 		} );
 	}
 
-	public <O> Optional<O> asObject( Class<O> cls )
+	public <O> Voluntary<O> asObject( Class<O> cls )
 	{
 		try
 		{
 			Constructor<?> constructor = cls.getConstructor( ContainerBase.class );
-			return Optional.of( ( O ) constructor.newInstance( this ) );
+			return Voluntary.of( ( O ) constructor.newInstance( this ) );
 		}
 		catch ( Exception ignore )
 		{
@@ -109,12 +111,12 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 
 		try
 		{
-			Constructor<?> constructor = cls.getConstructor();
-			Object instance = constructor.newInstance();
+			Constructor<O> constructor = cls.getConstructor();
+			O instance = constructor.newInstance();
 
 			for ( Field field : cls.getFields() )
 			{
-				BaseClass child = findChild( field.getName(), false ).orElse( null );
+				BaseClass child = childFind( field.getName() ).orElse( null );
 
 				if ( child == null )
 				{
@@ -158,35 +160,28 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 				}
 			}
 
-			//for ( Field field : cls.getFields() )
-			//	if ( field.get( instance ) == null && !field.isSynthetic() )
-			//		Kernel.L.warning( "The field " + field.getProductName() + " is unassigned for object " + cls );
+			for ( Field field : cls.getFields() )
+				if ( field.get( instance ) == null && !field.isSynthetic() )
+					Kernel.L.warning( "The field \"" + field.getName() + "\" is unassigned for object \"" + cls + "\"." );
 
-			return ( Optional<O> ) instance;
+			return Voluntary.of( instance );
 		}
 		catch ( Exception ignore )
 		{
 		}
 
-		return Optional.empty();
+		return Voluntary.empty();
 	}
 
 	@Override
 	protected void canCreateChild( BaseClass node, String key ) throws ExceptionClass
 	{
 		if ( node.getParent() == this && hasFlag( Flags.VALUES_ONLY ) )
-			throw getException( "This node has the VALUES_ONLY flag set.", null );
+			throw getException( "This node can only contain values.", null );
 	}
 
 	@Override
-	public void copyChild( @Nonnull BaseClass child ) throws ExceptionClass
-	{
-		super.copyChild( child );
-		updateValue( child.value );
-	}
-
-	@Override
-	public void destroy() throws ExceptionClass
+	public void destroy()
 	{
 		super.destroy();
 		updateValue( null );
@@ -215,39 +210,39 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 
 	public Stream<ValueType> flatValues()
 	{
-		disposalCheck();
+		notDisposed();
 		Stream<ValueType> stream = children.stream().flatMap( ContainerWithValue::flatValues );
 		return Optional.ofNullable( value ).map( t -> Stream.concat( Stream.of( t ), stream ) ).orElse( stream );
 	}
 
 	public <LT extends ValueType> List<LT> getChildAsList( String key, Class<LT> type )
 	{
-		return findChild( key, false ).map( child -> child.getChildren().map( c -> Objs.castTo( c.value, type ) ).filter( Objects::nonNull ).collect( Collectors.toList() ) ).orElse( null );
+		return childFind( key ).map( child -> child.getChildren().map( c -> Objs.castTo( c.value, type ) ).filter( Objects::nonNull ).collect( Collectors.toList() ) ).orElse( null );
 	}
 
 	public <ExpectedValueType extends ValueType> List<ExpectedValueType> getChildAsList( String key )
 	{
-		return findChild( key, false ).map( child -> child.getChildren().map( c -> ( ExpectedValueType ) c.value ).filter( Objects::nonNull ).collect( Collectors.toList() ) ).orElse( null );
+		return childFind( key ).map( child -> child.getChildren().map( c -> ( ExpectedValueType ) c.value ).filter( Objects::nonNull ).collect( Collectors.toList() ) ).orElse( null );
 	}
 
-	public <T> VoluntaryWithCause<T, ExceptionClass> getChildAsObject( @Nonnull String key, Class<T> cls )
+	public <T> Voluntary<T> getChildAsObject( @Nonnull String key, Class<T> cls )
 	{
-		return findChild( key, false ).flatMapCompatible( child -> child.asObject( cls ) );
+		return childFind( key ).flatMap( child -> child.asObject( cls ) );
 	}
 
 	public <ExpectedValueType extends ValueType> Map<String, ExpectedValueType> getChildrenAsMap()
 	{
-		return children.stream().collect( Collectors.toMap( ContainerBase::getName, c -> ( ExpectedValueType ) c.value ) );
+		return children.stream().collect( Collectors.toMap( ContainerBase::getLocalName, c -> ( ExpectedValueType ) c.value ) );
 	}
 
 	public <ExpectedValueType extends ValueType> Map<String, ExpectedValueType> getChildrenAsMap( String key )
 	{
-		return findChild( key, false ).map( child -> ( Map<String, ExpectedValueType> ) child.getChildrenAsMap() ).orElse( null );
+		return childFind( key ).map( child -> ( Map<String, ExpectedValueType> ) child.getChildrenAsMap() ).orElse( null );
 	}
 
 	public <ExpectedValueType extends ValueType> Stream<Pair<String, ExpectedValueType>> getChildrenWithKeys()
 	{
-		return children.stream().map( c -> new Pair( c.getName(), c.value ) );
+		return children.stream().map( c -> new Pair( c.getLocalName(), c.value ) );
 	}
 
 	public Stream<BaseClass> getChildrenWithValue()
@@ -256,13 +251,7 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 	}
 
 	@Override
-	public VoluntaryWithCause<ValueType, ExceptionClass> getValue( String key, Function<ValueType, ValueType> computeFunction )
-	{
-		return findChild( key, true ).flatMapWithCause( child -> child.getValue( computeFunction ) );
-	}
-
-	@Override
-	public VoluntaryWithCause<ValueType, ExceptionClass> getValue( Function<ValueType, ValueType> computeFunction )
+	public Voluntary<ValueType> getValue( Function<ValueType, ValueType> computeFunction )
 	{
 		ValueType value = getValue().orElse( null );
 		ValueType newValue = computeFunction.apply( value );
@@ -273,19 +262,13 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 			}
 			catch ( Exception e )
 			{
-				return Voluntary.withException( ( ExceptionClass ) e );
+				// Ignore
 			}
-		return VoluntaryWithCause.ofNullableWithCause( newValue );
+		return Voluntary.ofNullable( newValue );
 	}
 
 	@Override
-	public VoluntaryWithCause<ValueType, ExceptionClass> getValue( String key, Supplier<ValueType> supplier )
-	{
-		return findChild( key, true ).flatMapWithCause( child -> child.getValue( supplier ) );
-	}
-
-	@Override
-	public VoluntaryWithCause<ValueType, ExceptionClass> getValue( Supplier<ValueType> supplier )
+	public Voluntary<ValueType> getValue( Supplier<ValueType> supplier )
 	{
 		if ( !hasValue() )
 			try
@@ -300,22 +283,22 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 	}
 
 	@Override
-	public VoluntaryWithCause<ValueType, ExceptionClass> getValue( @Nonnull String key )
+	public Voluntary<ValueType> getValue( @Nonnull Namespace key )
 	{
-		return findChild( key, false ).flatMapWithCause( ContainerWithValue::getValue );
+		return childFind( key ).flatMap( ContainerWithValue::getValue );
 	}
 
 	@Override
-	public VoluntaryWithCause<ValueType, ExceptionClass> getValue()
+	public Voluntary<ValueType> getValue()
 	{
-		disposalCheck();
-		return VoluntaryWithCause.ofNullableWithCause( value );
+		notDisposed();
+		return Voluntary.ofNullable( value );
 	}
 
 	@Override
-	public final boolean hasValue( String key )
+	public final boolean hasValue( Namespace key )
 	{
-		return findChild( key, false ).map( ContainerWithValue::hasValue ).orElse( false );
+		return childFind( key ).map( ContainerWithValue::hasValue ).orElse( false );
 	}
 
 	@Override
@@ -330,30 +313,37 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 		return !hasValue();
 	}
 
-	public VoluntaryWithCause<ValueType, ExceptionClass> pollValue()
+	@Override
+	public void merge( @Nonnull BaseClass other )
+	{
+		super.merge( other );
+		updateValue( other.value );
+	}
+
+	public Voluntary<ValueType> pollValue()
 	{
 		return VoluntaryWithCause.ofNullableWithCause( updateValue( null ) );
 	}
 
-	public VoluntaryWithCause<ValueType, ExceptionClass> pollValue( String key )
+	public Voluntary<ValueType> pollValue( String key )
 	{
-		return findChild( key, false ).flatMapWithCause( ContainerWithValue::pollValue );
+		return childFind( key ).flatMap( ContainerWithValue::pollValue );
 	}
 
 	@Override
-	public void setValue( ValueType value ) throws ExceptionClass
+	public void setValue( ValueType value )
 	{
-		disposalCheck();
+		notDisposed();
 		notFlag( Flags.READ_ONLY );
 		if ( hasFlag( Flags.NO_OVERRIDE ) && hasValue() )
-			throwException( getCurrentPath() + " has NO_OVERRIDE flag" );
+			throw new ContainerException( getCurrentPath() + " has NO_OVERRIDE flag" );
 		if ( value != null && ContainerBase.class.isAssignableFrom( value.getClass() ) )
-			throwException( "The value can't be of class ContainerBase, please use the appropriate methods instead, e.g. SetChild(), MoveChild(), CopyChild(), etc." );
+			throw new ContainerException( "The value can't be of class ContainerBase, please use the appropriate methods instead." );
 		updateValue( value );
 	}
 
 	@Override
-	public void setValue( String key, ValueType value ) throws ExceptionClass
+	public void setValue( Namespace key, ValueType value )
 	{
 		getChildOrCreate( key ).setValue( value );
 	}
@@ -380,22 +370,24 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 		}
 		catch ( Exception e )
 		{
+			if ( e instanceof RuntimeException )
+				throw ( RuntimeException ) e;
 			// XXX Why was I getting exception not declared compile errors?
 			throw ( ExceptionClass ) e;
 		}
 	}
 
 	@Override
-	public void setValueIfAbsent( String key, Supplier<? extends ValueType> value ) throws ExceptionClass
+	public void setValueIfAbsent( Namespace key, Supplier<? extends ValueType> value ) throws ExceptionClass
 	{
 		getChildOrCreate( key ).setValueIfAbsent( value );
 	}
 
 	public Parcel toParcel() throws ParcelableException.Error
 	{
-		Parcel result = new Parcel( getName() );
+		Parcel result = new Parcel( getLocalName() );
 		for ( BaseClass child : children )
-			result.setChild( child.toParcel() );
+			result.addChild( null, child.toParcel() );
 		return result;
 	}
 
@@ -405,10 +397,10 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 	protected <T extends ValueType> T updateValue( ValueType value )
 	{
 		if ( this.value == null && value != null )
-			fireListener( LISTENER_VALUE_STORE, value );
+			listenerFire( LISTENER_VALUE_STORE, value );
 		if ( this.value != null && value == null )
-			fireListener( LISTENER_VALUE_REMOVE, this.value );
-		fireListener( LISTENER_VALUE_CHANGE, this.value, value );
+			listenerFire( LISTENER_VALUE_REMOVE, this.value );
+		listenerFire( LISTENER_VALUE_CHANGE, this.value, value );
 		ValueType oldValue = this.value;
 		this.value = value;
 		setDirty( true );
@@ -417,8 +409,8 @@ public abstract class ContainerWithValue<BaseClass extends ContainerWithValue<Ba
 
 	public Map<String, ValueType> values()
 	{
-		disposalCheck();
-		return children.stream().filter( ContainerWithValue::hasValue ).collect( Collectors.toMap( ContainerWithValue::getName, c -> c.getValue().orElse( null ) ) );
+		notDisposed();
+		return children.stream().filter( ContainerWithValue::hasValue ).collect( Collectors.toMap( ContainerWithValue::getLocalName, c -> c.getValue().orElse( null ) ) );
 	}
 
 	public static class Flags extends ContainerBase.Flags

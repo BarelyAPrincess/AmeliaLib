@@ -9,7 +9,6 @@
  */
 package io.amelia.looper.queue;
 
-import java.lang.ref.WeakReference;
 import java.util.Iterator;
 import java.util.NavigableSet;
 import java.util.NoSuchElementException;
@@ -22,9 +21,9 @@ import javax.annotation.Nonnull;
 import io.amelia.foundation.Kernel;
 import io.amelia.lang.ApplicationException;
 import io.amelia.looper.AbstractLooper;
+import io.amelia.looper.LooperRouter;
 import io.amelia.looper.LooperTaskTrait;
 import io.amelia.support.DateAndTime;
-import io.amelia.support.Exceptions;
 
 /**
  * Low-level class holding the list of {@link EntryAbstract entries} and sometimes {@link Runnable tasks}.
@@ -35,15 +34,11 @@ import io.amelia.support.Exceptions;
 public class DefaultQueue extends AbstractQueue
 {
 	protected final NavigableSet<EntryAbstract> entries = new TreeSet<>();
-	/**
-	 * We use {@link WeakReference} to prevent a circular reference that negates the benefit of the GC.
-	 * Most the time this isn't an issue but some JVM GCs aren't smart enough to detect these types references.
-	 */
-	private WeakReference<AbstractLooper<DefaultQueue>.LooperControl> looperControl;
+	private AbstractLooper<DefaultQueue>.LooperControl looperControl;
 
 	public DefaultQueue( AbstractLooper<DefaultQueue>.LooperControl looperControl )
 	{
-		this.looperControl = new WeakReference<>( looperControl );
+		this.looperControl = looperControl;
 
 		// We add a manual TaskEntry, which is executed first to signal an infallible startup of the looper.
 		entries.add( new LooperTaskTrait.TaskEntry( this, entry -> {
@@ -181,20 +176,20 @@ public class DefaultQueue extends AbstractQueue
 		}
 	}
 
-	@Override
-	public int getPendingEntryCount()
-	{
-		return entries.size();
-	}
-
 	AbstractLooper<DefaultQueue> getLooper()
 	{
-		return looperControl == null || looperControl.get() == null ? null : looperControl.get().getLooper();
+		return looperControl == null ? null : looperControl.getLooper();
 	}
 
 	AbstractLooper<DefaultQueue>.LooperControl getLooperControl()
 	{
-		return looperControl.get();
+		return looperControl;
+	}
+
+	@Override
+	public int getPendingEntryCount()
+	{
+		return entries.size();
 	}
 
 	@Override
@@ -214,6 +209,8 @@ public class DefaultQueue extends AbstractQueue
 	@Override
 	public boolean isQuitting()
 	{
+		if ( getLooper() == null )
+			Kernel.L.debug( "Looper is null" );
 		return getLooper() == null || getLooper().isQuitting();
 	}
 

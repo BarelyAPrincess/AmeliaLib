@@ -14,6 +14,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import io.amelia.support.LooperException;
 import io.amelia.support.TriEnum;
 
 public abstract class AbstractQueue
@@ -231,7 +232,7 @@ public abstract class AbstractQueue
 	public final <T extends EntryAbstract> T postEntry( T entry )
 	{
 		if ( isQuitting() )
-			throw new IllegalStateException( "The looper queue is quitting!" );
+			throw new LooperException.InvalidState( "The looper queue is quitting!" );
 
 		lock.writeLock().lock();
 		try

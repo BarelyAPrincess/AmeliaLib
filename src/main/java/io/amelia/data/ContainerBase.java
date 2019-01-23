@@ -9,7 +9,6 @@
  */
 package io.amelia.data;
 
-import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +16,7 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -32,24 +32,23 @@ import io.amelia.support.BiFunctionWithException;
 import io.amelia.support.ConsumerWithException;
 import io.amelia.support.Maps;
 import io.amelia.support.Namespace;
-import io.amelia.support.Objs;
+import io.amelia.support.NodeStack;
 import io.amelia.support.Streams;
 import io.amelia.support.Voluntary;
-import io.amelia.support.VoluntaryWithCause;
 
-@SuppressWarnings( "unchecked" )
 public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, ExceptionClass>, ExceptionClass extends ApplicationException.Error>
 {
 	public static final int LISTENER_CHILD_ADD_BEFORE = 0x00;
 	public static final int LISTENER_CHILD_ADD_AFTER = 0x01;
 	public static final int LISTENER_CHILD_REMOVE_BEFORE = 0x02;
 	public static final int LISTENER_CHILD_REMOVE_AFTER = 0x03;
-	protected final List<BaseClass> children = new ArrayList<>();
+	protected final List<BaseClass> children = new CopyOnWriteArrayList<>();
 	private final BiFunctionWithException<BaseClass, String, BaseClass, ExceptionClass> creator;
 	private final Map<Integer, ContainerListener.Container> listeners = new ConcurrentHashMap<>();
 	protected ContainerOptions containerOptions = null;
 	protected BitSet flags = new BitSet(); // We use BitSet so extending classes can implement their own special flags.
 	protected BaseClass parent;
+	@Nonnull
 	private String localName;
 
 	protected ContainerBase( @Nonnull BiFunctionWithException<BaseClass, String, BaseClass, ExceptionClass> creator )
@@ -69,65 +68,17 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 		// TODO Should root entries be forced to be nameless or should this only apply for special cases?
 		// if ( parent == null && localName.length() != 0 )
 		//	throwException( "Root must remain nameless." );
-		// TODO Upper and lower case is permitted, however, we should implement a filter that prevents duplicate keys with varying case, e.g., WORD vs. Word - would be the same key.
-		if ( !localName.matches( "[a-zA-Z0-9*_]*" ) )
-			throwException( String.format( "The local name '%s' can only contain characters a-z, A-Z, 0-9, *, and _.", localName ) );
+		// TODO Upper and lower case is permitted, however, we should implement a filter that prevents duplicate keys with varying case, e.g., WORD vs. Word - would be the same.
+		if ( localName.length() > 0 && !isValidateName( localName ) ) // Allow empty names - for now.
+			throwException( String.format( "The local name '%s' must match A-Z, a-z, 0-9, asterisk, underline, and period.", localName ) );
 		this.creator = creator;
 		this.parent = parent;
 		this.localName = localName;
 	}
 
-	public final int addChildAddAfterListener( ContainerListener.OnChildAdd<BaseClass> function, ContainerListener.Flags... flags )
-	{
-		return addListener( new ContainerListener.Container( LISTENER_CHILD_ADD_AFTER, flags )
-		{
-			@Override
-			public void call( Object[] objs )
-			{
-				function.listen( ( BaseClass ) objs[0] );
-			}
-		} );
-	}
-
-	public final int addChildAddBeforeListener( ContainerListener.OnChildAdd<BaseClass> function, ContainerListener.Flags... flags )
-	{
-		return addListener( new ContainerListener.Container( LISTENER_CHILD_ADD_BEFORE, flags )
-		{
-			@Override
-			public void call( Object[] objs )
-			{
-				function.listen( ( BaseClass ) objs[0] );
-			}
-		} );
-	}
-
-	public final int addChildRemoveAfterListener( ContainerListener.OnChildRemove<BaseClass> function, ContainerListener.Flags... flags )
-	{
-		return addListener( new ContainerListener.Container( LISTENER_CHILD_REMOVE_AFTER, flags )
-		{
-			@Override
-			public void call( Object[] objs )
-			{
-				function.listen( ( BaseClass ) objs[0], ( BaseClass ) objs[1] );
-			}
-		} );
-	}
-
-	public final int addChildRemoveBeforeListener( ContainerListener.OnChildRemove<BaseClass> function, ContainerListener.Flags... flags )
-	{
-		return addListener( new ContainerListener.Container( LISTENER_CHILD_REMOVE_BEFORE, flags )
-		{
-			@Override
-			public void call( Object[] objs )
-			{
-				function.listen( ( BaseClass ) objs[0], ( BaseClass ) objs[1] );
-			}
-		} );
-	}
-
 	public final BaseClass addFlag( int... flags )
 	{
-		disposalCheck();
+		notDisposed();
 		for ( int flag : flags )
 		{
 			if ( flag == Flags.DISPOSED )
@@ -137,19 +88,14 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 		return ( BaseClass ) this;
 	}
 
-	protected final int addListener( ContainerListener.Container container )
-	{
-		return Maps.firstKeyAndPut( listeners, container );
-	}
-
-	protected void callParentRecursive( ConsumerWithException<BaseClass, ExceptionClass> callback ) throws ExceptionClass
+	protected <Cause extends Exception> void callParentRecursive( ConsumerWithException<BaseClass, Cause> callback ) throws Cause
 	{
 		callback.accept( ( BaseClass ) this );
 		if ( parent != null )
 			parent.callParentRecursive( callback );
 	}
 
-	protected void callRecursive( ConsumerWithException<BaseClass, ExceptionClass> callback ) throws ExceptionClass
+	protected <Cause extends Exception> void callRecursive( ConsumerWithException<BaseClass, Cause> callback ) throws Cause
 	{
 		callback.accept( ( BaseClass ) this );
 		Streams.forEachWithException( getChildren(), child -> child.callRecursive( callback ) );
@@ -160,90 +106,160 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 		// Always Permitted
 	}
 
-	public final <C> Stream<C> collect( Function<BaseClass, C> function )
+	public final void addChild( @Nullable String newChildName, @Nonnull BaseClass child )
 	{
-		disposalCheck();
-		return Stream.concat( Stream.of( function.apply( ( BaseClass ) this ) ), children.stream().flatMap( c -> c.collect( function ) ) ).filter( Objects::nonNull );
+		addChild( newChildName, child, ConflictStrategy.IGNORE );
 	}
 
-	public void copyChild( @Nonnull BaseClass child ) throws ExceptionClass
+	public final void addChild( @Nullable String newChildName, @Nonnull BaseClass child, @Nonnull ConflictStrategy conflictStrategy )
 	{
-		disposalCheck();
-		notFlag( Flags.READ_ONLY );
+		notDisposed();
+		notReadOnly();
 
-		for ( BaseClass oldChild : child.children )
+		if ( conflictStrategy == ConflictStrategy.CLEAR )
+			getChildren().forEach( ContainerBase::destroy );
+
+		if ( newChildName == null || newChildName.length() == 0 )
+			newChildName = child.getLocalName();
+		if ( !isValidateName( newChildName ) )
+			throw new ContainerException( "New child name must not be empty and contain only A-Z, a-z, 0-9, asterisk, underline, and period." );
+
+		if ( children.contains( child ) )
 		{
-			BaseClass newChild = getChildVoluntary( oldChild.getName() ).orElse( null );
-			if ( newChild == null )
-				setChild( oldChild );
-			else
+			child.setLocalName( newChildName );
+			return;
+		}
+
+		Voluntary<BaseClass> existing = childFind( Namespace.of( newChildName ) );
+		if ( existing.isPresent() )
+			if ( conflictStrategy == ConflictStrategy.IGNORE )
+				return;
+			else if ( conflictStrategy == ConflictStrategy.OVERWRITE )
 			{
-				notFlag( Flags.NO_OVERRIDE );
-				newChild.notFlag( Flags.READ_ONLY );
-				newChild.copyChild( oldChild );
+				existing.get().notFlag( Flags.NO_OVERRIDE );
+				existing.get().destroy();
 			}
-		}
+			else if ( conflictStrategy == ConflictStrategy.MERGE )
+			{
+				existing.get().merge( child );
+				child.removeFromParent(); // Just because it might be expected by the implementation.
+				return;
+			}
+		// else continue
 
-		flags = ( BitSet ) child.flags.clone();
-	}
+		// Remove from parent
+		child.removeFromParent();
 
-	@Nonnull
-	protected VoluntaryWithCause<BaseClass, ExceptionClass> createChild( @Nonnull String key )
-	{
-		disposalCheck();
-		if ( hasFlag( Flags.READ_ONLY ) )
-			return VoluntaryWithCause.withException( getException( getCurrentPath() + " is read only.", null ) );
-		try
-		{
-			BaseClass child = creator.apply( ( BaseClass ) this, key );
-			callParentRecursive( container -> container.canCreateChild( ( BaseClass ) this, key ) );
-			fireListenerWithException( LISTENER_CHILD_ADD_BEFORE, child );
-			children.add( child );
-			fireListener( LISTENER_CHILD_ADD_AFTER, child );
-			return VoluntaryWithCause.ofWithCause( child );
-		}
-		catch ( Exception e )
-		{
-			return VoluntaryWithCause.withException( ( ExceptionClass ) e );
-		}
-	}
+		// Update node name
+		if ( !newChildName.equals( child.getLocalName() ) )
+			child.setLocalName( newChildName );
 
-	protected void destroy() throws ExceptionClass
-	{
-		disposalCheck();
-		notFlag( Flags.READ_ONLY );
-		removeFromParent();
-		for ( BaseClass child : children )
-			child.destroy();
-		children.clear();
-		flags.clear();
-		flags.set( Flags.DISPOSED );
+		// Add to this node
+		child.parent = ( BaseClass ) this;
+		child.containerOptions = null;
+		children.add( child );
 		setDirty( true );
 	}
 
-	public void destroyChild( String key ) throws ExceptionClass
+	@Nonnull
+	protected Voluntary<BaseClass> childCreate( @Nonnull String key )
 	{
-		if ( hasFlag( Flags.READ_ONLY ) )
-			throwException( getCurrentPath() + " is read only." );
+		try
+		{
+			return Voluntary.of( childCreateWithException( key ) );
+		}
+		catch ( Exception exceptionClass )
+		{
+			return Voluntary.empty();
+		}
+	}
+
+	@Nonnull
+	protected BaseClass childCreateWithException( @Nonnull String key ) throws ExceptionClass
+	{
+		notDisposed();
+		notReadOnly();
+		BaseClass child = creator.apply( ( BaseClass ) this, key );
+		callParentRecursive( container -> container.canCreateChild( ( BaseClass ) this, key ) );
+		listenerFireWithException( LISTENER_CHILD_ADD_BEFORE, child );
+		children.add( child );
+		listenerFire( LISTENER_CHILD_ADD_AFTER, child );
+		return child;
+	}
+
+	public void childDestroy( String key )
+	{
+		notReadOnly();
 		getChildVoluntary( key ).ifPresent( ContainerBase::destroy );
 	}
 
-	public VoluntaryWithCause<BaseClass, ExceptionClass> destroyChildAndCreate( String key )
+	public final void childDestroyAndAdd( @Nullable String newChildName, @Nonnull BaseClass child, @Nonnull ConflictStrategy conflictStrategy )
 	{
-		if ( hasFlag( Flags.READ_ONLY ) )
-			return Voluntary.withException( getException( getCurrentPath() + " is read only.", null ) );
-		return getChildVoluntary( key ).ifPresentCatchException( ContainerBase::destroy ).hasNotErroredFlat( value -> createChild( key ) );
+		if ( newChildName == null || newChildName.length() == 0 )
+			newChildName = child.getLocalName();
+		if ( !isValidateName( newChildName ) )
+			throw new ContainerException( "New child name must not be empty and contain only A-Z, a-z, 0-9, asterisk, underline, and period." );
+
+		childFind( Namespace.of( newChildName ) ).ifPresent( ContainerBase::destroy );
+		addChild( newChildName, child, conflictStrategy );
 	}
 
-	public void destroyChildren() throws ExceptionClass
+	public Voluntary<BaseClass> childDestroyAndCreate( String key ) throws ExceptionClass
 	{
-		Streams.forEachWithException( getChildren(), ContainerBase::destroy );
+		notReadOnly();
+		getChildVoluntary( key ).ifPresent( ContainerBase::destroy );
+		return childCreate( key );
 	}
 
-	protected final void disposalCheck() throws ContainerException
+	protected Voluntary<BaseClass> childFind( @Nonnull String childPath )
 	{
-		if ( hasFlag( Flags.DISPOSED ) )
-			throw new ContainerException( getCurrentPath() + " has been disposed." );
+		return childFind( Namespace.of( childPath ) );
+	}
+
+	protected Voluntary<BaseClass> childFind( @Nonnull NodeStack childPath )
+	{
+		notDisposed();
+		if ( childPath.getNodeCount() == 0 )
+			return Voluntary.of( ( BaseClass ) this );
+
+		String childName = childPath.getStringFirst();
+		return children.stream().filter( child -> childName.equals( child.getLocalName() ) ).findFirst().map( child -> child.childFind( childPath.dropFirst() ) ).orElseGet( Voluntary::empty );
+	}
+
+	protected BaseClass childFindOrCreate( @Nonnull String childPath )
+	{
+		return childFindOrCreate( Namespace.of( childPath ) );
+	}
+
+	protected BaseClass childFindOrCreate( @Nonnull NodeStack childPath )
+	{
+		notDisposed();
+		notReadOnly();
+
+		if ( childPath.getNodeCount() == 0 )
+			return ( BaseClass ) this;
+
+		String childName = childPath.getStringFirst();
+		return Voluntary.of( children.stream().filter( child -> childName.equals( child.getLocalName() ) ).findFirst() ).map( child -> child.childFindOrCreate( childPath.dropFirst() ) ).ifAbsentGet( () -> childCreate( childName ) ).get();
+	}
+
+	public final <C> Stream<C> collect( Function<BaseClass, C> function )
+	{
+		notDisposed();
+		return Stream.concat( Stream.of( function.apply( ( BaseClass ) this ) ), children.stream().flatMap( c -> c.collect( function ) ) ).filter( Objects::nonNull );
+	}
+
+	protected void destroy()
+	{
+		if ( isDisposed() )
+			return;
+		notReadOnly();
+		for ( BaseClass child : children )
+			child.destroy();
+		removeFromParent();
+		children.clear();
+		flags.clear();
+		flags.set( Flags.DISPOSED );
 	}
 
 	/**
@@ -255,13 +271,13 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 		{
 			BaseClass clone = creator.apply( null, localName );
 
-			listeners.values().forEach( clone::addListener );
-			clone.flags = flags;
-			clone.parent = null;
-			clone.containerOptions = containerOptions;
+			listeners.values().forEach( clone::listenerAdd ); // Copy listeners
+			clone.flags = BitSet.valueOf( flags.toLongArray() ); // Clone flags BitSet
+			clone.parent = null; // Guarantee it has no parent
+			clone.containerOptions = containerOptions; // Copy container options
 
 			for ( BaseClass child : children )
-				clone.setChild( child.duplicate() );
+				clone.addChild( null, child.duplicate() );
 
 			return clone;
 		}
@@ -271,113 +287,9 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 		}
 	}
 
-	protected VoluntaryWithCause<BaseClass, ExceptionClass> findChild( @Nonnull String key, boolean create )
-	{
-		disposalCheck();
-		Objs.notNull( key );
-
-		if ( create && hasFlag( Flags.READ_ONLY ) )
-			return Voluntary.withException( getException( getCurrentPath() + " is read only.", null ) );
-
-		Namespace ns = Namespace.of( key, getOptions().getSeparator() );
-		if ( ns.getNodeCount() == 0 )
-			return VoluntaryWithCause.ofWithCause( ( BaseClass ) this );
-
-		String first = ns.getStringFirst();
-		VoluntaryWithCause<BaseClass, ExceptionClass> found = null;
-
-		for ( BaseClass child : children )
-			if ( child.getName() == null )
-				children.remove( child );
-			else if ( first.equalsIgnoreCase( child.getName() ) )
-			{
-				found = VoluntaryWithCause.ofWithCause( child );
-				break;
-			}
-
-		if ( found == null && !create )
-			return VoluntaryWithCause.emptyWithCause();
-		if ( found == null )
-			found = createChild( first );
-
-		if ( ns.getNodeCount() <= 1 )
-			return found;
-		else
-			return found.flatMapWithCause( child -> child.findChild( ns.getSubString( 1 ), create ) );
-	}
-
 	final BaseClass findFlag( int flag )
 	{
-		disposalCheck();
 		return ( BaseClass ) ( flags.get( flag ) ? this : parent == null ? null : parent.findFlag( flag ) );
-	}
-
-	void fireListener( int type, Object... objs )
-	{
-		try
-		{
-			fireListenerWithException( true, type, objs );
-		}
-		catch ( Exception e )
-		{
-			e.printStackTrace();
-		}
-	}
-
-	void fireListenerWithException( int type, Object... objs ) throws ExceptionClass
-	{
-		fireListenerWithException( true, type, objs );
-	}
-
-	void fireListenerWithException( boolean local, int type, Object... objs ) throws ExceptionClass
-	{
-		if ( hasParent() )
-			parent.fireListenerWithException( false, type, objs );
-		for ( Map.Entry<Integer, ContainerListener.Container> entry : listeners.entrySet() )
-			if ( entry.getValue().type == type )
-			{
-				if ( entry.getValue().flags.contains( ContainerListener.Flags.FIRE_ONCE ) )
-					listeners.remove( entry.getKey() );
-				if ( local || !entry.getValue().flags.contains( ContainerListener.Flags.NO_RECURSIVE ) )
-					if ( entry.getValue().flags.contains( ContainerListener.Flags.SYNCHRONIZED ) )
-					{
-						try
-						{
-							entry.getValue().call( objs );
-						}
-						catch ( Exception e )
-						{
-							throw getException( "Exception thrown by listener", e );
-						}
-					}
-					else
-						Kernel.getExecutorParallel().execute( () -> {
-							try
-							{
-								entry.getValue().call( objs );
-							}
-							catch ( Exception e )
-							{
-								e.printStackTrace();
-							}
-						} );
-			}
-	}
-
-	public final Stream<BaseClass> getAllChildren()
-	{
-		disposalCheck();
-		return Streams.recursive( ( BaseClass ) this, ContainerBase::getChildren );
-	}
-
-	public final BaseClass getChild( @Nonnull String key ) throws NoSuchElementException
-	{
-		return findChild( key, false ).orElseThrow( NoSuchElementException::new );
-	}
-
-	public final BaseClass getChild( @Nonnull TypeBase type ) throws NoSuchElementException
-	{
-		return getChildOrCreate( type.getPath() );
 	}
 
 	public int getChildCount()
@@ -390,9 +302,29 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 		return getChildVoluntary( key ).map( ContainerBase::getChildCount ).orElse( -1 );
 	}
 
+	public final BaseClass getChild( @Nonnull NodeStack key ) throws NoSuchElementException
+	{
+		return childFind( key ).orElseThrow( NoSuchElementException::new );
+	}
+
+	public final BaseClass getChild( @Nonnull String key ) throws NoSuchElementException
+	{
+		return childFind( Namespace.of( key ) ).orElseThrow( NoSuchElementException::new );
+	}
+
+	public final BaseClass getChild( @Nonnull TypeBase type ) throws NoSuchElementException
+	{
+		return getChild( type.getPath() );
+	}
+
 	public final BaseClass getChildOrCreate( @Nonnull String key )
 	{
-		return findChild( key, true ).get();
+		return getChildOrCreate( Namespace.of( key ) );
+	}
+
+	public final BaseClass getChildOrCreate( @Nonnull NodeStack key )
+	{
+		return childFindOrCreate( key );
 	}
 
 	public final BaseClass getChildOrCreate( @Nonnull TypeBase type )
@@ -400,15 +332,30 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 		return getChildOrCreate( type.getPath() );
 	}
 
-	public final VoluntaryWithCause<BaseClass, ExceptionClass> getChildVoluntary( @Nonnull String key )
+	public final Voluntary<BaseClass> getChildVoluntary( @Nonnull String key )
 	{
-		return findChild( key, false );
+		return getChildVoluntary( Namespace.of( key ) );
+	}
+
+	public final Voluntary<BaseClass> getChildVoluntary( @Nonnull NodeStack key )
+	{
+		return childFind( key );
 	}
 
 	public final Stream<BaseClass> getChildren()
 	{
-		disposalCheck();
 		return children.stream();
+	}
+
+	public final Set<String> getChildrenNames()
+	{
+		return children.stream().map( ContainerBase::getLocalName ).collect( Collectors.toSet() );
+	}
+
+	public final Stream<BaseClass> getChildrenRecursive()
+	{
+		notDisposed();
+		return Streams.recursive( ( BaseClass ) this, ContainerBase::getChildren );
 	}
 
 	public final String getCurrentPath()
@@ -418,13 +365,11 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 
 	public final String getDomainChild()
 	{
-		disposalCheck();
 		return Namespace.parseDomain( getCurrentPath() ).getChild().getString();
 	}
 
 	public final String getDomainTLD()
 	{
-		disposalCheck();
 		return Namespace.parseDomain( getCurrentPath() ).getTld().getString();
 	}
 
@@ -435,16 +380,16 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 		return flags;
 	}
 
-	public final Set<String> getKeys()
+	public final Set<Namespace> getKeys()
 	{
-		disposalCheck();
-		return children.stream().map( ContainerBase::getName ).collect( Collectors.toSet() );
+		notDisposed();
+		return children.stream().map( ContainerBase::getLocalName ).map( Namespace::of ).collect( Collectors.toSet() );
 	}
 
-	public final Set<String> getKeysDeep()
+	public final Set<Namespace> getKeysDeep()
 	{
-		disposalCheck();
-		return Stream.concat( getKeys().stream(), getChildren().flatMap( n -> n.getKeysDeep().stream().map( s -> n.getName() + "." + s ) ) ).sorted().collect( Collectors.toSet() );
+		notDisposed();
+		return Stream.concat( getKeys().stream(), getChildren().flatMap( n -> n.getKeysDeep().stream().map( s -> n.getLocalName() + "." + s ) ).map( Namespace::of ) ).collect( Collectors.toSet() );
 	}
 
 	/**
@@ -452,15 +397,15 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 	 *
 	 * @return Name of this node
 	 */
-	public final String getName()
+	@Nonnull
+	public final String getLocalName()
 	{
 		return localName;
 	}
 
 	public final Namespace getNamespace()
 	{
-		disposalCheck();
-		if ( Objs.isEmpty( localName ) )
+		if ( localName.length() == 0 )
 			return Namespace.empty();
 		return hasParent() ? getParent().getNamespace().append( localName ) : Namespace.of( localName, getOptions().getSeparator() );
 	}
@@ -479,13 +424,13 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 
 	public final BaseClass getParent()
 	{
-		disposalCheck();
+		notDisposed();
 		return parent;
 	}
 
 	public final Stream<BaseClass> getParents()
 	{
-		disposalCheck();
+		notDisposed();
 		return Streams.transverse( parent, BaseClass::getParent );
 	}
 
@@ -496,7 +441,12 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 
 	public final boolean hasChild( String key )
 	{
-		return getChild( key ) != null;
+		return hasChild( Namespace.of( key ) );
+	}
+
+	public final boolean hasChild( NodeStack key )
+	{
+		return childFind( key ) != null;
 	}
 
 	public final boolean hasChildren()
@@ -543,83 +493,255 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 
 	protected abstract boolean isTrimmable0();
 
-	public final BaseClass move( @Nonnull String targetPath ) throws ExceptionClass
+	public boolean isValidateName( @Nullable String name )
 	{
-		Objs.notEmpty( targetPath );
+		if ( name == null || name.length() == 0 )
+			return false;
+		if ( !localName.matches( "[A-Za-z0-9*_.]*" ) )
+			return false;
+		return true;
+	}
 
-		Namespace ns = Namespace.of( targetPath );
+	protected final int listenerAdd( ContainerListener.Container container )
+	{
+		return Maps.firstKeyAndPut( listeners, container );
+	}
 
-		BaseClass newParent = parent;
-
-		for ( int i = 0; i < ns.getNodeCount(); i++ )
+	public final int listenerChildAddAfter( ContainerListener.OnChildAdd<BaseClass> function, ContainerListener.Flags... flags )
+	{
+		return listenerAdd( new ContainerListener.Container( LISTENER_CHILD_ADD_AFTER, flags )
 		{
-			String node = ns.getStringNode( i );
-
-			if ( Objs.isEmpty( node ) )
+			@Override
+			public void call( Object[] objs )
 			{
-				if ( i == 0 ) // First node is empty, so remove from parent.
-					newParent = null;
-				// Otherwise, do nothing.
+				function.listen( ( BaseClass ) objs[0] );
+			}
+		} );
+	}
+
+	public final int listenerChildAddBefore( ContainerListener.OnChildAdd<BaseClass> function, ContainerListener.Flags... flags )
+	{
+		return listenerAdd( new ContainerListener.Container( LISTENER_CHILD_ADD_BEFORE, flags )
+		{
+			@Override
+			public void call( Object[] objs )
+			{
+				function.listen( ( BaseClass ) objs[0] );
+			}
+		} );
+	}
+
+	public final int listenerChildRemoveAfter( ContainerListener.OnChildRemove<BaseClass> function, ContainerListener.Flags... flags )
+	{
+		return listenerAdd( new ContainerListener.Container( LISTENER_CHILD_REMOVE_AFTER, flags )
+		{
+			@Override
+			public void call( Object[] objs )
+			{
+				function.listen( ( BaseClass ) objs[0], ( BaseClass ) objs[1] );
+			}
+		} );
+	}
+
+	boolean listenerFire( int type, Object... objs )
+	{
+		try
+		{
+			listenerFireWithException( true, type, objs );
+			return true;
+		}
+		catch ( Exception e )
+		{
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+	void listenerFireWithException( int type, Object... objs ) throws ExceptionClass
+	{
+		listenerFireWithException( true, type, objs );
+	}
+
+	void listenerFireWithException( boolean local, int type, Object... objs ) throws ExceptionClass
+	{
+		if ( hasParent() )
+			parent.listenerFireWithException( false, type, objs );
+		for ( Map.Entry<Integer, ContainerListener.Container> entry : listeners.entrySet() )
+			if ( entry.getValue().type == type )
+			{
+				if ( entry.getValue().flags.contains( ContainerListener.Flags.FIRE_ONCE ) )
+					listeners.remove( entry.getKey() );
+				if ( local || !entry.getValue().flags.contains( ContainerListener.Flags.NO_RECURSIVE ) )
+					if ( entry.getValue().flags.contains( ContainerListener.Flags.SYNCHRONIZED ) )
+					{
+						try
+						{
+							entry.getValue().call( objs );
+						}
+						catch ( Exception e )
+						{
+							throw getException( "Exception thrown by listener", e );
+						}
+					}
+					else
+						Kernel.getExecutorParallel().execute( () -> {
+							try
+							{
+								entry.getValue().call( objs );
+							}
+							catch ( Exception e )
+							{
+								e.printStackTrace();
+							}
+						} );
+			}
+	}
+
+	public final void listenerRemove( int inx )
+	{
+		listeners.remove( inx );
+	}
+
+	public final void listenerRemoveAll()
+	{
+		listeners.clear();
+	}
+
+	public final int listenerRemoveChildBefore( ContainerListener.OnChildRemove<BaseClass> function, ContainerListener.Flags... flags )
+	{
+		return listenerAdd( new ContainerListener.Container( LISTENER_CHILD_REMOVE_BEFORE, flags )
+		{
+			@Override
+			public void call( Object[] objs )
+			{
+				function.listen( ( BaseClass ) objs[0], ( BaseClass ) objs[1] );
+			}
+		} );
+	}
+
+	public void merge( @Nonnull BaseClass other )
+	{
+		notDisposed();
+		notReadOnly();
+		for ( BaseClass node : children )
+			getChildOrCreate( node.getLocalName() ).merge( node );
+		flags = ( BitSet ) other.flags.clone();
+		setDirty( true );
+	}
+
+	/**
+	 * Moves this node within the tree using absolutePath as the absolute navigator.
+	 * Last node will be treated as the new node name
+	 *
+	 * e.g.:
+	 * subnode/newname = /parent/thisnode -> /subnode/newname
+	 * parent/subnode/thisnode = /parent/thisnode -> /parent/subnode/thisnode
+	 */
+	public final BaseClass moveAbsolute( @Nonnull NodeStack absolutePath ) throws ExceptionClass
+	{
+		notDisposed();
+		notReadOnly();
+
+		if ( absolutePath.getNodeCount() == 0 )
+			throw new ContainerException( "Path must contain at least one node." );
+		BaseClass targetParent = getRoot();
+		if ( targetParent == this )
+			targetParent = null;
+
+		String targetLocalName = absolutePath.getLocalName();
+		absolutePath = absolutePath.getParent();
+
+		for ( int i = 0; i < absolutePath.getNodeCount(); i++ )
+		{
+			String node = absolutePath.getStringNode( i );
+
+			if ( node.equals( "." ) )
+			{
+				// Ignore
 			}
 			else if ( node.equals( ".." ) )
 			{
-				if ( hasParent() ) // We have a parent, so shift us to the parent of the parent.
-					newParent = parent.parent;
+				// We have a parent, so shift us to the parent of the parent.
+				if ( targetParent != null && targetParent.hasParent() )
+					targetParent = targetParent.parent;
 			}
 			else
 			{
-				if ( i == ns.getNodeCount() - 1 ) // We're on the last node, so set this to our new localName.
-					this.localName = node;
-				else
-					newParent = newParent == null ? creator.apply( null, node ) : newParent.getChildOrCreate( node ); // Shift us one child down
+				targetParent = targetParent == null ? childCreateWithException( node ) : targetParent.getChildOrCreate( Namespace.of( node ) );
 			}
 		}
 
-		if ( newParent != parent )
+		if ( targetParent != parent )
 		{
 			removeFromParent();
-			if ( newParent != null )
-				newParent.setChild( ( BaseClass ) this );
+			if ( targetParent != null )
+				targetParent.addChild( targetLocalName, ( BaseClass ) this );
 		}
 
 		return ( BaseClass ) this;
 	}
 
-	public final void moveChild( @Nonnull BaseClass child, @Nonnull String targetKey ) throws ExceptionClass
+	/**
+	 * Moves this node within the tree using relativePath as the relative navigator.
+	 * e.g.:
+	 * subnode = /parent/thisnode -> /parent/subnode/thisnode
+	 * ../parentB = /parent/thisnode -> /parentB/thisnode
+	 */
+	public final BaseClass moveRelative( @Nonnull NodeStack relativePath ) throws ExceptionClass
 	{
-		moveChild( child, targetKey, false );
-	}
+		notDisposed();
+		notReadOnly();
 
-	public final void moveChild( @Nonnull BaseClass child, @Nonnull String targetKey, boolean mergeIfExists ) throws ExceptionClass
-	{
-		disposalCheck();
-		notFlag( Flags.READ_ONLY );
+		if ( relativePath.getNodeCount() == 0 )
+			return ( BaseClass ) this; // No Change
+		BaseClass targetParent = parent;
 
-		BaseClass current = findChild( targetKey, false ).orElse( null );
-		if ( current != null )
+		for ( int i = 0; i < relativePath.getNodeCount(); i++ )
 		{
-			// Child already exists at the targeted location.
-			if ( current == child )
-				return;
+			String node = relativePath.getStringNode( i );
 
-			notFlag( Flags.NO_OVERRIDE );
-			if ( mergeIfExists )
+			if ( node.equals( "." ) )
 			{
-				current.copyChild( child );
-				return;
+				// Ignore
+			}
+			else if ( node.equals( ".." ) )
+			{
+				// We have a parent, so shift us to the parent of the parent.
+				if ( targetParent != null && targetParent.hasParent() )
+					targetParent = targetParent.parent;
 			}
 			else
-				current.destroy();
+			{
+				targetParent = targetParent == null ? childCreateWithException( node ) : targetParent.getChildOrCreate( Namespace.of( node ) );
+			}
 		}
 
-		createChild( targetKey ).ifPresent( element -> element.copyChild( child ) );
-		child.destroy();
+		if ( targetParent != parent )
+		{
+			removeFromParentWithException();
+			if ( targetParent != null )
+				targetParent.addChild( null, ( BaseClass ) this );
+		}
+
+		return ( BaseClass ) this;
 	}
 
-	public void notFlag( int flag ) throws ExceptionClass
+	protected final void notDisposed()
+	{
+		if ( hasFlag( Flags.DISPOSED ) )
+			throw new ContainerException( getCurrentPath() + " has been disposed." );
+	}
+
+	public void notFlag( int flag )
 	{
 		if ( hasFlag( flag ) )
-			throwException( getCurrentPath() + " has " + flag + " flag." );
+			throw new ContainerException( getCurrentPath() + " has " + flag + " flag." );
+	}
+
+	public void notReadOnly()
+	{
+		if ( hasFlag( Flags.READ_ONLY ) )
+			throw new ContainerException( getCurrentPath() + " is read only." );
 	}
 
 	/**
@@ -629,19 +751,14 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 	 *
 	 * @return found instance or null if does not exist.
 	 */
-	public VoluntaryWithCause<BaseClass, ExceptionClass> pollChild( String key )
+	public Voluntary<BaseClass> pollChild( String key )
 	{
-		return getChildVoluntary( key ).ifPresentCatchException( ContainerBase::removeFromParent );
-	}
-
-	public final void removeAllListeners()
-	{
-		listeners.clear();
+		return getChildVoluntary( key ).ifPresent( ContainerBase::removeFromParent );
 	}
 
 	public final BaseClass removeFlag( int... flags )
 	{
-		disposalCheck();
+		notDisposed();
 		for ( int flag : flags )
 			this.flags.set( flag, false );
 		return ( BaseClass ) this;
@@ -649,74 +766,53 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 
 	public final BaseClass removeFlagRecursive( int... flags )
 	{
-		disposalCheck();
+		notDisposed();
 		if ( parent != null )
 			parent.removeFlagRecursive( flags );
 		return removeFlag( flags );
 	}
 
-	public final BaseClass removeFromParent() throws ExceptionClass
+	public final BaseClass removeFromParent()
 	{
 		if ( hasParent() )
 		{
 			parent.notFlag( Flags.READ_ONLY );
-			fireListenerWithException( LISTENER_CHILD_REMOVE_BEFORE, parent, this );
+			if ( listenerFire( LISTENER_CHILD_REMOVE_BEFORE, parent, this ) )
+			{
+				parent.children.remove( this );
+				listenerFire( LISTENER_CHILD_REMOVE_AFTER, parent, this );
+				parent = null;
+				setDirty( true );
+			}
+		}
+		return ( BaseClass ) this;
+	}
+
+	public final BaseClass removeFromParentWithException() throws ExceptionClass
+	{
+		if ( hasParent() )
+		{
+			parent.notFlag( Flags.READ_ONLY );
+			listenerFireWithException( LISTENER_CHILD_REMOVE_BEFORE, parent, this );
 			parent.children.remove( this );
-			fireListener( LISTENER_CHILD_REMOVE_AFTER, parent, this );
+			listenerFire( LISTENER_CHILD_REMOVE_AFTER, parent, this );
 			parent = null;
 			setDirty( true );
 		}
 		return ( BaseClass ) this;
 	}
 
-	public final void removeListener( int inx )
-	{
-		listeners.remove( inx );
-	}
-
-	public final void setChild( @Nonnull BaseClass child ) throws ExceptionClass
-	{
-		setChild( child, false );
-	}
-
-	public final void setChild( @Nonnull BaseClass child, boolean mergeIfExists ) throws ExceptionClass
-	{
-		disposalCheck();
-		notFlag( Flags.READ_ONLY );
-
-		if ( children.contains( child ) )
-			return;
-
-		BaseClass current = findChild( child.getName(), false ).orElse( null );
-		if ( current != null )
-		{
-			notFlag( Flags.NO_OVERRIDE );
-			if ( mergeIfExists )
-			{
-				current.copyChild( child );
-				return;
-			}
-			else
-				current.destroy();
-		}
-
-		child.removeFromParent();
-
-		child.parent = ( BaseClass ) this;
-		child.containerOptions = null;
-		children.add( child );
-		setDirty( true );
-	}
-
 	public void setDirty( boolean dirty )
 	{
+		if ( hasFlag( Flags.DISPOSED ) )
+			return; // Ignore
 		if ( dirty )
 			addFlag( Flags.DIRTY );
 		else
 			removeFlag( Flags.DIRTY );
 	}
 
-	public void setName( String localName )
+	public void setLocalName( @Nonnull String localName )
 	{
 		this.localName = localName;
 	}
@@ -729,13 +825,22 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 	/**
 	 * Attempts to remove each sub-node based on if {@link #isTrimmable()} returns true.
 	 */
-	public void trimChildren() throws ExceptionClass
+	public void trimChildren()
 	{
-		for ( BaseClass child : children )
-			if ( child.isTrimmable() )
-				child.destroy();
-			else
-				child.trimChildren();
+		children.stream().filter( ContainerBase::isTrimmable ).forEach( ContainerBase::destroy );
+		children.forEach( ContainerBase::trimChildren );
+	}
+
+	public enum ConflictStrategy
+	{
+		// All children are first removed.
+		CLEAR,
+		// Conflicting children will be merged.
+		MERGE,
+		// Conflicting children will be first destroyed.
+		OVERWRITE,
+		// Conflicts are ignored.
+		IGNORE
 	}
 
 	public static class Flags

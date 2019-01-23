@@ -13,6 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import io.amelia.looper.DefaultLooper;
+import io.amelia.looper.Delays;
 import io.amelia.looper.LooperTaskTrait;
 
 public abstract class FileWatcher
@@ -30,7 +31,7 @@ public abstract class FileWatcher
 		this.path = path;
 		task = looper.postTaskRepeatingNext( entry -> {
 			boolean changesDetected = false;
-			lastCheck = DateAndTime.epoch();
+			lastCheck = Delays.ticks();
 
 			if ( Files.exists( path ) )
 			{
@@ -45,11 +46,11 @@ public abstract class FileWatcher
 				}
 			}
 
-			if ( !changesDetected && DateAndTime.SECOND_5 * cycleCoolDown < DateAndTime.MINUTE_15 )
+			if ( !changesDetected && Delays.SECOND_5 * cycleCoolDown < Delays.MINUTE_15 )
 				cycleCoolDown++;
 
-			task.setDelay( DateAndTime.SECOND_5 * cycleCoolDown );
-		}, DateAndTime.MINUTE );
+			task.setDelay( Delays.SECOND_5 * cycleCoolDown );
+		}, Delays.MINUTE );
 		// The delay doesn't really matter - it's updated each cycle.
 	}
 
@@ -65,6 +66,6 @@ public abstract class FileWatcher
 		cycleCoolDown = 1;
 
 		task.cancel();
-		task = looper.postTaskRepeating( task.getTask(), DateAndTime.epoch() - lastCheck >= 5 ? 0L : DateAndTime.SECOND_5 - ( DateAndTime.SECOND * ( DateAndTime.epoch() - lastCheck ) ) );
+		task = looper.postTaskRepeating( task.getTask(), Delays.ticks() - lastCheck >= Delays.MINUTE_5 ? 0L : Delays.SECOND_5 - ( Delays.SECOND * ( Delays.ticks() - lastCheck ) ) );
 	}
 }

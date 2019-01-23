@@ -27,7 +27,6 @@ import io.amelia.support.Strs;
 import io.amelia.support.Voluntary;
 import io.amelia.support.VoluntaryBoolean;
 import io.amelia.support.VoluntaryLong;
-import io.amelia.support.VoluntaryWithCause;
 
 /**
  * Provides common methods for converting an unknown value to (and from) {@link Object} using the Java 8 Optional feature.
@@ -51,7 +50,7 @@ public interface ValueTypesTrait<ExceptionClass extends ApplicationException.Err
 		return VoluntaryBoolean.ofNullable( getValue().map( Objs::castToBoolean ).orElse( null ) );
 	}
 
-	default VoluntaryWithCause<Color, ExceptionClass> getColor()
+	default Voluntary<Color> getColor()
 	{
 		return getValue().filter( v -> v instanceof Color ).map( v -> ( Color ) v );
 	}
@@ -61,7 +60,7 @@ public interface ValueTypesTrait<ExceptionClass extends ApplicationException.Err
 		return Objs.ifPresent( getValue().map( Objs::castToDouble ), OptionalDouble::of, OptionalDouble::empty );
 	}
 
-	default <T extends Enum<T>> VoluntaryWithCause<T, ExceptionClass> getEnum( Class<T> enumClass )
+	default <T extends Enum<T>> Voluntary<T> getEnum( Class<T> enumClass )
 	{
 		return getString().map( e -> Enum.valueOf( enumClass, e ) );
 	}
@@ -71,7 +70,7 @@ public interface ValueTypesTrait<ExceptionClass extends ApplicationException.Err
 		return Objs.ifPresent( getValue().map( Objs::castToInt ), OptionalInt::of, OptionalInt::empty );
 	}
 
-	default <T> VoluntaryWithCause<List<T>, ExceptionClass> getList()
+	default <T> Voluntary<List<T>> getList()
 	{
 		return getValue().filter( v -> v instanceof List ).map( v -> ( List<T> ) v );
 	}
@@ -81,7 +80,7 @@ public interface ValueTypesTrait<ExceptionClass extends ApplicationException.Err
 		getValue().filter( v -> v instanceof List ).ifPresent( v -> list.addAll( ( List<T> ) v ) );
 	}
 
-	default <T> VoluntaryWithCause<List<T>, ExceptionClass> getList( @Nonnull Class<T> expectedObjectClass )
+	default <T> Voluntary<List<T>> getList( @Nonnull Class<T> expectedObjectClass )
 	{
 		return getValue().filter( v -> v instanceof List ).map( v -> Objs.castList( ( List<?> ) v, expectedObjectClass ) );
 	}
@@ -91,38 +90,37 @@ public interface ValueTypesTrait<ExceptionClass extends ApplicationException.Err
 		return Objs.ifPresent( getValue().map( Objs::castToLong ), VoluntaryLong::of, VoluntaryLong::empty );
 	}
 
-	default VoluntaryWithCause<String, ExceptionClass> getString()
+	default Voluntary<String> getString()
 	{
 		return getString();
 	}
 
-	default <T> VoluntaryWithCause<Class<T>, ExceptionClass> getStringAsClass()
+	default <T> Voluntary<Class<T>> getStringAsClass()
 	{
-		return getStringAsClass( null );
+		return getStringAsClass( Object.class ).map( value -> ( Class<T> ) value );
 	}
 
-	@SuppressWarnings( "unchecked" )
-	default <T> VoluntaryWithCause<Class<T>, ExceptionClass> getStringAsClass( @Nonnull Class<T> expectedClass )
+	default <T> Voluntary<Class<T>> getStringAsClass( @Nonnull Class<T> expectedClass )
 	{
 		return getString().map( str -> ( Class<T> ) Objs.getClassByName( str ) ).filter( expectedClass::isAssignableFrom );
 	}
 
-	default VoluntaryWithCause<File, ExceptionClass> getStringAsFile( File rel )
+	default Voluntary<File> getStringAsFile( File rel )
 	{
 		return getString().map( s -> IO.buildFile( rel, s ) );
 	}
 
-	default VoluntaryWithCause<File, ExceptionClass> getStringAsFile()
+	default Voluntary<File> getStringAsFile()
 	{
 		return getString().map( IO::buildFile );
 	}
 
-	default VoluntaryWithCause<Path, ExceptionClass> getStringAsPath( Path rel )
+	default Voluntary<Path> getStringAsPath( Path rel )
 	{
 		return getString().map( s -> IO.buildPath( rel, s ) );
 	}
 
-	default VoluntaryWithCause<Path, ExceptionClass> getStringAsPath()
+	default Voluntary<Path> getStringAsPath()
 	{
 		return getString().map( IO::buildPath );
 	}
@@ -153,7 +151,7 @@ public interface ValueTypesTrait<ExceptionClass extends ApplicationException.Err
 		return Stream.of( value ).map( Objs::castToString ).flatMap( s -> Strs.split( s, delimiter ) );
 	}
 
-	VoluntaryWithCause<?, ExceptionClass> getValue();
+	Voluntary<?> getValue();
 
 	default boolean isColor()
 	{
@@ -192,7 +190,7 @@ public interface ValueTypesTrait<ExceptionClass extends ApplicationException.Err
 
 	default boolean isType( @Nonnull Class<?> type )
 	{
-		VoluntaryWithCause<?, ExceptionClass> result = getValue();
+		Voluntary<?> result = getValue();
 		return result.isPresent() && type.isAssignableFrom( result.get().getClass() );
 	}
 }

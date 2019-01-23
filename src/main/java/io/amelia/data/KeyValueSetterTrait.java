@@ -11,9 +11,16 @@ package io.amelia.data;
 
 import java.util.function.Supplier;
 
+import io.amelia.support.Namespace;
+
 public interface KeyValueSetterTrait<ValueType, ExceptionClass extends Exception>
 {
-	void setValue( String key, ValueType value ) throws ExceptionClass;
+	default void setValue( String key, ValueType value ) throws ExceptionClass
+	{
+		setValue( Namespace.of( key ), value );
+	}
+
+	void setValue( Namespace key, ValueType value ) throws ExceptionClass;
 
 	default void setValue( TypeBase type, ValueType value ) throws ExceptionClass
 	{
@@ -25,11 +32,16 @@ public interface KeyValueSetterTrait<ValueType, ExceptionClass extends Exception
 		setValueIfAbsent( type.getPath(), type.getDefaultSupplier() );
 	}
 
-	void setValueIfAbsent( String key, Supplier<? extends ValueType> value ) throws ExceptionClass;
+	default void setValueIfAbsent( String key, Supplier<? extends ValueType> value ) throws ExceptionClass
+	{
+		setValueIfAbsent( Namespace.of( key ), value );
+	}
+
+	void setValueIfAbsent( Namespace key, Supplier<? extends ValueType> value ) throws ExceptionClass;
 
 	default void setValues( KeyValueGetterTrait<ValueType, ?> values ) throws ExceptionClass
 	{
-		for ( String key : values.getKeys() )
+		for ( Namespace key : values.getKeys() )
 			values.getValue( key ).ifPresent( value -> setValue( key, value ) );
 	}
 }

@@ -9,6 +9,8 @@
  */
 package io.amelia.looper;
 
+import io.amelia.support.DateAndTime;
+
 /**
  * Provides delay constants for the Looper feature
  *
@@ -67,4 +69,9 @@ public class Delays
 	public static final long HOUR_20 = HOUR * 20;
 	public static final long HOUR_22 = HOUR * 22;
 	public static final long HOUR_24 = HOUR * 24;
+
+	public static long ticks()
+	{
+		return Math.floorDiv( DateAndTime.epoch(), 20 );
+	}
 }

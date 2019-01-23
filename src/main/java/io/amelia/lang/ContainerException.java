@@ -9,7 +9,11 @@
  */
 package io.amelia.lang;
 
-public class ContainerException extends ApplicationException.Ignorable
+/**
+ * Present Usage:
+ * {@link io.amelia.data.ContainerBase} Thrown for read only nodes.
+ */
+public class ContainerException extends ApplicationException.Runtime
 {
 	public ContainerException()
 	{

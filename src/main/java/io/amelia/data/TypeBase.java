@@ -18,28 +18,45 @@ import java.util.function.Supplier;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import io.amelia.support.Namespace;
+
 /**
  * Outlines a config key along with it's default value.
  */
 public class TypeBase
 {
 	private final TypeBase parent;
-	private final String path;
+	private final Namespace path;
 
-	public TypeBase( String path )
+	public TypeBase( @Nonnull String path )
+	{
+		this( null, Namespace.of( path ) );
+	}
+
+	public TypeBase( @Nonnull Namespace path )
 	{
 		this( null, path );
 	}
 
-	public TypeBase( TypeBase parent, String path )
+	public TypeBase( @Nullable TypeBase parent, @Nonnull String path )
 	{
-		this.parent = parent;
-		this.path = path.replace( '\\', '.' ).replace( '/', '.' );
+		this( parent, Namespace.of( path ) );
 	}
 
-	public String getPath()
+	public TypeBase( @Nullable TypeBase parent, @Nonnull Namespace path )
 	{
-		return ( parent == null ? "" : parent.getPath() + "." ) + path;
+		this.parent = parent;
+		this.path = path;
+	}
+
+	public Namespace getPath()
+	{
+		return ( parent == null ? Namespace.empty() : parent.getPath() ).append( path );
+	}
+
+	public String getStringPath()
+	{
+		return getPath().getString();
 	}
 
 	public static class TypeBoolean extends TypeWithDefault<Boolean>
@@ -60,6 +77,26 @@ public class TypeBase
 		}
 
 		public TypeBoolean( TypeBase parent, String path, Boolean def )
+		{
+			super( parent, path, def );
+		}
+
+		public TypeBoolean( Namespace path, Supplier<Boolean> def )
+		{
+			super( path, def );
+		}
+
+		public TypeBoolean( Namespace path, Boolean def )
+		{
+			super( path, def );
+		}
+
+		public TypeBoolean( TypeBase parent, Namespace path, Supplier<Boolean> def )
+		{
+			super( parent, path, def );
+		}
+
+		public TypeBoolean( TypeBase parent, Namespace path, Boolean def )
 		{
 			super( parent, path, def );
 		}
@@ -86,6 +123,26 @@ public class TypeBase
 		{
 			super( parent, path, def );
 		}
+
+		public TypeColor( Namespace path, Supplier<Color> def )
+		{
+			super( path, def );
+		}
+
+		public TypeColor( Namespace path, Color def )
+		{
+			super( path, def );
+		}
+
+		public TypeColor( TypeBase parent, Namespace path, Supplier<Color> def )
+		{
+			super( parent, path, def );
+		}
+
+		public TypeColor( TypeBase parent, Namespace path, Color def )
+		{
+			super( parent, path, def );
+		}
 	}
 
 	public static class TypeDouble extends TypeWithDefault<Double>
@@ -106,6 +163,26 @@ public class TypeBase
 		}
 
 		public TypeDouble( TypeBase parent, String path, Double def )
+		{
+			super( parent, path, def );
+		}
+
+		public TypeDouble( Namespace path, Supplier<Double> def )
+		{
+			super( path, def );
+		}
+
+		public TypeDouble( Namespace path, Double def )
+		{
+			super( path, def );
+		}
+
+		public TypeDouble( TypeBase parent, Namespace path, Supplier<Double> def )
+		{
+			super( parent, path, def );
+		}
+
+		public TypeDouble( TypeBase parent, Namespace path, Double def )
 		{
 			super( parent, path, def );
 		}
@@ -139,6 +216,30 @@ public class TypeBase
 			this.enumClass = enumClass;
 		}
 
+		public TypeEnum( Namespace path, T def, Class<T> enumClass )
+		{
+			super( path, def );
+			this.enumClass = enumClass;
+		}
+
+		public TypeEnum( TypeBase parent, Namespace path, T def, Class<T> enumClass )
+		{
+			super( parent, path, def );
+			this.enumClass = enumClass;
+		}
+
+		public TypeEnum( TypeBase parent, Namespace path, Supplier<T> def, Class<T> enumClass )
+		{
+			super( parent, path, def );
+			this.enumClass = enumClass;
+		}
+
+		public TypeEnum( Namespace path, Supplier<T> def, Class<T> enumClass )
+		{
+			super( path, def );
+			this.enumClass = enumClass;
+		}
+
 		public Class<T> getEnumClass()
 		{
 			return enumClass;
@@ -166,6 +267,26 @@ public class TypeBase
 		{
 			super( parent, path, def );
 		}
+
+		public TypeFile( Namespace path, Supplier<File> def )
+		{
+			super( path, def );
+		}
+
+		public TypeFile( Namespace path, File def )
+		{
+			super( path, def );
+		}
+
+		public TypeFile( TypeBase parent, Namespace path, Supplier<File> def )
+		{
+			super( parent, path, def );
+		}
+
+		public TypeFile( TypeBase parent, Namespace path, File def )
+		{
+			super( parent, path, def );
+		}
 	}
 
 	public static class TypeInteger extends TypeWithDefault<Integer>
@@ -186,6 +307,26 @@ public class TypeBase
 		}
 
 		public TypeInteger( TypeBase parent, String path, Integer def )
+		{
+			super( parent, path, def );
+		}
+
+		public TypeInteger( Namespace path, Supplier<Integer> def )
+		{
+			super( path, def );
+		}
+
+		public TypeInteger( Namespace path, Integer def )
+		{
+			super( path, def );
+		}
+
+		public TypeInteger( TypeBase parent, Namespace path, Supplier<Integer> def )
+		{
+			super( parent, path, def );
+		}
+
+		public TypeInteger( TypeBase parent, Namespace path, Integer def )
 		{
 			super( parent, path, def );
 		}
@@ -212,6 +353,26 @@ public class TypeBase
 		{
 			super( parent, path, def );
 		}
+
+		public TypeLong( Namespace path, Supplier<Long> def )
+		{
+			super( path, def );
+		}
+
+		public TypeLong( Namespace path, Long def )
+		{
+			super( path, def );
+		}
+
+		public TypeLong( TypeBase parent, Namespace path, Supplier<Long> def )
+		{
+			super( parent, path, def );
+		}
+
+		public TypeLong( TypeBase parent, Namespace path, Long def )
+		{
+			super( parent, path, def );
+		}
 	}
 
 	public static class TypePath extends TypeWithDefault<Path>
@@ -232,6 +393,26 @@ public class TypeBase
 		}
 
 		public TypePath( TypeBase parent, String path, Path def )
+		{
+			super( parent, path, def );
+		}
+
+		public TypePath( Namespace path, Supplier<Path> def )
+		{
+			super( path, def );
+		}
+
+		public TypePath( Namespace path, Path def )
+		{
+			super( path, def );
+		}
+
+		public TypePath( TypeBase parent, Namespace path, Supplier<Path> def )
+		{
+			super( parent, path, def );
+		}
+
+		public TypePath( TypeBase parent, Namespace path, Path def )
 		{
 			super( parent, path, def );
 		}
@@ -258,6 +439,26 @@ public class TypeBase
 		{
 			super( parent, path, def );
 		}
+
+		public TypeString( Namespace path, Supplier<String> def )
+		{
+			super( path, def );
+		}
+
+		public TypeString( Namespace path, String def )
+		{
+			super( path, def );
+		}
+
+		public TypeString( TypeBase parent, Namespace path, Supplier<String> def )
+		{
+			super( parent, path, def );
+		}
+
+		public TypeString( TypeBase parent, Namespace path, String def )
+		{
+			super( parent, path, def );
+		}
 	}
 
 	public static class TypeStringList extends TypeWithDefault<List<String>>
@@ -281,11 +482,41 @@ public class TypeBase
 		{
 			super( parent, path, def );
 		}
+
+		public TypeStringList( Namespace path, Supplier<List<String>> def )
+		{
+			super( path, def );
+		}
+
+		public TypeStringList( Namespace path, List<String> def )
+		{
+			super( path, def );
+		}
+
+		public TypeStringList( TypeBase parent, Namespace path, Supplier<List<String>> def )
+		{
+			super( parent, path, def );
+		}
+
+		public TypeStringList( TypeBase parent, Namespace path, List<String> def )
+		{
+			super( parent, path, def );
+		}
 	}
 
 	public static class TypeWithDefault<DefValue> extends TypeBase
 	{
 		private final Supplier<DefValue> def;
+
+		public TypeWithDefault( Namespace path, Supplier<DefValue> def )
+		{
+			this( null, path, def );
+		}
+
+		public TypeWithDefault( Namespace path, DefValue def )
+		{
+			this( null, path, def );
+		}
 
 		public TypeWithDefault( String path, Supplier<DefValue> def )
 		{
@@ -303,7 +534,19 @@ public class TypeBase
 			this.def = def;
 		}
 
+		public TypeWithDefault( TypeBase parent, Namespace path, Supplier<DefValue> def )
+		{
+			super( parent, path );
+			this.def = def;
+		}
+
 		public TypeWithDefault( @Nonnull TypeBase parent, @Nonnull String path, @Nullable DefValue def )
+		{
+			super( parent, path );
+			this.def = () -> def;
+		}
+
+		public TypeWithDefault( @Nonnull TypeBase parent, @Nonnull Namespace path, @Nullable DefValue def )
 		{
 			super( parent, path );
 			this.def = () -> def;

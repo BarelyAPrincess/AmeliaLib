@@ -15,14 +15,20 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nonnull;
 
+import io.amelia.support.Namespace;
 import io.amelia.support.Voluntary;
 import io.amelia.support.VoluntaryWithCause;
 
 public interface KeyValueGetterTrait<ValueType, ExceptionClass extends Exception>
 {
-	Set<String> getKeys();
+	Set<Namespace> getKeys();
 
-	default VoluntaryWithCause<ValueType, ExceptionClass> getValue( String key, Function<ValueType, ValueType> computeFunction )
+	default Voluntary<ValueType> getValue( String key, Function<ValueType, ValueType> computeFunction )
+	{
+		return getValue( Namespace.of( key ), computeFunction );
+	}
+
+	default Voluntary<ValueType> getValue( Namespace key, Function<ValueType, ValueType> computeFunction )
 	{
 		ValueType value = getValue( key ).orElse( null );
 		ValueType newValue = computeFunction.apply( value );
@@ -39,7 +45,12 @@ public interface KeyValueGetterTrait<ValueType, ExceptionClass extends Exception
 		return VoluntaryWithCause.ofNullableWithCause( newValue );
 	}
 
-	default VoluntaryWithCause<ValueType, ExceptionClass> getValue( String key, Supplier<ValueType> supplier )
+	default Voluntary<ValueType> getValue( String key, Supplier<ValueType> supplier )
+	{
+		return getValue( Namespace.of( key ), supplier );
+	}
+
+	default Voluntary<ValueType> getValue( Namespace key, Supplier<ValueType> supplier )
 	{
 		if ( !hasValue( key ) )
 			try
@@ -54,7 +65,17 @@ public interface KeyValueGetterTrait<ValueType, ExceptionClass extends Exception
 		return getValue( key );
 	}
 
-	VoluntaryWithCause<ValueType, ExceptionClass> getValue( @Nonnull String key );
+	Voluntary<ValueType> getValue( @Nonnull Namespace key );
 
-	boolean hasValue( String key );
+	default Voluntary<ValueType> getValue( @Nonnull String key )
+	{
+		return getValue( Namespace.of( key ) );
+	}
+
+	default boolean hasValue( String key )
+	{
+		return hasValue( Namespace.of( key ) );
+	}
+
+	boolean hasValue( Namespace key );
 }

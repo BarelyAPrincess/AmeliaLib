@@ -9,9 +9,6 @@
  */
 package io.amelia.support;
 
-import com.google.common.io.CharStreams;
-
-import java.lang.reflect.Array;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -299,6 +296,11 @@ public class Arrs
 		T[] newArray = Arrays.copyOf( arr, arr.length + 1 );
 		newArray[arr.length] = obj;
 		return newArray;
+	}
+
+	public static String[] removeEmptyStrings( String[] nodes )
+	{
+		return ( String[] ) Arrays.stream( nodes ).filter( Strs::isNotEmpty ).toArray();
 	}
 
 	public static <T> T[] reverse( T[] values )

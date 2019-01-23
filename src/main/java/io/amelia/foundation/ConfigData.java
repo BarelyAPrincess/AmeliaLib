@@ -12,6 +12,7 @@ package io.amelia.foundation;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.function.Function;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -23,7 +24,7 @@ import io.amelia.lang.ConfigException;
 import io.amelia.support.Namespace;
 import io.amelia.support.NodeStack;
 import io.amelia.support.Objs;
-import io.amelia.support.VoluntaryWithCause;
+import io.amelia.support.Voluntary;
 
 public final class ConfigData extends ContainerWithValue<ConfigData, Object, ConfigException.Error> implements KeyValueTypesTrait<ConfigException.Error>
 {
@@ -111,7 +112,7 @@ public final class ConfigData extends ContainerWithValue<ConfigData, Object, Con
 	}
 
 	@Override
-	public VoluntaryWithCause<Object, ConfigException.Error> getValue( @Nonnull String key )
+	public Voluntary<Object> getValue( @Nonnull String key )
 	{
 		return super.getValue( key );
 	}
@@ -123,7 +124,7 @@ public final class ConfigData extends ContainerWithValue<ConfigData, Object, Con
 
 	<T> T setValueWithHash( Object obj )
 	{
-		disposalCheck();
+		notDisposed();
 		// A loaded value is only set if the current value is null, was never set, or the new value hash doesn't match the loaded one.
 		if ( loadedValueHash == null || value == null || !ParcelLoader.hashObject( obj ).equals( loadedValueHash ) )
 		{

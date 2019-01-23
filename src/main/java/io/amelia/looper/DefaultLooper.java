@@ -22,7 +22,7 @@ public final class DefaultLooper extends AbstractLooper<DefaultQueue> implements
 	public static DefaultLooper newParallelLooper()
 	{
 		DefaultLooper looper = new DefaultLooper();
-		Kernel.getExecutorParallel().execute( looper::joinLoop );
+		Kernel.getExecutorParallel().execute( looper::joinLoopSafe );
 		return looper;
 	}
 
