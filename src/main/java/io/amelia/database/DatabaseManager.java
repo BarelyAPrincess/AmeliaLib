@@ -66,7 +66,7 @@ public class DatabaseManager
 			{
 				String host = section.getString( "host" ).orElse( "localhost" );
 				int port = section.getInteger( "port" ).orElse( 3306 );
-				String database = section.getString( "database" ).orElse( "chiorifw" );
+				String database = section.getString( "database" ).orElse( "server" );
 				String user = section.getString( "username" ).orElse( "fwuser" );
 				String password = section.getString( "password" ).orElse( "fwpass" );
 
@@ -76,7 +76,7 @@ public class DatabaseManager
 			{
 				String host = section.getString( "host" ).orElse( "localhost" );
 				int port = section.getInteger( "port" ).orElse( 28015 );
-				String database = section.getString( "database" ).orElse( "chiorifw" );
+				String database = section.getString( "database" ).orElse( "server" );
 				String user = section.getString( "username" ).orElse( "fwuser" );
 				String password = section.getString( "password" ).orElse( "fwpass" );
 

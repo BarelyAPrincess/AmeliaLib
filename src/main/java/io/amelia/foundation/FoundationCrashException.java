@@ -7,17 +7,20 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.lang;
+package io.amelia.foundation;
+
+import io.amelia.lang.ApplicationException;
 
 /**
- * Used to gracefully abort a server startup, e.g., by user interaction.
+ * INTERNAL USE ONLY
+ * You should attempt to caught and mute this exception within your main() class.
  */
-public class StartupAbortException extends StartupException
+public class FoundationCrashException extends ApplicationException.Runtime
 {
 	private static final long serialVersionUID = -4937198089020390887L;
 
-	public StartupAbortException()
+	FoundationCrashException()
 	{
-		super( "STARTUP ABORTED!" );
+		super();
 	}
 }

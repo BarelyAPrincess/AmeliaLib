@@ -9,6 +9,10 @@
  */
 package io.amelia.lang;
 
+/**
+ * Specifically only to be used as an exception thrown when a subset of code fails to start.
+ * e.g., Users, Permissions, etc.
+ */
 public class StartupException extends UncaughtException
 {
 	private static final long serialVersionUID = 1L;

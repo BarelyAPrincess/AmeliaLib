@@ -47,7 +47,7 @@ public class FileEntity extends PermissibleEntity
 		clearTimedGroups();
 
 		Parcel groups = backend.getParcel().getChildOrCreate( "entities." + uuid().toString() + ".groups" );
-		groups.getChildren().forEach( child -> addGroup0( backend.getPermissions().getGroup( UUID.fromString( child.getName() ) ), References.format( child.getString( "refs" ).orElse( "" ) ) ) );
+		groups.getChildren().forEach( child -> addGroup0( backend.getPermissions().getGroup( UUID.fromString( child.getLocalName() ) ), References.format( child.getString( "refs" ).orElse( "" ) ) ) );
 	}
 
 	@Override
@@ -62,7 +62,7 @@ public class FileEntity extends PermissibleEntity
 		clearTimedPermissions();
 
 		permissions.getChildren().forEach( node -> {
-			PermissionNamespace ns = PermissionNamespace.of( node.getName().replace( '_', '.' ) );
+			PermissionNamespace ns = PermissionNamespace.of( node.getLocalName().replace( '_', '.' ) );
 
 			Stream<Permission> perms = ns.containsRegex() ? Foundation.getPermissions().getNodes( ns ) : Stream.of( ns.createPermission() );
 
@@ -73,14 +73,7 @@ public class FileEntity extends PermissibleEntity
 	@Override
 	public void remove()
 	{
-		try
-		{
-			backend.getParcel().getChildOrCreate( "entities" ).destroyChild( uuid().toString() );
-		}
-		catch ( ParcelableException.Error e )
-		{
-			throw new PermissionBackendException( e );
-		}
+		backend.getParcel().getChildOrCreate( "entities" ).childDestroy( uuid().toString() );
 	}
 
 	@Override

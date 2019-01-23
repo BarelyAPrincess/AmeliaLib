@@ -28,6 +28,7 @@ import io.amelia.foundation.EntitySubject;
 import io.amelia.lang.ParcelException;
 import io.amelia.lang.ParcelableException;
 import io.amelia.permissions.PermissibleEntity;
+import io.amelia.support.Voluntary;
 import io.amelia.support.VoluntaryWithCause;
 import io.amelia.users.auth.UserCredentials;
 
@@ -100,7 +101,7 @@ public class UserEntity implements EntitySubject, ParcelSender, ParcelReceiver
 	 *
 	 * @return String
 	 */
-	public VoluntaryWithCause<String, ParcelableException.Error> getString( String key )
+	public Voluntary<String> getString( String key )
 	{
 		return userContext.getString( key );
 	}

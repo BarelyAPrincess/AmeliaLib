@@ -12,7 +12,6 @@ package io.amelia.users;
 import java.lang.ref.WeakReference;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
@@ -30,9 +29,10 @@ import io.amelia.foundation.Foundation;
 import io.amelia.lang.ParcelException;
 import io.amelia.lang.ParcelableException;
 import io.amelia.permissions.PermissibleEntity;
+import io.amelia.support.Namespace;
 import io.amelia.support.Parcels;
 import io.amelia.support.Streams;
-import io.amelia.support.VoluntaryWithCause;
+import io.amelia.support.Voluntary;
 import io.amelia.support.WeakReferenceList;
 
 /**
@@ -104,7 +104,7 @@ public class UserContext implements EntitySubject, Comparable<UserContext>, KeyV
 	}
 
 	@Override
-	public Set<String> getKeys()
+	public Set<Namespace> getKeys()
 	{
 		return parcel.getKeys();
 	}
@@ -119,25 +119,13 @@ public class UserContext implements EntitySubject, Comparable<UserContext>, KeyV
 	}
 
 	@Override
-	public VoluntaryWithCause<Object, ParcelableException.Error> getValue( String key, Function<Object, Object> computeFunction )
-	{
-		return parcel.getValue( key, computeFunction );
-	}
-
-	@Override
-	public VoluntaryWithCause<Object, ParcelableException.Error> getValue( String key, Supplier<Object> supplier )
-	{
-		return parcel.getValue( key, supplier );
-	}
-
-	@Override
-	public VoluntaryWithCause<Object, ParcelableException.Error> getValue( @Nonnull String key )
+	public Voluntary<Object> getValue( @Nonnull Namespace key )
 	{
 		return parcel.getValue( key );
 	}
 
 	@Override
-	public VoluntaryWithCause<Object, ParcelableException.Error> getValue()
+	public Voluntary<Object> getValue()
 	{
 		return parcel.getValue();
 	}
@@ -149,7 +137,7 @@ public class UserContext implements EntitySubject, Comparable<UserContext>, KeyV
 	}
 
 	@Override
-	public boolean hasValue( String key )
+	public boolean hasValue( Namespace key )
 	{
 		return parcel.hasValue( key );
 	}
@@ -171,7 +159,7 @@ public class UserContext implements EntitySubject, Comparable<UserContext>, KeyV
 	}
 
 	@Override
-	public void setValue( String key, Object value ) throws ParcelableException.Error
+	public void setValue( Namespace key, Object value ) throws ParcelableException.Error
 	{
 		parcel.setValue( key, value );
 	}
@@ -183,7 +171,7 @@ public class UserContext implements EntitySubject, Comparable<UserContext>, KeyV
 	}
 
 	@Override
-	public void setValueIfAbsent( String key, Supplier<?> value ) throws ParcelableException.Error
+	public void setValueIfAbsent( Namespace key, Supplier<?> value ) throws ParcelableException.Error
 	{
 		parcel.setValueIfAbsent( key, value );
 	}

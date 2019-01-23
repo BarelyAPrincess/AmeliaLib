@@ -17,7 +17,6 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 public enum HttpCode
 {
 	// Reference: http://en.wikipedia.org/wiki/List_of_HTTP_status_codes
-
 	HTTP_CONTINUE( 100, "Continue" ),
 	HTTP_SWITCHING_PROTOCOLS( 101 ),
 	HTTP_PROCESSING( 102 ),
@@ -31,7 +30,7 @@ public enum HttpCode
 	HTTP_MULTI_STATUS( 207 ),
 	HTTP_ALREADY_REPORTED( 208 ),
 	HTTP_IM_USED( 226 ),
-	HTTP_MULT_CHOICE( 300, "Multiple Choices" ),
+	HTTP_MULTI_CHOICE( 300, "Multiple Choices" ),
 	HTTP_MOVED_PERM( 301, "Moved Permanently" ),
 	HTTP_MOVED_TEMP( 302, "Temporary Redirect" ),
 	HTTP_SEE_OTHER( 303, "See Other" ),
@@ -116,6 +115,11 @@ public enum HttpCode
 	public String getReason()
 	{
 		return reason;
+	}
+
+	public String print()
+	{
+		return code + " - " + reason;
 	}
 
 	@Override

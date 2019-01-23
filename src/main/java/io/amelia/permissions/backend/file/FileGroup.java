@@ -13,6 +13,7 @@ import java.util.Map.Entry;
 import java.util.UUID;
 import java.util.stream.Stream;
 
+import io.amelia.data.ContainerWithValue;
 import io.amelia.data.parcel.Parcel;
 import io.amelia.foundation.Foundation;
 import io.amelia.lang.ParcelableException;
@@ -46,7 +47,7 @@ public class FileGroup extends PermissibleGroup
 		clearTimedGroups();
 
 		Parcel groups = backend.getParcel().getChildOrCreate( "entities." + uuid() + ".groups" );
-		groups.getChildren().forEach( group -> addGroup0( Foundation.getPermissions().getGroup( UUID.fromString( group.getName() ), true ), References.format( groups.getString().orElse( "" ) ) ) );
+		groups.getChildren().forEach( group -> addGroup0( Foundation.getPermissions().getGroup( UUID.fromString( group.getLocalName() ), true ), References.format( groups.getString().orElse( "" ) ) ) );
 	}
 
 	@Override
@@ -61,7 +62,7 @@ public class FileGroup extends PermissibleGroup
 		clearTimedPermissions();
 
 		permissions.getChildren().forEach( node -> {
-			PermissionNamespace ns = PermissionNamespace.of( node.getName().replace( '_', '.' ) );
+			PermissionNamespace ns = PermissionNamespace.of( node.getLocalName().replace( '_', '.' ) );
 
 			Stream<Permission> perms = ns.containsRegex() ? Foundation.getPermissions().getNodes( ns ) : Stream.of( ns.createPermission() );
 
@@ -74,14 +75,7 @@ public class FileGroup extends PermissibleGroup
 	@Override
 	public void remove()
 	{
-		try
-		{
-			backend.getParcel().getChildOrCreate( "groups" ).destroyChild( uuid().toString() );
-		}
-		catch ( ParcelableException.Error e )
-		{
-			throw new PermissionBackendException( e );
-		}
+		backend.getParcel().getChildOrCreate( "groups" ).getChildVoluntary( uuid().toString() ).ifPresent( ContainerWithValue::destroy );
 	}
 
 	@Override

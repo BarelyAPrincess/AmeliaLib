@@ -37,7 +37,6 @@ import io.amelia.lang.ApplicationException;
 import io.amelia.lang.ExceptionContext;
 import io.amelia.lang.ExceptionReport;
 import io.amelia.lang.MultipleException;
-import io.amelia.lang.StartupAbortException;
 import io.amelia.lang.StartupException;
 import io.amelia.looper.LooperRouter;
 import io.amelia.looper.MainLooper;
@@ -47,6 +46,7 @@ import io.amelia.support.Encrypt;
 import io.amelia.support.EnumColor;
 import io.amelia.support.Exceptions;
 import io.amelia.support.IO;
+import io.amelia.support.LooperException;
 import io.amelia.support.Maps;
 import io.amelia.support.Objs;
 import io.amelia.support.Priority;
@@ -277,8 +277,6 @@ public final class Foundation
 
 	public static Class<?> findSuperOrInterface( Class<?> fromClass )
 	{
-		L.info( "findSuperOrInterface( " + fromClass.getName() + " );" );
-
 		// Block Object class
 		if ( fromClass == Object.class )
 			return null;
@@ -828,7 +826,7 @@ public final class Foundation
 				L.info( EnumColor.AQUA + "Application has entered runlevel \"" + runlevel.name() + "\". It took " + Timing.finish( runlevelTimingObject ) + "ms!" );
 
 			if ( runlevel == Runlevel.CRASHED )
-				throw new StartupAbortException();
+				throw new FoundationCrashException();
 		}
 		catch ( ApplicationException.Error e )
 		{
@@ -853,7 +851,17 @@ public final class Foundation
 
 	public static void shutdown( String reason )
 	{
-		setRunlevel( Runlevel.SHUTDOWN, reason );
+		try
+		{
+			setRunlevel( Runlevel.SHUTDOWN, reason );
+		}
+		catch ( LooperException.InvalidState e )
+		{
+			// L.warning( "shutdown() called but ignored because MainLooper is already quitting. {shutdownReason=" + reason + "}" );
+			// TEMP?
+			e.printStackTrace();
+			System.exit( 1 );
+		}
 	}
 
 	/**

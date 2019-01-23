@@ -24,6 +24,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import io.amelia.data.ContainerBase;
+import io.amelia.data.ContainerWithValue;
 import io.amelia.data.parcel.Parcel;
 import io.amelia.data.parcel.ParcelLoader;
 import io.amelia.foundation.ConfigRegistry;
@@ -109,7 +110,7 @@ public class FileBackend extends PermissionBackend
 		Parcel section = parcel.getChild( type == 1 ? "groups" : "entities" );
 		if ( section == null )
 			return Stream.empty();
-		return section.getChildren().map( ContainerBase::getName );
+		return section.getChildren().map( ContainerBase::getLocalName );
 	}
 
 	@Override
@@ -186,7 +187,7 @@ public class FileBackend extends PermissionBackend
 			return;
 
 		section.getChildren().forEach( entity -> {
-			Foundation.getPermissions().getPermissibleEntity( UUID.fromString( entity.getName() ), true );
+			Foundation.getPermissions().getPermissibleEntity( UUID.fromString( entity.getLocalName() ), true );
 		} );
 	}
 
@@ -198,7 +199,7 @@ public class FileBackend extends PermissionBackend
 			return;
 
 		section.getChildren().forEach( group -> {
-			Foundation.getPermissions().getGroup( UUID.fromString( group.getName() ), true );
+			Foundation.getPermissions().getGroup( UUID.fromString( group.getLocalName() ), true );
 		} );
 	}
 
@@ -210,13 +211,13 @@ public class FileBackend extends PermissionBackend
 			return;
 
 		section.getChildren().forEach( node -> {
-			PermissionNamespace ns = PermissionNamespace.of( node.getName().replace( "_", "." ) );
+			PermissionNamespace ns = PermissionNamespace.of( node.getLocalName().replace( "_", "." ) );
 
 			if ( !ns.containsOnlyValidChars() )
 			{
 				String origNamespace = ns.getString();
 				ns.fixInvalidChars();
-				node.setName( ns.getString( "_" ) );
+				node.setLocalName( ns.getString( "_" ) );
 				Permissions.L.warning( "The permission '%s' contains invalid characters. The namespaces can only contain the characters a-z, 0-9, and _, this will be fixed automatically. The new name is: %s", origNamespace, ns.getString() );
 			}
 
@@ -258,14 +259,7 @@ public class FileBackend extends PermissionBackend
 	@Override
 	public void nodeDestroy( Permission perm )
 	{
-		try
-		{
-			parcel.getChildOrCreate( "permissions" ).destroyChild( perm.getPermissionNamespace().getString() );
-		}
-		catch ( ParcelableException.Error e )
-		{
-			e.printStackTrace();
-		}
+		parcel.getChildOrCreate( "permissions" ).getChildVoluntary( perm.getPermissionNamespace().getString() ).ifPresent( ContainerWithValue::destroy );
 	}
 
 	@Override
@@ -301,7 +295,7 @@ public class FileBackend extends PermissionBackend
 			Streams.forEachWithException( groups.getChildren(), groupSection -> {
 				groupSection.setValue( defaultGroupProperty, false );
 
-				if ( UUID.fromString( groupSection.getName() ).equals( uuid ) )
+				if ( UUID.fromString( groupSection.getLocalName() ).equals( uuid ) )
 				{
 					groupSection.setValue( defaultGroupProperty, true );
 					success.set( true );

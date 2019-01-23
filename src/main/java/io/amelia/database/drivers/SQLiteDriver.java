@@ -11,6 +11,8 @@ package io.amelia.database.drivers;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.SQLException;
 
 import io.amelia.database.DatabaseManager;
@@ -52,17 +54,17 @@ public class SQLiteDriver extends SQLBaseDriver
 
 	public class ConnectionBuilder extends SQLBaseDriver.ConnectionBuilder
 	{
-		private File file;
+		private Path dbFile;
 
 		@Override
 		public SQLiteDriver connect() throws SQLException
 		{
-			if ( !file.exists() )
+			if ( Files.notExists( dbFile ) )
 			{
-				DatabaseManager.L.warning( "The SQLite file '" + file.getAbsolutePath() + "' did not exist, we will attempt to create an empty file." );
+				DatabaseManager.L.warning( "The SQLite file \"" + dbFile.toString() + "\" did not exist, we will attempt to create an empty file." );
 				try
 				{
-					file.createNewFile();
+					Files.createFile( dbFile );
 				}
 				catch ( IOException e )
 				{
@@ -70,20 +72,20 @@ public class SQLiteDriver extends SQLBaseDriver
 				}
 			}
 
-			super.connect( "jdbc:sqlite:" + file.getAbsolutePath() );
+			super.connect( "jdbc:sqlite:" + dbFile.toString() );
 			SQLiteDriver.this.lastBuilder = this;
 			return SQLiteDriver.this;
 		}
 
-		public SQLiteDriver.ConnectionBuilder file( String file )
+		public SQLiteDriver.ConnectionBuilder file( String dbFile )
 		{
-			this.file = IO.isAbsolute( file ) ? new File( file ) : new File( Kernel.getPath( Kernel.PATH_APP ).toFile(), file );
+			this.dbFile = Kernel.getPath( Kernel.PATH_STORAGE ).resolve( dbFile );
 			return this;
 		}
 
-		public SQLiteDriver.ConnectionBuilder file( File file )
+		public SQLiteDriver.ConnectionBuilder file( Path dbFile )
 		{
-			this.file = file;
+			this.dbFile = Kernel.getPath( Kernel.PATH_STORAGE ).resolve( dbFile );
 			return this;
 		}
 	}

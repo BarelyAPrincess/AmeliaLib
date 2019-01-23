@@ -106,7 +106,7 @@ public final class Permission extends ContainerWithValue<Permission, PermissionM
 
 		String spacing = depth > 0 ? Strs.repeat( "      ", depth - 1 ) + "|---> " : "";
 
-		output.append( String.format( "%s%s%s=%s", EnumColor.YELLOW, spacing, getName(), getPermissionMeta() ) );
+		output.append( String.format( "%s%s%s=%s", EnumColor.YELLOW, spacing, getLocalName(), getPermissionMeta() ) );
 		getChildren().forEach( p -> output.append( p.dumpPermissionStack0( depth + 1 ) ) );
 
 		return output.toString();
@@ -131,6 +131,6 @@ public final class Permission extends ContainerWithValue<Permission, PermissionM
 	@Override
 	public String toString()
 	{
-		return String.format( "Permission{name=%s,parent=%s,getUserContext=%s}", getName(), getParent(), getPermissionMeta() );
+		return String.format( "Permission{name=%s,parent=%s,getUserContext=%s}", getLocalName(), getParent(), getPermissionMeta() );
 	}
 }
