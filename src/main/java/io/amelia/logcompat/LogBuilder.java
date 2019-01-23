@@ -56,14 +56,13 @@ public class LogBuilder
 
 	public static void addFileHandler( String filename, boolean useColor, int archiveLimit, Level level )
 	{
+		Path logPath = Kernel.getPath( Kernel.PATH_LOGS ).resolve( filename + ".log" );
 		try
 		{
-			Path logPath = Kernel.getPath( Kernel.PATH_LOGS ).resolve( filename + ".log" );
-
 			if ( Files.exists( logPath ) )
 			{
 				if ( archiveLimit > 0 )
-					IO.gzFile( logPath, Paths.get( new SimpleDateFormat( "yyyy-MM-dd_HH-mm-ss" ).format( new Date() ) + "-" + filename + ".log.gz" ).resolve( Kernel.getPath( Kernel.PATH_LOGS ) ) );
+					IO.gzFile( logPath, Kernel.getPath( Kernel.PATH_LOGS ).resolve( new SimpleDateFormat( "yyyy-MM-dd_HH-mm-ss" ).format( new Date() ) + "-" + filename + ".log.gz" ) );
 				Files.delete( logPath );
 			}
 
@@ -77,7 +76,8 @@ public class LogBuilder
 		}
 		catch ( Exception e )
 		{
-			get().severe( "Failed to log to '" + filename + ".log'", e );
+			e.printStackTrace();
+			get().severe( "Failed to log to \"" + logPath.toString() + "\" for reason \"" + e.getMessage() + "\".", e );
 		}
 	}
 
