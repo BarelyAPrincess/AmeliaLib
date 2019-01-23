@@ -682,7 +682,7 @@ public class HttpRequestWrapper extends SessionWrapper implements SessionContext
 	@Override
 	public Voluntary<HoneyCookie> getServerCookie( String key )
 	{
-		return Voluntary.of( serverCookies.stream().filter( cookie -> key.equalsIgnoreCase( cookie.getName() ) ).findAny().orElse( null ) );
+		return Voluntary.of( serverCookies.stream().filter( cookie -> key.equalsIgnoreCase( cookie.getName() ) ).findAny() );
 	}
 
 	@Override

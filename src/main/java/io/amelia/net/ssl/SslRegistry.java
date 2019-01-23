@@ -20,18 +20,17 @@ import java.security.cert.CertificateExpiredException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 
 import javax.net.ssl.SSLException;
 
 import io.amelia.events.Events;
 import io.amelia.foundation.ConfigRegistry;
-import io.amelia.foundation.Foundation;
 import io.amelia.foundation.Kernel;
 import io.amelia.http.events.SslCertificateDefaultEvent;
 import io.amelia.http.events.SslCertificateMapEvent;
 import io.amelia.http.mappings.DomainMapping;
 import io.amelia.http.mappings.DomainTree;
-import io.amelia.http.webroot.WebrootRegistry;
 import io.amelia.lang.ConfigException;
 import io.amelia.lang.StartupException;
 import io.amelia.net.Networking;
@@ -139,13 +138,13 @@ public class SslRegistry implements Mapping<String, SslContext>
 
 			//try
 			//{
-				DomainMapping mapping = DomainTree.parseDomain( hostname ).getDomainMapping();
-				if ( mapping != null )
-				{
-					SslContext context = mapping.getSslContext( true );
-					if ( context != null )
-						return context;
-				}
+			DomainMapping mapping = DomainTree.parseDomain( hostname ).getDomainMapping();
+			if ( mapping != null )
+			{
+				SslContext context = mapping.getSslContext( true );
+				if ( context != null )
+					return context;
+			}
 			/*}
 			catch ( Exception e )
 			{
@@ -239,7 +238,7 @@ public class SslRegistry implements Mapping<String, SslContext>
 			Networking.L.severe( "The server SSL certificate is expired, please obtain a renewed certificate ASAP." );
 		}
 
-		List<String> names = wrapper.getSubjectAltDNSNames().orElseGet( ArrayList::new );
+		List<String> names = wrapper.getSubjectAltDNSNames().orElseGet( ( Supplier ) ArrayList::new );
 		wrapper.getCommonName().ifPresent( names::add );
 
 		Networking.L.info( String.format( "Updating default SSL cert with '%s', key '%s', and hasSecret? %s", IO.relPath( sslCert ), IO.relPath( sslKey ), sslSecret != null && !sslSecret.isEmpty() ) );

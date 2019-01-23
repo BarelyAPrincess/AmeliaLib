@@ -155,7 +155,7 @@ public class RouteWatcher extends FileWatcher
 			}
 
 			data.getChildren().forEach( child -> {
-				String id = child.getString( "id" ).orElse( child.getName() );
+				String id = child.getString( "id" ).orElse( child.getLocalName() );
 
 				if ( !parent.hasRoute( id ) )
 				{
@@ -163,10 +163,10 @@ public class RouteWatcher extends FileWatcher
 					Map<String, String> rewrites = new HashMap<>();
 
 					child.getChildren().forEach( section -> {
-						if ( "vargs".equals( section.getName() ) )
-							section.getChildrenWithValue().forEach( args -> rewrites.put( args.getName(), args.getString().orElse( null ) ) );
+						if ( "vargs".equals( section.getLocalName() ) )
+							section.getChildrenWithValue().forEach( args -> rewrites.put( args.getLocalName(), args.getString().orElse( null ) ) );
 						else
-							values.put( section.getName(), section.getString().orElse( null ) );
+							values.put( section.getLocalName(), section.getString().orElse( null ) );
 					} );
 
 					routes.add( new Route( id, parent.webroot, values, rewrites ) );

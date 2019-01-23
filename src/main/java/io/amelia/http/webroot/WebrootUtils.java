@@ -45,9 +45,11 @@ public class WebrootUtils
 		}
 	}
 
-	public static Path createWebrootDirectory( String webrootId )
+	public static Path createWebrootDirectory( String webrootId ) throws IOException
 	{
-		return Kernel.getPath( WebrootRegistry.PATH_WEBROOT ).resolve( webrootId );
+		Path webrootDirectory = Kernel.getPath( WebrootRegistry.PATH_WEBROOT ).resolve( webrootId );
+		IO.forceCreateDirectory( webrootDirectory );
+		return webrootDirectory;
 	}
 
 	private WebrootUtils()

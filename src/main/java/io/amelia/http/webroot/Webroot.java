@@ -62,6 +62,7 @@ import io.amelia.support.EnumColor;
 import io.amelia.support.Exceptions;
 import io.amelia.support.IO;
 import io.amelia.support.NIO;
+import io.amelia.support.Namespace;
 import io.amelia.support.Objs;
 import io.amelia.support.StorageConversions;
 import io.amelia.support.StoragePolicy;
@@ -556,7 +557,7 @@ public class Webroot implements UserRoot
 
 	public List<String> getUsersFields()
 	{
-		return getConfig().getStringList( "users.fields" ).orElseGet( ArrayList::new );
+		return getConfig().getStringList( "users.fields" ).orElseGet( ( Supplier ) ArrayList::new );
 	}
 
 	public ElegantQueryTable getUsersTable()
@@ -592,16 +593,16 @@ public class Webroot implements UserRoot
 
 	private void mapDomain( @Nonnull ConfigData domains, @Nullable DomainMapping mapping, @Nonnegative int depth ) throws WebrootException.Configuration
 	{
-		for ( String key : domains.getKeys() )
+		for ( Namespace key : domains.getKeys() )
 		{
 			/* Replace underscore with dot, ignore escaped underscore. */
-			String domainKey = key.replaceAll( "(?<!\\\\)_", "." ).replace( "\\_", "_" );
+			// String domainKey = key.replaceAll( "(?<!\\\\)_", "." ).replace( "\\_", "_" );
 
 			if ( key.startsWith( "__" ) ) // Configuration Directive
 			{
 				if ( depth == 0 || mapping == null )
 					throw new WebrootException.Configuration( String.format( "Domain data directive [%s.%s] is not allowed here.", domains.getCurrentPath(), key ) );
-				mapping.putConfig( key.substring( 2 ), domains.getString( key ).orElse( null ) );
+				mapping.putConfig( key.getString().substring( 2 ), domains.getString( key ).orElse( null ) );
 
 				if ( "__default".equals( key ) && domains.getBoolean( key ).orElse( false ) )
 				{
@@ -613,7 +614,7 @@ public class Webroot implements UserRoot
 			else if ( domains.hasChild( key ) ) // Child Domain
 				try
 				{
-					DomainMapping mappingNew = mapping == null ? getMappings( domainKey ).findFirst().get() : mapping.getChildMapping( domainKey );
+					DomainMapping mappingNew = mapping == null ? getMappings( key.getString( "." ) ).findFirst().get() : mapping.getChildMapping( key.getString( "." ) );
 					mappingNew.map();
 					mapDomain( domains.getChildOrCreate( key ), mappingNew, depth + 1 );
 				}

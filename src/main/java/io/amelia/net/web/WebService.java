@@ -21,6 +21,7 @@ import io.amelia.lang.ApplicationException;
 import io.amelia.lang.ExceptionContext;
 import io.amelia.lang.ExceptionReport;
 import io.amelia.lang.StartupException;
+import io.amelia.looper.Delays;
 import io.amelia.looper.LooperRouter;
 import io.amelia.net.ssl.SslInitializer;
 import io.amelia.net.NetworkService;
@@ -150,7 +151,7 @@ public class WebService implements NetworkService
 			for ( WeakReference<SocketChannel> ref : SslInitializer.activeChannels )
 				if ( ref.get() == null )
 					SslInitializer.activeChannels.remove( ref );
-		}, DateAndTime.SECOND_15, DateAndTime.SECOND_15, true );
+		}, Delays.SECOND_15, Delays.SECOND_15, true );
 	}
 
 	public static class ConfigKeys

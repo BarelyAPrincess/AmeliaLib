@@ -26,7 +26,6 @@ import javax.annotation.Nonnull;
 import io.amelia.data.parcel.Parcel;
 import io.amelia.events.Events;
 import io.amelia.foundation.ConfigRegistry;
-import io.amelia.foundation.Foundation;
 import io.amelia.http.HoneyCookie;
 import io.amelia.http.Nonce;
 import io.amelia.http.events.SessionDestroyEvent;
@@ -582,7 +581,7 @@ public final class Session extends UserPermissible implements Kickable, Scriptin
 			SessionRegistry.L.info( String.format( "Setting session variable `%s` with value '%s'", key, value ) );
 
 			if ( value == null )
-				data.data.destroyChild( key );
+				data.data.childDestroy( key );
 
 			data.data.setValue( key, value );
 			dataChangeHistory.add( key );

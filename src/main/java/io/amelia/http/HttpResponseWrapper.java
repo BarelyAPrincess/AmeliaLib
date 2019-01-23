@@ -304,10 +304,13 @@ public class HttpResponseWrapper implements HttpScriptingResponse
 		httpCode = event.getHttpCode();
 		statusReason = event.getHttpReason();
 
-		if ( statusReason == null || statusReason.length() > 255 )
-			log.log( Level.SEVERE, "%s {code=%s}", statusReason, httpCode );
+		if ( statusReason == null )
+			statusReason = httpCode.getReason();
+
+		if ( statusReason.length() > 255 )
+			log.log( Level.SEVERE, "%s {code=%s}", statusReason, httpCode.getCode() );
 		else
-			log.log( Level.SEVERE, "%s {code=%s,reason=%s}", statusReason, httpCode, statusReason );
+			log.log( Level.SEVERE, "%s {code=%s,reason=%s}", statusReason, httpCode.getCode(), statusReason );
 
 		if ( event.getErrorHtml() == null || event.getErrorHtml().length() == 0 )
 		{
@@ -334,12 +337,12 @@ public class HttpResponseWrapper implements HttpScriptingResponse
 			if ( printHtml )
 			{
 				println( "<html><head>" );
-				println( "<title>" + httpCode + " - " + statusReason + "</title>" );
+				println( "<title>" + httpCode.getCode() + " - " + statusReason + "</title>" );
 				println( "<style>body { margin: 0; padding: 0; } h1, h2, h3, h4, h5, h6 { margin: 0; } .container { padding: 8px; } .debug-header { display: block; margin: 15px 0 0; font-size: 18px; color: #303030; font-weight: bold; } #debug-getTable { border: 1px solid; width: 100%; } #debug-getTable thead { background-color: #eee; } #debug-getTable #col_0 { width: 20%; min-width: 130px; overflow: hidden; font-weight: bold; color: #463C54; padding-right: 5px; } #debug-getTable #tblStringRow { color: rgba(0, 0, 0, .3); font-weight: 300; }</style>" );
 				println( "</head><body>" );
 
 				println( "<div class=\"container\" style=\" background-color: #eee; \">" );
-				println( "<h1>" + httpCode + " - " + statusReason + "</h1>" );
+				println( "<h1>" + httpCode.getCode() + " - " + statusReason + "</h1>" );
 				println( "</div>" );
 				println( "<div class=\"container\">" );
 

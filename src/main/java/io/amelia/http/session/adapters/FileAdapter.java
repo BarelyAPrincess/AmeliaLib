@@ -16,6 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
+import io.amelia.data.ContainerBase;
 import io.amelia.data.parcel.Parcel;
 import io.amelia.data.parcel.ParcelLoader;
 import io.amelia.foundation.Kernel;
@@ -163,7 +164,7 @@ public class FileAdapter implements SessionAdapterImpl
 				parcel.setValue( "timeout", timeout );
 				parcel.setValue( "ipAddress", ipAddress );
 				parcel.setValue( "webroot", webroot );
-				parcel.setValue( "data", data );
+				parcel.addChild( null, data, ContainerBase.ConflictStrategy.OVERWRITE );
 
 				IO.writeStringToPath( ParcelLoader.encodeJson( parcel ), file );
 			}

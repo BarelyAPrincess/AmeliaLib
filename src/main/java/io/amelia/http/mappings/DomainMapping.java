@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -178,7 +179,7 @@ public class DomainMapping
 		for ( Map.Entry<String, DomainMapping> entry : nodes.entrySet() )
 		{
 			CertificateWrapper wrapper = entry.getValue().initSsl();
-			if ( wrapper != null && ( entry.getValue() == this || Http.hostnameNormalize( wrapper.getCommonName().orElse( null ) ).equals( getFullDomain() ) || wrapper.getSubjectAltDNSNames().orElseGet( ArrayList::new ).contains( getFullDomain() ) ) )
+			if ( wrapper != null && ( entry.getValue() == this || Http.hostnameNormalize( wrapper.getCommonName().orElse( null ) ).equals( getFullDomain() ) || wrapper.getSubjectAltDNSNames().orElseGet( ( Supplier ) ArrayList::new ).contains( getFullDomain() ) ) )
 				try
 				{
 					return wrapper.context();
