@@ -21,6 +21,7 @@ import io.amelia.data.parcel.ParcelLoader;
 import io.amelia.lang.ParcelableException;
 import io.amelia.storage.sql.SQLPath;
 import io.amelia.support.IO;
+import io.amelia.support.Namespace;
 import io.amelia.support.Streams;
 
 /**
@@ -66,7 +67,7 @@ public abstract class TableTranslator
 	void bake()
 	{
 		keys.clear();
-		keys.addAll( root.getKeys() );
+		root.getKeys().stream().map( Namespace::getString ).forEach( keys::add );
 	}
 
 	public void delete()
@@ -82,7 +83,7 @@ public abstract class TableTranslator
 			enableWrite();
 			Parcel record = root.getChildOrCreate( key );
 			record.addFlag( ContainerWithValue.Flags.VALUES_ONLY );
-			keys.add( record.getName() );
+			keys.add( record.getLocalName() );
 			disableWrite();
 			return record;
 		}
@@ -139,9 +140,9 @@ public abstract class TableTranslator
 		return keys.size();
 	}
 
-	public void clear() throws ParcelableException.Error
+	public void clear()
 	{
-		root.destroyChildren();
+		root.getChildren().forEach( ContainerWithValue::destroy );
 		keys.clear();
 	}
 
@@ -178,7 +179,7 @@ public abstract class TableTranslator
 				{
 					clear();
 					Parcel parcel = ParcelLoader.decodeYaml( path );
-					Streams.forEachWithException( parcel.getChildren(), root::setChild );
+					Streams.forEachWithException( parcel.getChildren(), node -> root.addChild( null, node ) );
 					bake();
 				}
 				catch ( IOException e )
