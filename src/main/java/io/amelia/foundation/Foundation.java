@@ -9,6 +9,8 @@
  */
 package io.amelia.foundation;
 
+import com.google.common.collect.Lists;
+
 import org.reflections.Reflections;
 import org.reflections.scanners.MethodAnnotationsScanner;
 
@@ -651,8 +653,11 @@ public final class Foundation
 		{
 			/* Load Deployment Libraries */
 			L.info( "Loading deployment libraries defined in \"dependencies.txt\"." );
-			for ( String depend : IO.resourceToString( "dependencies.txt" ).split( "\n" ) )
-				Libraries.loadLibrary( new MavenReference( "builtin", depend ) );
+			String depends = IO.resourceToString( "dependencies.txt" );
+			if ( !Objs.isEmpty( depends ) ) // Will be null if the file does not exist
+				for ( String depend : depends.split( "\n" ) )
+					if ( !depend.startsWith( "#" ) )
+						Libraries.loadLibrary( new MavenReference( "builtin", depend ) );
 		}
 		catch ( IOException e )
 		{
@@ -660,7 +665,7 @@ public final class Foundation
 		}
 		L.info( EnumColor.AQUA + "Finished downloading deployment libraries." );
 
-		// Call to make sure the INITIALIZATION Runlevel is acknowledged by the application.
+		// Call to make sure the INITIALIZATION runlevel is acknowledged by the application.
 		onRunlevelChange();
 	}
 

@@ -224,7 +224,7 @@ public abstract class BaseApplication implements VendorRegistrar, ExceptionRegis
 			// ConfigRegistry should load here!
 			Foundation.invokeHook( Foundation.class, Foundation.HOOK_ACTION_PARSE );
 			if ( !ConfigRegistry.isLoaded() )
-				throw new ApplicationException.Error( "ConfigRegistry did not initialize as expected." );
+				throw new ApplicationException.Error( "ConfigRegistry did not initialize as expected. Is the `HOOK_ACTION_PARSE` implemented to load data into the ConfigRegistry?" );
 
 			parse();
 		}
