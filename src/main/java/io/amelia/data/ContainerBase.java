@@ -33,6 +33,7 @@ import io.amelia.support.ConsumerWithException;
 import io.amelia.support.Maps;
 import io.amelia.support.Namespace;
 import io.amelia.support.NodeStack;
+import io.amelia.support.Objs;
 import io.amelia.support.Streams;
 import io.amelia.support.Voluntary;
 
@@ -170,6 +171,7 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 		}
 		catch ( Exception exceptionClass )
 		{
+			exceptionClass.printStackTrace();
 			return Voluntary.empty();
 		}
 	}
@@ -240,7 +242,7 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 			return ( BaseClass ) this;
 
 		String childName = childPath.getStringFirst();
-		return Voluntary.of( children.stream().filter( child -> childName.equals( child.getLocalName() ) ).findFirst() ).map( child -> child.childFindOrCreate( childPath.dropFirst() ) ).ifAbsentGet( () -> childCreate( childName ) ).get();
+		return Voluntary.of( children.stream().filter( child -> childName.equals( child.getLocalName() ) ).findFirst() ).ifAbsentGet( () -> Voluntary.notEmpty( childCreate( childName ) ) ).map( child -> child.childFindOrCreate( childPath.dropFirst() ) ).orElseThrow( () -> new RuntimeException( "General Internal Failure" ) );
 	}
 
 	public final <C> Stream<C> collect( Function<BaseClass, C> function )
@@ -497,7 +499,7 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 	{
 		if ( name == null || name.length() == 0 )
 			return false;
-		if ( !localName.matches( "[A-Za-z0-9*_.]*" ) )
+		if ( !name.matches( "[A-Za-z0-9*_.]*" ) )
 			return false;
 		return true;
 	}

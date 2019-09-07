@@ -300,7 +300,7 @@ public class Arrs
 
 	public static String[] removeEmptyStrings( String[] nodes )
 	{
-		return ( String[] ) Arrays.stream( nodes ).filter( Strs::isNotEmpty ).toArray();
+		return Arrays.stream( nodes ).filter( Strs::isNotEmpty ).toArray( String[]::new );
 	}
 
 	public static <T> T[] reverse( T[] values )
