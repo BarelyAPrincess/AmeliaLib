@@ -56,6 +56,7 @@ import io.amelia.support.Strs;
 import io.amelia.support.Timing;
 import io.amelia.support.Voluntary;
 import io.amelia.users.Users;
+import io.amelia.users.UsersMemory;
 
 /**
  * Used for accessing majority of the Foundation API.<br />
@@ -78,6 +79,8 @@ public final class Foundation
 	public static final String HOOK_ACTION_INIT = "init";
 	public static final String HOOK_ACTION_PARSE = "parse";
 	public static final String HOOK_ACTION_DEFAULT = "default";
+
+	private static final List<Class<?>> allElseFailClasses = new ArrayList<>();
 	private static final Map<Class<?>, Class<?>> classToClassAlias = new HashMap<>();
 	private static final Map<Class<?>, List<HookRef>> hooks = new HashMap<>();
 	private static final Map<Class<?>, Map<Priority, Object>> mappings = new HashMap<>();
@@ -403,7 +406,9 @@ public final class Foundation
 		if ( init )
 			return;
 
-		// The Hooks system is similar to events but less feature rich, we highly recommend not using this feature unless you need to catch critical/early events.
+		allElseFailClasses.add( UsersMemory.class );
+
+		// The Hooks system is similar to events but much less feature rich, we highly recommend not using this feature unless you need to catch critical/early events.
 
 		try
 		{
@@ -537,7 +542,7 @@ public final class Foundation
 
 	public static <T> Voluntary<T> make( @Nonnull Class<?> fromClass, @Nonnull Map<String, ?> arguments ) throws ApplicationException.Error
 	{
-		Voluntary result = Voluntary.empty();
+		Voluntary<T> result = Voluntary.empty();
 
 		Class<?> classToClassAliasResult = getClassToClassAlias( fromClass );
 		if ( classToClassAliasResult != null )
@@ -565,7 +570,7 @@ public final class Foundation
 			if ( constructors.length == 0 )
 				try
 				{
-					result = Voluntary.of( fromClass.newInstance() );
+					result = ( Voluntary<T> ) Voluntary.of( fromClass.newInstance() );
 				}
 				catch ( InstantiationException | IllegalAccessException e )
 				{
@@ -573,16 +578,32 @@ public final class Foundation
 				}
 			else
 				for ( Constructor constructor : constructors )
-				{
-					try
-					{
-						result = Voluntary.of( constructor.newInstance( resolveParameters( constructor.getParameters(), arguments ) ) );
-					}
-					catch ( InstantiationException | IllegalAccessException | InvocationTargetException | ApplicationException.Error e )
-					{
-						causes.add( e );
-					}
-				}
+					if ( !result.isPresent() )
+						try
+						{
+							result = ( Voluntary<T> ) Voluntary.of( constructor.newInstance( resolveParameters( constructor.getParameters(), arguments ) ) );
+						}
+						catch ( InstantiationException | IllegalAccessException | InvocationTargetException | ApplicationException.Error e )
+						{
+							causes.add( e );
+						}
+
+			if ( !result.isPresent() )
+				for ( Class<?> cls : allElseFailClasses )
+					if ( fromClass.isAssignableFrom( cls ) )
+						for ( Constructor constructor : cls.getDeclaredConstructors() )
+							if ( !result.isPresent() )
+								try
+								{
+									result = ( Voluntary<T> ) Voluntary.of( constructor.newInstance( resolveParameters( constructor.getParameters(), arguments ) ) );
+								}
+								catch ( IllegalAccessException | InvocationTargetException | InstantiationException e )
+								{
+									if ( e instanceof InvocationTargetException )
+										causes.add( ( e ).getCause() );
+									else
+										causes.add( e );
+								}
 		}
 		else if ( !singular )
 			singular = resultClass.isAnnotationPresent( Singular.class );
@@ -592,37 +613,55 @@ public final class Foundation
 			if ( singular && mappingsSingular.containsKey( resultClass ) )
 				return Voluntary.of( ( T ) mappingsSingular.get( resultClass ) );
 
-			for ( Object obj : mappings.get( resultClass ).values() )
-				if ( !result.isPresent() )
-					if ( obj instanceof Method )
-						try
-						{
-							Method method = ( Method ) obj;
-							if ( fromClass.isAssignableFrom( method.getReturnType() ) )
-								result = Voluntary.of( method.invoke( null, resolveParameters( method.getParameters(), arguments ) ) );
-							else
-								L.warning( "The return type \"" + method.getReturnType() + "\" for method \"" + method.getDeclaringClass().getName() + "#" + method.getName() + "\" is not assignable to class \"" + fromClass.getName() + "\"." );
-						}
-						catch ( IllegalAccessException | InvocationTargetException e )
-						{
-							if ( e instanceof InvocationTargetException )
-								causes.add( ( ( InvocationTargetException ) e ).getCause() );
-							else
+			if ( mappings.containsKey( resultClass ) )
+				for ( Object obj : mappings.get( resultClass ).values() )
+					if ( !result.isPresent() )
+						if ( obj instanceof Constructor )
+							try
+							{
+								Constructor constructor = ( Constructor ) obj;
+								if ( fromClass.isAssignableFrom( constructor.getDeclaringClass() ) )
+									result = ( Voluntary<T> ) Voluntary.of( constructor.newInstance( resolveParameters( constructor.getParameters(), arguments ) ) );
+								else
+									L.warning( "The class type \"" + constructor.getDeclaringClass() + "\" for constructor \"" + constructor.getDeclaringClass().getName() + "#" + constructor.getName() + "\" is not assignable to class \"" + fromClass.getName() + "\"." );
+							}
+							catch ( IllegalAccessException | InvocationTargetException | InstantiationException e )
+							{
+								if ( e instanceof InvocationTargetException )
+									causes.add( ( e ).getCause() );
+								else
+									causes.add( e );
+							}
+						else if ( obj instanceof Method )
+							try
+							{
+								Method method = ( Method ) obj;
+								if ( fromClass.isAssignableFrom( method.getReturnType() ) )
+									result = ( Voluntary<T> ) Voluntary.of( method.invoke( null, resolveParameters( method.getParameters(), arguments ) ) );
+
+								else
+									L.warning( "The return type \"" + method.getReturnType() + "\" for method \"" + method.getDeclaringClass().getName() + "#" + method.getName() + "\" is not assignable to class \"" + fromClass.getName() + "\"." );
+							}
+							catch ( IllegalAccessException | InvocationTargetException e )
+							{
+								if ( e instanceof InvocationTargetException )
+									causes.add( ( ( InvocationTargetException ) e ).getCause() );
+								else
+									causes.add( e );
+							}
+						else if ( obj instanceof Field )
+							try
+							{
+								Field field = ( Field ) obj;
+								if ( fromClass.isAssignableFrom( field.getType() ) )
+									result = ( Voluntary<T> ) Voluntary.of( field.get( null ) );
+								else
+									L.warning( "The field type \"" + field.getType() + "\" for field \"" + field.getDeclaringClass().getName() + "#" + field.getName() + "\" is not assignable to class \"" + fromClass.getName() + "\"." );
+							}
+							catch ( IllegalAccessException e )
+							{
 								causes.add( e );
-						}
-					else if ( obj instanceof Field )
-						try
-						{
-							Field field = ( Field ) obj;
-							if ( fromClass.isAssignableFrom( field.getType() ) )
-								result = Voluntary.of( field.get( null ) );
-							else
-								L.warning( "The field type \"" + field.getType() + "\" for field \"" + field.getDeclaringClass().getName() + "#" + field.getName() + "\" is not assignable to class \"" + fromClass.getName() + "\"." );
-						}
-						catch ( IllegalAccessException e )
-						{
-							causes.add( e );
-						}
+							}
 		}
 
 		if ( !result.isPresent() )
@@ -719,8 +758,11 @@ public final class Foundation
 		{
 			/* Load Deployment Libraries */
 			L.info( "Loading deployment libraries defined in \"dependencies.txt\"." );
-			for ( String depend : IO.resourceToString( "dependencies.txt" ).split( "\n" ) )
-				Libraries.loadLibrary( new MavenReference( "builtin", depend ) );
+			String depends = IO.resourceToString( "dependencies.txt" );
+			if ( !Objs.isEmpty( depends ) ) // Will be null if the file does not exist
+				for ( String depend : depends.split( "\n" ) )
+					if ( !depend.startsWith( "#" ) )
+						Libraries.loadLibrary( new MavenReference( "builtin", depend ) );
 		}
 		catch ( IOException e )
 		{
@@ -728,7 +770,7 @@ public final class Foundation
 		}
 		L.info( EnumColor.AQUA + "Finished downloading deployment libraries." );
 
-		// Call to make sure the INITIALIZATION Runlevel is acknowledged by the application.
+		// Call to make sure the INITIALIZATION runlevel is acknowledged by the application.
 		onRunlevelChange();
 	}
 
