@@ -7,7 +7,7 @@
  * <p>
  * All Rights Reserved.
  */
-package io.amelia.net.wip.udp;
+package io.amelia.net;
 
 import java.security.KeyPair;
 import java.util.List;
@@ -25,15 +25,15 @@ import io.netty.handler.codec.MessageToMessageCodec;
  * Translates the UDP Packet for network encryption.
  * Bypasses encryption if KeyPair is null.
  */
-public class UDPEncryptCodec extends MessageToMessageCodec<ByteBuf, ByteBuf>
+public class ByteBufEncryptCodec extends MessageToMessageCodec<ByteBuf, ByteBuf>
 {
 	private static final String ALGORITHM = "RSA";
 
 	private final KeyPair keyPair;
 
-	UDPEncryptCodec() throws NetworkException.Error
+	public ByteBufEncryptCodec( KeyPair keyPair ) throws NetworkException.Error
 	{
-		keyPair = NetworkLoader.UDP().getRSA();
+		this.keyPair = keyPair;
 	}
 
 	@Override

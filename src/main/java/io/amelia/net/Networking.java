@@ -63,12 +63,12 @@ public class Networking
 		// Ignore
 	}
 
-	public static void start() throws ApplicationException.Error
+	/* public static void start() throws ApplicationException.Error
 	{
 		startNetworkService( new WebService() );
-	}
+	} */
 
-	private static void startNetworkService( NetworkService networkService ) throws ApplicationException.Error
+	public static void startNetworkService( NetworkService networkService ) throws ApplicationException.Error
 	{
 		NETWORK_SERVICE_LIST.add( networkService );
 		networkService.start();

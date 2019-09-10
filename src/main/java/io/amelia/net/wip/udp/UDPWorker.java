@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiConsumer;
 
+import io.amelia.net.ByteBufEncryptCodec;
 import io.amelia.net.wip.NetworkWorker;
 import io.amelia.net.wip.packets.PacketRequest;
 import io.amelia.foundation.ConfigData;
@@ -218,7 +219,7 @@ public class UDPWorker implements NetworkWorker<UDPWorker>
 			Bootstrap b = new Bootstrap();
 			b.group( NetworkLoader.IO_LOOP_GROUP ).channelFactory( () -> new NioDatagramChannel( InternetProtocolFamily.IPv4 ) ).localAddress( localAddr, broadcast.getPort() ).option( ChannelOption.IP_MULTICAST_IF, iface ).option( ChannelOption.SO_REUSEADDR, true ).handler( new ChannelInitializer<NioDatagramChannel>()
 			{
-				final UDPEncryptCodec udpEncryptCodec = new UDPEncryptCodec();
+				final ByteBufEncryptCodec byteBufEncryptCodec = new ByteBufEncryptCodec( NetworkLoader.UDP().getRSA() );
 				final UDPPacketCodec udpPacketCodec = new UDPPacketCodec();
 
 				@Override
@@ -226,7 +227,7 @@ public class UDPWorker implements NetworkWorker<UDPWorker>
 				{
 					ChannelPipeline p = ch.pipeline();
 
-					p.addLast( udpEncryptCodec );
+					p.addLast( byteBufEncryptCodec );
 					p.addLast( udpPacketCodec );
 					p.addLast( "handler", new UDPHandler( broadcast ) );
 				}

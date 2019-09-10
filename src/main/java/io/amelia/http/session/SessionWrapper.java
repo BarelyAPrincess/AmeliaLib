@@ -44,7 +44,7 @@ public abstract class SessionWrapper implements BindingProvider, UserAttachment
 	/**
 	 * The binding specific to this request
 	 */
-	private ScriptBinding binding = new ScriptBinding();
+	private ScriptBinding binding = ScriptBinding.newInstance();
 
 	/**
 	 * The EvalFactory used to process scripts of this request
@@ -216,7 +216,7 @@ public abstract class SessionWrapper implements BindingProvider, UserAttachment
 		/*
 		 * Create our Binding
 		 */
-		binding = new ScriptBinding( new HashMap<>( session.getGlobals() ) );
+		binding = ScriptBinding.newInstance( new HashMap<>( session.getGlobals() ) );
 
 		/*
 		 * Create our EvalFactory

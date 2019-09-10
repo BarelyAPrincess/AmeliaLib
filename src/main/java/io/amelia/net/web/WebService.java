@@ -76,7 +76,7 @@ public class WebService implements NetworkService
 		if ( NIO.isPrivilegedPort( httpPort ) || NIO.isPrivilegedPort( sslPort ) )
 		{
 			Networking.L.warning( "It would seem that you are trying to start the HTTP/HTTPS Service on a privileged port without root access." );
-			Networking.L.warning( "We will attempt to still start the service but we can't guarantee it's success. http://www.w3.org/Daemon/User/Installation/PrivilegedPorts.html" );
+			Networking.L.warning( "We will attempt to start the service but we can't guarantee it's success. http://www.w3.org/Daemon/User/Installation/PrivilegedPorts.html" );
 		}
 
 		httpSocket = new InetSocketAddress( httpPort );
@@ -104,7 +104,7 @@ public class WebService implements NetworkService
 						e.printStackTrace();
 					}
 
-					Networking.L.info( "The HTTP Server has been shutdown!" );
+					Networking.L.info( "The HTTP Service has been shutdown!" );
 				} );
 			}
 
@@ -134,7 +134,7 @@ public class WebService implements NetworkService
 		}
 		catch ( NullPointerException e )
 		{
-			throw new StartupException( "There was a problem starting the Web Server. Check logs and try again.", e );
+			throw new StartupException( "There was a problem starting the Web Service. Check logs and try again.", e );
 		}
 		catch ( Throwable e )
 		{
@@ -156,15 +156,13 @@ public class WebService implements NetworkService
 
 	public static class ConfigKeys
 	{
-		public static final TypeBase ROOT_PATH = new TypeBase( "net" );
-
-		public static final TypeBase HTTP_PATH = new TypeBase( ROOT_PATH, "http" );
+		public static final TypeBase HTTP_PATH = new TypeBase( Networking.ConfigKeys.NET_BASE, "http" );
 		public static final TypeBase.TypeInteger UNSECURE_PORT = new TypeBase.TypeInteger( HTTP_PATH, "http.port", 8088 );
 
-		public static final TypeBase HTTPS_PATH = new TypeBase( ROOT_PATH, "https" );
+		public static final TypeBase HTTPS_PATH = new TypeBase( Networking.ConfigKeys.NET_BASE, "https" );
 		public static final TypeBase.TypeInteger SECURE_PORT = new TypeBase.TypeInteger( HTTPS_PATH, "https.port", 8443 );
 
-		public static final TypeBase SSL_PATH = new TypeBase( ROOT_PATH, "ssl" );
+		public static final TypeBase SSL_PATH = new TypeBase( Networking.ConfigKeys.NET_BASE, "ssl" );
 		public static final TypeBase.TypeStringList ENABLED_CIPHER_SUITES = new TypeBase.TypeStringList( SSL_PATH, "enabled-cipher-suites", Arrays.asList( "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256", "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256", "TLS_DHE_DSS_WITH_AES_128_GCM_SHA256", "TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA", "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA", "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256", "TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA", "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA", "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256", "TLS_DHE_DSS_WITH_AES_128_CBC_SHA", "TLS_DHE_DSS_WITH_AES_128_CBC_SHA256", "TLS_RSA_WITH_AES_128_CBC_SHA", "TLS_RSA_WITH_AES_128_CBC_SHA256", "TLS_RSA_WITH_AES_128_GCM_SHA256", "TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA", "TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA", "TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA", "TLS_ECDH_RSA_WITH_AES_128_CBC_SHA", "TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA256", "TLS_ECDH_ECDSA_WITH_AES_128_GCM_SHA256", "TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256", "TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256" ) );
 		public static final TypeBase.TypePath SSL_SHARED_KEY = new TypeBase.TypePath( SSL_PATH, "sharedKey", Paths.get( "server.key" ) );
 		public static final TypeBase.TypePath SSL_SHARED_CERT = new TypeBase.TypePath( SSL_PATH, "sharedCert", Paths.get( "server.crt" ) );
