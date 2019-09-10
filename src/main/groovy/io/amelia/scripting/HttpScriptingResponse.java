@@ -18,6 +18,7 @@ import javax.annotation.Nullable;
 import io.amelia.lang.HttpCode;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.util.AsciiString;
 
 public interface HttpScriptingResponse
 {
@@ -146,6 +147,8 @@ public interface HttpScriptingResponse
 
 	void setAnnotation( String key, String val );
 
+	void setAnnotation( AsciiString key, String val );
+
 	void setContentLength( long length );
 
 	/**
@@ -159,8 +162,6 @@ public interface HttpScriptingResponse
 
 	void setEncoding( Charset encoding );
 
-	void setHeader( String key, Object val );
-
 	void setStatus( HttpCode httpCode );
 
 	void setStatus( int code );
@@ -168,12 +169,12 @@ public interface HttpScriptingResponse
 	/**
 	 * Redirects the current page load to a secure HTTPS connection
 	 */
-	boolean switchToSecure();
+	boolean redirectToSecure();
 
 	/**
 	 * Redirects the current page load to an unsecure HTTP connection
 	 */
-	boolean switchToUnsecure();
+	boolean redirectToUnsecure();
 
 	/**
 	 * Writes a byte array to the buffered output.

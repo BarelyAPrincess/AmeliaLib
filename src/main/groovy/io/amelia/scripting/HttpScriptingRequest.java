@@ -68,7 +68,7 @@ public interface HttpScriptingRequest
 
 	Voluntary<? extends HttpCookie> getCookie( String key );
 
-	Stream<? extends HttpCookie> getCookies();
+	Stream<? extends HttpCookie> getHoneyCookies();
 
 	String getFullDomain();
 
@@ -174,9 +174,9 @@ public interface HttpScriptingRequest
 
 	boolean isWebsocketRequest();
 
-	HttpMethod method();
+	HttpMethod getHttpMethod();
 
-	String methodString();
+	String getMethodString();
 
 	// XXX Better Implement
 	void requireLogin() throws IOException;
