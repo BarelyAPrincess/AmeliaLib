@@ -14,6 +14,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 
+import javax.annotation.Nonnull;
+
 /**
  * Used to track a local value using a key that is weak referenced.
  *
@@ -22,7 +24,7 @@ import java.util.function.Supplier;
 public class LocalObject<T>
 {
 	private final Supplier<T> supplier;
-	private volatile List<LocalObjectReference> references = new ArrayList<>();
+	private final List<LocalObjectReference> references = new ArrayList<>();
 
 	public LocalObject( Supplier<T> supplier )
 	{
@@ -50,14 +52,14 @@ public class LocalObject<T>
 	}
 
 	@SuppressWarnings( "unchecked" )
-	public T get( Object key )
+	public T getState( @Nonnull Object key )
 	{
 		synchronized ( references )
 		{
 			clean();
 
 			for ( LocalObjectReference ref : references )
-				if ( ref.key.get() == this )
+				if ( ref.key.get() == key )
 					return ( T ) ref.value;
 
 			if ( supplier != null )
@@ -71,14 +73,14 @@ public class LocalObject<T>
 		}
 	}
 
-	public void set( Object key, T value )
+	public void setState( @Nonnull Object key, @Nonnull T value )
 	{
 		synchronized ( references )
 		{
 			clean();
 
 			for ( LocalObjectReference ref : references )
-				if ( ref.key.get() == this )
+				if ( ref.key.get() == key )
 				{
 					ref.value = value;
 					return;

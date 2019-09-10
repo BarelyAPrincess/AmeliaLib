@@ -45,6 +45,11 @@ import io.amelia.lang.ParcelableException;
  */
 public interface ParcelSerializer<ParcelObject>
 {
+	default ParcelableException.Error makeMissingValueException( Parcel parcel, String eventsString )
+	{
+		return new ParcelableException.Error( parcel, "The value \"" + eventsString + "\" is missing from parcel. Was it serialized correctly?" );
+	}
+
 	/**
 	 * Create a new instance of the Parcelable class, instantiating it
 	 * from the given Parcel whose data had previously been written by

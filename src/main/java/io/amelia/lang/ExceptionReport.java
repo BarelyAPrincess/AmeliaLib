@@ -24,6 +24,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import io.amelia.foundation.Kernel;
+import io.amelia.support.Exceptions;
 import io.amelia.support.Strs;
 
 /**
@@ -35,7 +36,7 @@ public final class ExceptionReport
 
 	public static void handleSingleException( Throwable cause )
 	{
-		handleSingleException( cause, true );
+		handleSingleException( cause, false );
 	}
 
 	/**
@@ -46,6 +47,8 @@ public final class ExceptionReport
 	{
 		ExceptionReport report = new ExceptionReport();
 		report.handleException( cause );
+		if ( report.getExceptionCount() == 0 )
+			return;
 		report.printToLog( Kernel.L );
 		ExceptionRegistrar exceptionRegistrar = Kernel.getExceptionRegistrar();
 		if ( report.hasErrored() && exceptionRegistrar != null )
@@ -101,6 +104,11 @@ public final class ExceptionReport
 		return this;
 	}
 
+	private int getExceptionCount()
+	{
+		return exceptionContexts.size();
+	}
+
 	public Stream<ExceptionContext> getExceptions( Predicate<ExceptionContext> exceptionPredicate )
 	{
 		return getExceptions().filter( exceptionPredicate );
@@ -126,6 +134,8 @@ public final class ExceptionReport
 		handleException( cause, null );
 	}
 
+	private boolean wasHandleExceptionCalled;
+
 	/**
 	 * Processes and appends the throwable to the context provided.
 	 *
@@ -134,13 +144,22 @@ public final class ExceptionReport
 	 */
 	public final void handleException( @Nonnull Throwable cause, @Nullable ExceptionContext exceptionContext )
 	{
+		wasHandleExceptionCalled = true;
+
 		/* Give an IException a chance to self-handle the exception report */
 		if ( cause instanceof ExceptionContext )
 		{
 			// TODO Might not be desirable if a handle method was to return severe but did not provide any exception or debug information to the ExceptionReport. How can we force this behavior?
+
+			wasHandleExceptionCalled = false;
+
 			ReportingLevel reportingLevel = ( ( ExceptionContext ) cause ).handle( this, exceptionContext );
+
 			if ( reportingLevel != null )
 			{
+				if ( !wasHandleExceptionCalled )
+					Kernel.L.info( "ExceptionContext#handle() did appear to properly handle, so we'll print a stacktrace for some extra assistance.\n" + Exceptions.getStackTrace( cause ) );
+
 				hasErrored = !reportingLevel.isIgnorable();
 				return;
 			}

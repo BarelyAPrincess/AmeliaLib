@@ -282,7 +282,7 @@ public class Voluntary<Type>
 	/**
 	 * If a value is present, apply the provided {@code Voluntary}-bearing
 	 * mapping function to it, return that result, otherwise return an empty
-	 * {@code Voluntary}.  This method is similar to {@link #map(Function)},
+	 * {@code Voluntary}.  This method is similar to {@link #map(FunctionWithException)},
 	 * but the provided mapper is one whose result is already an {@code Voluntary},
 	 * and if invoked, {@code flatMap} does not wrap it with an additional
 	 * {@code Voluntary}.
@@ -352,11 +352,18 @@ public class Voluntary<Type>
 		return Objects.hashCode( value );
 	}
 
+	public <T extends Type, Cause extends Exception> Voluntary<T> ifAbsentGet( SupplierWithException<T, Cause> supplier ) throws Cause
+	{
+		if ( !isPresent() )
+			return Voluntary.ofNullable( supplier.get() );
+		return ( Voluntary<T> ) this;
+	}
+
 	/**
 	 * If Voluntary has no value, the value will be retrieved from the supplied voluntary.
 	 * If the supplied Voluntary has not errored, this Voluntary's cause will be copied.
 	 */
-	public <T extends Type, Cause extends Exception> Voluntary<T> ifAbsentGet( SupplierWithException<Voluntary<T>, Cause> supplier ) throws Cause
+	public <T extends Type, Cause extends Exception> Voluntary<T> ifAbsentMap( SupplierWithException<Voluntary<T>, Cause> supplier ) throws Cause
 	{
 		if ( !isPresent() )
 			return supplier.get();

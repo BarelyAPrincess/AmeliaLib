@@ -19,7 +19,7 @@ public class UncaughtException extends RuntimeException implements ExceptionCont
 
 	public UncaughtException()
 	{
-		this( ReportingLevel.E_ERROR );
+		this( ReportingLevel.E_UNHANDLED );
 	}
 
 	public UncaughtException( ReportingLevel level )
@@ -73,17 +73,17 @@ public class UncaughtException extends RuntimeException implements ExceptionCont
 
 	public UncaughtException( String message )
 	{
-		this( ReportingLevel.E_ERROR, message );
+		this( ReportingLevel.E_UNHANDLED, message );
 	}
 
 	public UncaughtException( String msg, Throwable cause )
 	{
-		this( ReportingLevel.E_ERROR, msg, cause );
+		this( ReportingLevel.E_UNHANDLED, msg, cause );
 	}
 
 	public UncaughtException( Throwable cause )
 	{
-		this( ReportingLevel.E_ERROR, cause );
+		this( ReportingLevel.E_UNHANDLED, cause );
 	}
 
 	@Nonnull
@@ -109,7 +109,8 @@ public class UncaughtException extends RuntimeException implements ExceptionCont
 	@Override
 	public ReportingLevel handle( ExceptionReport exceptionReport, ExceptionContext exceptionContext )
 	{
-		return ReportingLevel.E_UNHANDLED;
+		exceptionReport.handleException( getCause(), exceptionContext );
+		return level;
 	}
 
 	@Override

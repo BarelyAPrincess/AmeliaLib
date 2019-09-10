@@ -11,6 +11,7 @@ package io.amelia.looper.queue;
 
 import javax.annotation.Nonnull;
 
+import io.amelia.foundation.Kernel;
 import io.amelia.lang.ApplicationException;
 
 public abstract class EntryRunnable extends EntryAbstract implements Runnable
@@ -38,6 +39,8 @@ public abstract class EntryRunnable extends EntryAbstract implements Runnable
 			}
 			catch ( ApplicationException.Error error )
 			{
+				if ( Kernel.isDevelopment() )
+					Kernel.L.info( "Runnable Entry Creation Stacktrace:\n" + getCreationStackTrace() );
 				// TODO Should we try finding who scheduled the runnable for more information?
 				queue.getLooperControl().handleException( error );
 			}

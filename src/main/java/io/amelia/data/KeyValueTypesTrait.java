@@ -23,6 +23,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import io.amelia.lang.ApplicationException;
+import io.amelia.lang.ParcelableException;
 import io.amelia.support.IO;
 import io.amelia.support.Maths;
 import io.amelia.support.Namespace;

@@ -12,11 +12,13 @@ package io.amelia.looper;
 import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 
+import io.amelia.foundation.Kernel;
 import io.amelia.lang.ApplicationException;
 import io.amelia.looper.queue.DefaultQueue;
 import io.amelia.looper.queue.EntryAbstract;
 import io.amelia.looper.queue.EntryRunnable;
 import io.amelia.support.ConsumerWithException;
+import io.amelia.support.Exceptions;
 import io.amelia.support.Objs;
 
 public interface LooperTaskTrait
@@ -38,13 +40,18 @@ public interface LooperTaskTrait
 	 */
 	default TaskEntry postTask( LooperTask task )
 	{
-		return postTask( task, false );
+		Kernel.L.info( "Task entry created!\n" + Exceptions.getStackTrace() );
+
+		DefaultQueue queue = getQueue();
+		return queue.postEntry( new TaskEntry( queue, task, false ) );
 	}
 
-	default TaskEntry postTask( LooperTask task, boolean async )
+	default TaskEntry postTaskAsync( LooperTask task )
 	{
+		Kernel.L.info( "Task entry created!\n" + Exceptions.getStackTrace() );
+
 		DefaultQueue queue = getQueue();
-		return queue.postEntry( new TaskEntry( queue, task, async ) );
+		return queue.postEntry( new TaskEntry( queue, task, true ) );
 	}
 
 	/**
@@ -349,7 +356,7 @@ public interface LooperTaskTrait
 			{
 				task.execute( entry );
 			}
-			catch ( ApplicationException.Error e )
+			catch ( ApplicationException.Runtime | ApplicationException.Error e )
 			{
 				throw e;
 			}

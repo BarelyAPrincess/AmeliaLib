@@ -85,7 +85,7 @@ public class Kernel
 		public Thread newThread( @Nonnull Runnable runnable )
 		{
 			Thread newThread = new Thread( runnable, "HPS Thread #" + String.format( "%d04", mCount.getAndIncrement() ) );
-			newThread.setUncaughtExceptionHandler( ( thread, exp ) -> ExceptionReport.handleSingleException( new UncaughtException( "Uncaught exception thrown on thread " + thread.getName(), exp ) ) );
+			newThread.setUncaughtExceptionHandler( ( thread, exp ) -> ExceptionReport.handleSingleException( new UncaughtException( "Uncaught exception thrown on thread \"" + thread.getName() + "\".", exp ) ) );
 
 			return newThread;
 		}

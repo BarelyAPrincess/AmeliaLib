@@ -19,6 +19,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.foundation.Kernel;
@@ -298,6 +299,10 @@ public abstract class AbstractLooper<Q extends AbstractQueue>
 				// Otherwise we go immediately to the next iteration.
 			}
 		}
+		catch ( ApplicationException.Runtime e )
+		{
+			throw e;
+		}
 		catch ( Throwable t )
 		{
 			throw new ApplicationException.Error( "Exception thrown in joinLoop()", t );
@@ -460,9 +465,8 @@ public abstract class AbstractLooper<Q extends AbstractQueue>
 		{
 			synchronized ( aliasThreads )
 			{
-				for ( WeakReference<Thread> threadReference : aliasThreads )
-					if ( threadReference.get() == null || threadReference.get() == thread )
-						aliasThreads.remove( threadReference );
+				List<WeakReference<Thread>> toBeRemoved = aliasThreads.stream().filter( threadReference -> threadReference.get() == null || threadReference.get() == thread ).collect( Collectors.toList() );
+				aliasThreads.removeAll( toBeRemoved );
 			}
 		}
 

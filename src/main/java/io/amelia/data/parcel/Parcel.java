@@ -19,6 +19,7 @@ import javax.annotation.Nullable;
 import io.amelia.data.ContainerWithValue;
 import io.amelia.data.KeyValueTypesTrait;
 import io.amelia.lang.ParcelableException;
+import io.amelia.support.Namespace;
 import io.amelia.support.Reflection;
 
 public class Parcel extends ContainerWithValue<Parcel, Object, ParcelableException.Error> implements KeyValueTypesTrait<ParcelableException.Error>
@@ -62,12 +63,34 @@ public class Parcel extends ContainerWithValue<Parcel, Object, ParcelableExcepti
 		return new ParcelableException.Error( this, message, exception );
 	}
 
-	public final <T> T getParcelable( String key, Class<T> objClass ) throws ParcelableException.Error
+	public int getIntegerOrThrow( String key ) throws ParcelableException.Error
 	{
-		if ( !hasChild( key ) )
-			return null;
+		return getIntegerOrThrow( Namespace.of( key ) );
+	}
 
-		return ( T ) getChildVoluntary( key ).mapCatchException( child -> Factory.deserialize( child, objClass ) ).orElseThrowCause( exception -> new ParcelableException.Error( this, exception ) );
+	public int getIntegerOrThrow( Namespace key ) throws ParcelableException.Error
+	{
+		return getInteger( key ).orElseThrow( () -> new ParcelableException.Error( this, "The integer value key \"" + key.getString() + "\" is missing from parcel." ) );
+	}
+
+	public int getIntegerOrThrow() throws ParcelableException.Error
+	{
+		return getIntegerOrThrow( getDefaultKey() );
+	}
+
+	public long getLongOrThrow( String key ) throws ParcelableException.Error
+	{
+		return getLongOrThrow( Namespace.of( key ) );
+	}
+
+	public long getLongOrThrow( Namespace key ) throws ParcelableException.Error
+	{
+		return getLong( key ).orElseThrow( () -> new ParcelableException.Error( this, "The long value key \"" + key.getString() + "\" is missing from parcel." ) );
+	}
+
+	public long getLongOrThrow() throws ParcelableException.Error
+	{
+		return getLongOrThrow( getDefaultKey() );
 	}
 
 	@SuppressWarnings( "unchecked" )
@@ -77,6 +100,29 @@ public class Parcel extends ContainerWithValue<Parcel, Object, ParcelableExcepti
 			return null;
 
 		return ( T ) getChildVoluntary( key ).mapCatchException( Factory::deserialize ).orElseThrowCause( exception -> new ParcelableException.Error( this, exception ) );
+	}
+
+	public final <T> T getParcelable( String key, Class<T> objClass ) throws ParcelableException.Error
+	{
+		if ( !hasChild( key ) )
+			return null;
+
+		return ( T ) getChildVoluntary( key ).mapCatchException( child -> Factory.deserialize( child, objClass ) ).orElseThrowCause( exception -> new ParcelableException.Error( this, exception ) );
+	}
+
+	public String getStringOrThrow( Namespace key ) throws ParcelableException.Error
+	{
+		return getString( key ).orElseThrow( () -> new ParcelableException.Error( this, "The string value key \"" + key.getString() + "\" is missing from parcel." ) );
+	}
+
+	public String getStringOrThrow( String key ) throws ParcelableException.Error
+	{
+		return getStringOrThrow( Namespace.of( key ) );
+	}
+
+	public String getStringOrThrow() throws ParcelableException.Error
+	{
+		return getStringOrThrow( getDefaultKey() );
 	}
 
 	/**

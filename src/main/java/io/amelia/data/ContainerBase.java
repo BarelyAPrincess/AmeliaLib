@@ -30,6 +30,7 @@ import io.amelia.lang.ApplicationException;
 import io.amelia.lang.ContainerException;
 import io.amelia.support.BiFunctionWithException;
 import io.amelia.support.ConsumerWithException;
+import io.amelia.support.Exceptions;
 import io.amelia.support.Maps;
 import io.amelia.support.Namespace;
 import io.amelia.support.NodeStack;
@@ -69,7 +70,7 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 		// if ( parent == null && localName.length() != 0 )
 		//	throwException( "Root must remain nameless." );
 		// TODO Upper and lower case is permitted, however, we should implement a filter that prevents duplicate keys with varying case, e.g., WORD vs. Word - would be the same.
-		if ( localName.length() > 0 && !isValidateName( localName ) ) // Allow empty names - for now.
+		if ( localName.length() > 0 && isInvalidateName( localName ) ) // Allow empty names - for now.
 			throwException( String.format( "The local name '%s' must match A-Z, a-z, 0-9, asterisk, underline, and period.", localName ) );
 		this.creator = creator;
 		this.parent = parent;
@@ -121,8 +122,8 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 
 		if ( newChildName == null || newChildName.length() == 0 )
 			newChildName = child.getLocalName();
-		if ( !isValidateName( newChildName ) )
-			throw new ContainerException( "New child name must not be empty and contain only A-Z, a-z, 0-9, asterisk, underline, and period." );
+		if ( isInvalidateName( newChildName ) )
+			throw new ContainerException( "The child name \"" + newChildName + "\" must not be empty and contain only A-Z, a-z, 0-9, asterisk, underline, and period. If you provided no name, then make sure the child is named instead." );
 
 		if ( children.contains( child ) )
 		{
@@ -162,20 +163,7 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 	}
 
 	@Nonnull
-	protected Voluntary<BaseClass> childCreate( @Nonnull String key )
-	{
-		try
-		{
-			return Voluntary.of( childCreateWithException( key ) );
-		}
-		catch ( Exception exceptionClass )
-		{
-			return Voluntary.empty();
-		}
-	}
-
-	@Nonnull
-	protected BaseClass childCreateWithException( @Nonnull String key ) throws ExceptionClass
+	protected BaseClass childCreate( @Nonnull String key ) throws ExceptionClass
 	{
 		notDisposed();
 		notReadOnly();
@@ -197,14 +185,14 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 	{
 		if ( newChildName == null || newChildName.length() == 0 )
 			newChildName = child.getLocalName();
-		if ( !isValidateName( newChildName ) )
+		if ( isInvalidateName( newChildName ) )
 			throw new ContainerException( "New child name must not be empty and contain only A-Z, a-z, 0-9, asterisk, underline, and period." );
 
 		childFind( Namespace.of( newChildName ) ).ifPresent( ContainerBase::destroy );
 		addChild( newChildName, child, conflictStrategy );
 	}
 
-	public Voluntary<BaseClass> childDestroyAndCreate( String key ) throws ExceptionClass
+	public BaseClass childDestroyAndCreate( String key ) throws ExceptionClass
 	{
 		notReadOnly();
 		getChildVoluntary( key ).ifPresent( ContainerBase::destroy );
@@ -222,8 +210,8 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 		if ( childPath.getNodeCount() == 0 )
 			return Voluntary.of( ( BaseClass ) this );
 
-		String childName = childPath.getStringFirst();
-		return children.stream().filter( child -> childName.equals( child.getLocalName() ) ).findFirst().map( child -> child.childFind( childPath.dropFirst() ) ).orElseGet( Voluntary::empty );
+		String childName = childPath.dropFirstString();
+		return Voluntary.of( children.stream().filter( child -> childName.equals( child.getLocalName() ) ).findFirst() ).flatMap( child -> child.childFind( childPath ) );
 	}
 
 	protected BaseClass childFindOrCreate( @Nonnull String childPath )
@@ -239,8 +227,8 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 		if ( childPath.getNodeCount() == 0 )
 			return ( BaseClass ) this;
 
-		String childName = childPath.getStringFirst();
-		return Voluntary.of( children.stream().filter( child -> childName.equals( child.getLocalName() ) ).findFirst() ).map( child -> child.childFindOrCreate( childPath.dropFirst() ) ).ifAbsentGet( () -> childCreate( childName ) ).get();
+		String childName = childPath.dropFirstString();
+		return Voluntary.of( children.stream().filter( child -> childName.equals( child.getLocalName() ) ).findFirst() ).ifAbsentGet( () -> Exceptions.tryCatch( () -> childCreate( childName ), RuntimeException::new ) ).map( child -> child.childFindOrCreate( childPath ) ).get();
 	}
 
 	public final <C> Stream<C> collect( Function<BaseClass, C> function )
@@ -493,13 +481,13 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 
 	protected abstract boolean isTrimmable0();
 
-	public boolean isValidateName( @Nullable String name )
+	public boolean isInvalidateName( @Nullable String name )
 	{
 		if ( name == null || name.length() == 0 )
-			return false;
-		if ( !localName.matches( "[A-Za-z0-9*_.]*" ) )
-			return false;
-		return true;
+			return true;
+		if ( !name.matches( "[A-Za-z0-9*_.]*" ) )
+			return true;
+		return false;
 	}
 
 	protected final int listenerAdd( ContainerListener.Container container )
@@ -667,7 +655,7 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 			}
 			else
 			{
-				targetParent = targetParent == null ? childCreateWithException( node ) : targetParent.getChildOrCreate( Namespace.of( node ) );
+				targetParent = targetParent == null ? childCreate( node ) : targetParent.getChildOrCreate( Namespace.of( node ) );
 			}
 		}
 
@@ -712,7 +700,7 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 			}
 			else
 			{
-				targetParent = targetParent == null ? childCreateWithException( node ) : targetParent.getChildOrCreate( Namespace.of( node ) );
+				targetParent = targetParent == null ? childCreate( node ) : targetParent.getChildOrCreate( Namespace.of( node ) );
 			}
 		}
 

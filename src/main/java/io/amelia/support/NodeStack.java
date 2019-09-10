@@ -156,7 +156,21 @@ public abstract class NodeStack<Self extends NodeStack> implements Cloneable
 		return node;
 	}
 
-	public Self dropFirst()
+	/**
+	 * Drops first node and returns as string.
+	 * Present NodeStack is modified.
+	 */
+	public String dropFirstString()
+	{
+		String first = getStringFirst();
+		nodes = getSubStringArray( 1 );
+		return first;
+	}
+
+	/**
+	 * Drops the first node and then returns a new NodeStack.
+	 */
+	public Self dropFirstAndCreate()
 	{
 		return getSubNodes( 1 );
 	}
