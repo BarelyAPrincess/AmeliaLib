@@ -150,7 +150,7 @@ public class HoneyPermissions extends Permissions
 		if ( isDebugEnabled() )
 			L.info( EnumColor.YELLOW + "Created permission " + namespace + " with default value " + valueDefault.getString() );
 
-		String first = namespace.dropFirst().getString();
+		String first = namespace.dropFirstString();
 
 		Permission current = getRootNode( first );
 
