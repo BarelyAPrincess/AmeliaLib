@@ -99,6 +99,12 @@ public class DatabaseManager
 	private DatabaseDriver database;
 	private String id;
 
+	public DatabaseManager( String id, ConfigData section )
+	{
+		this.id = id;
+		init( section );
+	}
+
 	public DatabaseManager( String id )
 	{
 		this.id = id;

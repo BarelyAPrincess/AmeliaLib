@@ -405,7 +405,7 @@ public abstract class SQLBaseDriver extends DatabaseDriver
 	{
 		Triplet<Integer, Class, String> triplet = COLUMN_COMPATIBILITY.get( columnType );
 		if ( triplet == null )
-			throw new IllegalArgumentException( columnType.name() + " is not supported by this driver!" );
+			throw new IllegalArgumentException( "Database column type \"" + columnType.name() + "\" is not supported by this driver!" );
 		if ( triplet.getLeft() > 0 && columnLength > triplet.getLeft() )
 			throw new DatabaseException( "Var can't be longer than 256 characters in length, use TEXT instead." );
 		if ( columnDef != null && Objs.length( columnDef ) > columnLength )

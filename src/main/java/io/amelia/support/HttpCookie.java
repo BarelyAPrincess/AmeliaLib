@@ -11,6 +11,8 @@ package io.amelia.support;
 
 public interface HttpCookie<Self extends HttpCookie>
 {
+	String getComment();
+
 	String getDomain();
 
 	long getMaxAge();
@@ -28,6 +30,8 @@ public interface HttpCookie<Self extends HttpCookie>
 	boolean isSecure();
 
 	boolean needsUpdating();
+
+	Self setComment( String comment );
 
 	Self setDomain( String domain );
 

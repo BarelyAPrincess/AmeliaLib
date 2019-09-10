@@ -13,6 +13,7 @@ import org.reflections.Reflections;
 import org.reflections.scanners.MethodAnnotationsScanner;
 
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -77,20 +78,21 @@ public final class Foundation
 	public static final String HOOK_ACTION_INIT = "init";
 	public static final String HOOK_ACTION_PARSE = "parse";
 	public static final String HOOK_ACTION_DEFAULT = "default";
-
 	private static final Map<Class<?>, Class<?>> classToClassAlias = new HashMap<>();
 	private static final Map<Class<?>, List<HookRef>> hooks = new HashMap<>();
 	private static final Map<Class<?>, Map<Priority, Object>> mappings = new HashMap<>();
 	private static final Map<Class<?>, Object> mappingsSingular = new HashMap<>();
-
+	private static final Map<String, Class<?>> nameToClassAlias = new HashMap<>();
 	private static BaseApplication app = null;
 	private static Runlevel currentRunlevel = Runlevel.INITIALIZATION;
 	private static String currentRunlevelReason = null;
 	private static EntitySubject entityNull;
 	private static EntitySubject entityRoot;
 	private static boolean init = false;
+	private static Object phaseTimingObject = new Object();
 	private static Runlevel previousRunlevel;
 	// TODO Cache annotated methods to save time with each start-up. Maybe only do it in development mode?
+	// Apparently Reflections already has a built-in save/load feature? NEAT! We need to implement this!
 	private static Reflections reflections;
 	/*
 	* 	private static <T> Voluntary<T> invokeConstructors( @Nonnull Class<? extends T> declaringClass, @Nonnull Predicate<Constructor> constructorPredicate, @Nonnull Map<String, Object> arguments ) throws ApplicationException.Error
@@ -230,20 +232,10 @@ public final class Foundation
 
 	static
 	{
+		Timing.start( phaseTimingObject );
+
 		init();
 	}
-
-	/*public static void addClassToNamespaceAlias( @Nonnull Class<?> fromClass, @Nonnull Namespace toNamespace ) throws ApplicationException.Error
-	{
-		Object result;
-		if ( fromClass == Object.class )
-			throw new ApplicationException.Error( "fromClass is disallowed!" );
-		if ( ( result = Maps.findKey( classToClassAlias, key -> key.isAssignableFrom( fromClass ), Map.Entry::getValue ) ) != null || ( result = Maps.findKey( classToNamespaceAlias, key -> key.isAssignableFrom( fromClass ), Map.Entry::getValue ) ) != null )
-			throw new ApplicationException.Error( "The fromClass (or a super thereof) alias already maps to \"" + ( result instanceof Class ? ( ( Class ) result ).getName() : result instanceof Namespace ? ( ( Namespace ) result ).getString() : result ) + "\"." );
-		// if ( ( result = Maps.findValue( classToNamespaceAlias, value -> value == fromClass, Map.Entry::getValue ) ) != null )
-		// throw new ApplicationException.Error( "The fromClass is already specified as a toClass alias, consider mapping from \"" + ( ( Class ) result ).getName() + "\" class instead." );
-		classToNamespaceAlias.put( fromClass, toNamespace );
-	}*/
 
 	public static void addClassToClassAlias( @Nonnull Class<?> fromClass, @Nonnull Class<?> toClass ) throws ApplicationException.Error
 	{
@@ -263,6 +255,18 @@ public final class Foundation
 		classToClassAlias.put( fromClass, toClass );
 	}
 
+	/*public static void addClassToNamespaceAlias( @Nonnull Class<?> fromClass, @Nonnull Namespace toNamespace ) throws ApplicationException.Error
+	{
+		Object result;
+		if ( fromClass == Object.class )
+			throw new ApplicationException.Error( "fromClass is disallowed!" );
+		if ( ( result = Maps.findKey( classToClassAlias, key -> key.isAssignableFrom( fromClass ), Map.Entry::getValue ) ) != null || ( result = Maps.findKey( classToNamespaceAlias, key -> key.isAssignableFrom( fromClass ), Map.Entry::getValue ) ) != null )
+			throw new ApplicationException.Error( "The fromClass (or a super thereof) alias already maps to \"" + ( result instanceof Class ? ( ( Class ) result ).getName() : result instanceof Namespace ? ( ( Namespace ) result ).getString() : result ) + "\"." );
+		// if ( ( result = Maps.findValue( classToNamespaceAlias, value -> value == fromClass, Map.Entry::getValue ) ) != null )
+		// throw new ApplicationException.Error( "The fromClass is already specified as a toClass alias, consider mapping from \"" + ( ( Class ) result ).getName() + "\" class instead." );
+		classToNamespaceAlias.put( fromClass, toNamespace );
+	}*/
+
 	public static void addHook( @Nonnull Class<?> hookClass, @Nonnull String hookAction, @Nonnull Method hookMethod, @Nonnull Priority hookPriority )
 	{
 		synchronized ( hooks )
@@ -273,6 +277,14 @@ public final class Foundation
 				throw new ApplicationException.Ignorable( "Hook name must be alphanumeric." );
 			hooks.computeIfAbsent( hookClass, key -> new ArrayList<>() ).add( new HookRef( hookAction, hookMethod, hookPriority ) );
 		}
+	}
+
+	public static void addNameToClassAlias( @Nonnull String name, @Nonnull Class<?> toClass ) throws ApplicationException.Error
+	{
+		Object result;
+		if ( ( result = Maps.findKey( nameToClassAlias, key -> key.equals( name ), Map.Entry::getValue ) ) != null )
+			throw new ApplicationException.Error( "The alias name \"" + name + "\" is already defined." );
+		nameToClassAlias.put( name, toClass );
 	}
 
 	public static Class<?> findSuperOrInterface( Class<?> fromClass )
@@ -346,6 +358,11 @@ public final class Foundation
 		return previousRunlevel;
 	}
 
+	public static Class<?> getNameToClassAlias( @Nonnull String fromName )
+	{
+		return Maps.findKey( nameToClassAlias, key -> key.equals( fromName ), Map.Entry::getValue );
+	}
+
 	public static EntitySubject getNullEntity()
 	{
 		return entityNull;
@@ -359,6 +376,11 @@ public final class Foundation
 	public static Plugins getPlugins()
 	{
 		return Exceptions.tryCatchOrNotPresent( () -> make( Plugins.class ), exp -> new ApplicationException.Runtime( "The Plugins implementation failed.", exp ) );
+	}
+
+	public static Reflections getReflections()
+	{
+		return reflections;
 	}
 
 	public static EntitySubject getRootEntity()
@@ -494,6 +516,20 @@ public final class Foundation
 		return currentRunlevel == runlevel;
 	}
 
+	public static <T> Voluntary<T> make( @Nonnull String fromName ) throws ApplicationException.Error
+	{
+		return make( fromName, new HashMap<>() );
+	}
+
+	public static <T> Voluntary<T> make( @Nonnull String fromName, @Nonnull Map<String, ?> arguments ) throws ApplicationException.Error
+	{
+		Class<?> nameToClassAliasResult = getNameToClassAlias( fromName );
+		if ( nameToClassAliasResult != null )
+			return make( nameToClassAliasResult, arguments );
+
+		return null;
+	}
+
 	public static <T> Voluntary<T> make( @Nonnull Class<?> fromClass ) throws ApplicationException.Error
 	{
 		return make( fromClass, new HashMap<>() );
@@ -515,47 +551,79 @@ public final class Foundation
 		if ( classToNamespaceAliasResult != null )
 			result = make( classToNamespaceAliasResult, arguments );*/
 
-		Class<?> resultClass = findSuperOrInterface( fromClass );
-		if ( resultClass == null )
-			return result;
-
-		boolean singular = resultClass.isAnnotationPresent( Singular.class );
-		if ( singular && mappingsSingular.containsKey( resultClass ) )
-			return Voluntary.of( ( T ) mappingsSingular.get( resultClass ) );
-
 		List<Throwable> causes = new ArrayList<>();
 
-		for ( Object obj : mappings.get( resultClass ).values() )
-			if ( !result.isPresent() )
-				if ( obj instanceof Method )
+		boolean singular = fromClass.isAnnotationPresent( Singular.class );
+		if ( singular && mappingsSingular.containsKey( fromClass ) )
+			return Voluntary.of( ( T ) mappingsSingular.get( fromClass ) );
+
+		Class<?> resultClass = findSuperOrInterface( fromClass );
+		if ( resultClass == null )
+		{
+			// We attempt to construct
+			Constructor[] constructors = fromClass.getDeclaredConstructors();
+			if ( constructors.length == 0 )
+				try
+				{
+					result = Voluntary.of( fromClass.newInstance() );
+				}
+				catch ( InstantiationException | IllegalAccessException e )
+				{
+					causes.add( e );
+				}
+			else
+				for ( Constructor constructor : constructors )
+				{
 					try
 					{
-						Method method = ( Method ) obj;
-						if ( fromClass.isAssignableFrom( method.getReturnType() ) )
-							result = Voluntary.of( method.invoke( null, resolveParameters( method.getParameters(), arguments ) ) );
-						else
-							L.warning( "The return type \"" + method.getReturnType() + "\" for method \"" + method.getDeclaringClass().getName() + "#" + method.getName() + "\" is not assignable to class \"" + fromClass.getName() + "\"." );
+						result = Voluntary.of( constructor.newInstance( resolveParameters( constructor.getParameters(), arguments ) ) );
 					}
-					catch ( IllegalAccessException | InvocationTargetException e )
-					{
-						if ( e instanceof InvocationTargetException )
-							causes.add( ( ( InvocationTargetException ) e ).getCause() );
-						else
-							causes.add( e );
-					}
-				else if ( obj instanceof Field )
-					try
-					{
-						Field field = ( Field ) obj;
-						if ( fromClass.isAssignableFrom( field.getType() ) )
-							result = Voluntary.of( field.get( null ) );
-						else
-							L.warning( "The field type \"" + field.getType() + "\" for field \"" + field.getDeclaringClass().getName() + "#" + field.getName() + "\" is not assignable to class \"" + fromClass.getName() + "\"." );
-					}
-					catch ( IllegalAccessException e )
+					catch ( InstantiationException | IllegalAccessException | InvocationTargetException | ApplicationException.Error e )
 					{
 						causes.add( e );
 					}
+				}
+		}
+		else if ( !singular )
+			singular = resultClass.isAnnotationPresent( Singular.class );
+
+		if ( resultClass != null && !result.isPresent() )
+		{
+			if ( singular && mappingsSingular.containsKey( resultClass ) )
+				return Voluntary.of( ( T ) mappingsSingular.get( resultClass ) );
+
+			for ( Object obj : mappings.get( resultClass ).values() )
+				if ( !result.isPresent() )
+					if ( obj instanceof Method )
+						try
+						{
+							Method method = ( Method ) obj;
+							if ( fromClass.isAssignableFrom( method.getReturnType() ) )
+								result = Voluntary.of( method.invoke( null, resolveParameters( method.getParameters(), arguments ) ) );
+							else
+								L.warning( "The return type \"" + method.getReturnType() + "\" for method \"" + method.getDeclaringClass().getName() + "#" + method.getName() + "\" is not assignable to class \"" + fromClass.getName() + "\"." );
+						}
+						catch ( IllegalAccessException | InvocationTargetException e )
+						{
+							if ( e instanceof InvocationTargetException )
+								causes.add( ( ( InvocationTargetException ) e ).getCause() );
+							else
+								causes.add( e );
+						}
+					else if ( obj instanceof Field )
+						try
+						{
+							Field field = ( Field ) obj;
+							if ( fromClass.isAssignableFrom( field.getType() ) )
+								result = Voluntary.of( field.get( null ) );
+							else
+								L.warning( "The field type \"" + field.getType() + "\" for field \"" + field.getDeclaringClass().getName() + "#" + field.getName() + "\" is not assignable to class \"" + fromClass.getName() + "\"." );
+						}
+						catch ( IllegalAccessException e )
+						{
+							causes.add( e );
+						}
+		}
 
 		if ( !result.isPresent() )
 			if ( causes.size() == 1 )
@@ -564,7 +632,7 @@ public final class Foundation
 				throw new MultipleException( causes.stream().map( exp -> exp instanceof ExceptionContext ? ( ExceptionContext ) exp : new ApplicationException.Error( exp ) ).collect( Collectors.toList() ) );
 
 		if ( singular && result.isPresent() )
-			mappingsSingular.put( resultClass, result.get() );
+			mappingsSingular.put( resultClass == null ? fromClass : resultClass, result.get() );
 
 		return result;
 	}
@@ -819,11 +887,16 @@ public final class Foundation
 			onRunlevelChange();
 
 			if ( currentRunlevel == Runlevel.DISPOSED )
-				L.info( EnumColor.join( EnumColor.GOLD ) + "Application has successfully shutdown! It took " + Timing.finish( runlevelTimingObject ) + "ms!" );
+				L.info( EnumColor.join( EnumColor.GOLD ) + "Application has shutdown! It ran for a total of " + Timing.finish( phaseTimingObject ) + "ms!" );
 			else if ( currentRunlevel == Runlevel.STARTED )
-				L.info( EnumColor.join( EnumColor.GOLD ) + "Application has successfully started! It took " + Timing.finish( runlevelTimingObject ) + "ms!" );
-			else
-				L.info( EnumColor.AQUA + "Application has entered runlevel \"" + runlevel.name() + "\". It took " + Timing.finish( runlevelTimingObject ) + "ms!" );
+			{
+				L.info( EnumColor.join( EnumColor.GOLD ) + "Application has started! Startup took a total of " + Timing.finish( phaseTimingObject ) + "ms!" );
+				Timing.start( phaseTimingObject );
+			}
+			else if ( currentRunlevel == Runlevel.CRASHED )
+				L.info( EnumColor.join( EnumColor.GOLD ) + "Application has crashed started! It ran for a total of " + Timing.finish( phaseTimingObject ) + "ms!" );
+
+			L.info( EnumColor.AQUA + "Application has entered runlevel \"" + runlevel.name() + "\". onRunlevelChange() took " + Timing.finish( runlevelTimingObject ) + "ms!" );
 
 			if ( runlevel == Runlevel.CRASHED )
 				throw new FoundationCrashException();

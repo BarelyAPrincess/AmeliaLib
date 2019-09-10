@@ -78,6 +78,8 @@ public abstract class UserPermissible extends Permissible implements EntitySubje
 	 */
 	public abstract String getVariable( String key, String def );
 
+	public abstract UserRoot getWebroot();
+
 	public boolean hasLogin()
 	{
 		return checkUser();
@@ -102,7 +104,8 @@ public abstract class UserPermissible extends Permissible implements EntitySubje
 	public void login()
 	{
 		String authName = getVariable( "auth" );
-		UUID uuid = UUID.fromString( getVariable( "uuid" ) );
+		String uuidString = getVariable( "uuid" );
+		UUID uuid = uuidString == null ? Foundation.getNullEntity().uuid() : UUID.fromString( uuidString );
 
 		if ( authName != null && !authName.isEmpty() )
 		{
@@ -279,8 +282,6 @@ public abstract class UserPermissible extends Permissible implements EntitySubje
 		checkUser();
 		entity.registerAttachment( attachment );
 	}
-
-	public abstract UserRoot getWebroot();
 
 	public abstract void setVariable( String key, String value );
 

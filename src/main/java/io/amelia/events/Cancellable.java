@@ -13,8 +13,6 @@ import io.amelia.support.LocalBoolean;
 
 public interface Cancellable
 {
-	LocalBoolean CANCELLED = new LocalBoolean();
-
 	/**
 	 * Gets the cancellation state of this event. A cancelled event will not be executed in the server, but will still
 	 * pass to other plugins
@@ -23,7 +21,9 @@ public interface Cancellable
 	 */
 	default boolean isCancelled()
 	{
-		return CANCELLED.get( this );
+		return LocalBoolean
+				.getHolder( Cancellable.class )
+				.getState( this );
 	}
 
 	/**
@@ -34,6 +34,6 @@ public interface Cancellable
 	 */
 	default void setCancelled( boolean cancel )
 	{
-		CANCELLED.set( this, cancel );
+		LocalBoolean.getHolder( Cancellable.class ).setState( this, cancel );
 	}
 }
