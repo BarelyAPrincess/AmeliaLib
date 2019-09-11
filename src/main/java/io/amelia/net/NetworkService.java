@@ -9,6 +9,7 @@
  */
 package io.amelia.net;
 
+import io.amelia.data.TypeBase;
 import io.amelia.foundation.ConfigData;
 import io.amelia.foundation.ConfigRegistry;
 import io.amelia.lang.ApplicationException;
@@ -17,7 +18,12 @@ public interface NetworkService
 {
 	default ConfigData getConfig()
 	{
-		return ConfigRegistry.getChildOrCreate( "config.network." + getId() );
+		return ConfigRegistry.config.getChildOrCreate( getConfigBase() );
+	}
+
+	default TypeBase getConfigBase()
+	{
+		return new TypeBase( Networking.ConfigKeys.NET_BASE, getId() );
 	}
 
 	default ConfigData getConfig( String key )
