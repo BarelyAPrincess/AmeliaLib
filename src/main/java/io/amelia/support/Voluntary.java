@@ -19,6 +19,7 @@ import java.util.function.Supplier;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import io.amelia.data.ContainerBase;
 import io.amelia.foundation.Kernel;
 
 /**
@@ -89,6 +90,18 @@ public class Voluntary<Type>
 		@SuppressWarnings( "unchecked" )
 		VoluntaryWithCause<T, C> t = ( VoluntaryWithCause<T, C> ) EMPTY_WITH_CAUSE;
 		return t;
+	}
+
+	public static <obj> Voluntary<obj> notEmpty( Voluntary<obj> voluntary )
+	{
+		return notEmpty( voluntary, "Voluntary is empty!" );
+	}
+
+	public static <obj> Voluntary<obj> notEmpty( Voluntary<obj> voluntary, String message, Object... values )
+	{
+		if ( !voluntary.isPresent() )
+			throw new NullPointerException( values == null || values.length == 0 ? message : String.format( message, values ) );
+		return voluntary;
 	}
 
 	/**

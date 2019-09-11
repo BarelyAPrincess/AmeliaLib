@@ -9,32 +9,14 @@
  */
 package io.amelia.support;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import io.amelia.foundation.ConfigRegistry;
-import io.amelia.foundation.Kernel;
 
 public class Namespace extends NodeStack<Namespace> implements Comparable<Namespace>
 {
-	private static final List<String> tldMaps = new ArrayList<>();
-
-	static
-	{
-		try
-		{
-			// TODO Implement conf.tlds as static config reference
-			tldMaps.addAll( ConfigRegistry.getChildOrCreate( "conf.tlds" ).getList( String.class ).orElse( new ArrayList<>() ) );
-		}
-		catch ( Exception e )
-		{
-			Kernel.L.severe( "Could not read TLD configuration. Check if config list `conf.tlds` exists.", e );
-		}
-	}
-
 	public static Namespace empty( String separator )
 	{
 		return new Namespace( new String[0], separator );
@@ -48,7 +30,7 @@ public class Namespace extends NodeStack<Namespace> implements Comparable<Namesp
 	public static boolean isTld( String domain )
 	{
 		domain = Http.hostnameNormalize( domain );
-		for ( String tld : tldMaps )
+		for ( String tld : ConfigRegistry.config.getStringList( ConfigRegistry.ConfigKeys.TLDS ) )
 			if ( domain.matches( tld ) )
 				return true;
 		return false;

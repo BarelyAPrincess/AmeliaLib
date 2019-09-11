@@ -34,6 +34,7 @@ import io.amelia.support.Exceptions;
 import io.amelia.support.Maps;
 import io.amelia.support.Namespace;
 import io.amelia.support.NodeStack;
+import io.amelia.support.Objs;
 import io.amelia.support.Streams;
 import io.amelia.support.Voluntary;
 
@@ -163,7 +164,21 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 	}
 
 	@Nonnull
-	protected BaseClass childCreate( @Nonnull String key ) throws ExceptionClass
+	protected Voluntary<BaseClass> childCreate( @Nonnull String key )
+	{
+		try
+		{
+			return Voluntary.of( childCreateWithException( key ) );
+		}
+		catch ( Exception exceptionClass )
+		{
+			exceptionClass.printStackTrace();
+			return Voluntary.empty();
+		}
+	}
+
+	@Nonnull
+	protected BaseClass childCreateWithException( @Nonnull String key ) throws ExceptionClass
 	{
 		notDisposed();
 		notReadOnly();
@@ -196,7 +211,7 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 	{
 		notReadOnly();
 		getChildVoluntary( key ).ifPresent( ContainerBase::destroy );
-		return childCreate( key );
+		return childCreateWithException( key );
 	}
 
 	protected Voluntary<BaseClass> childFind( @Nonnull String childPath )
@@ -227,8 +242,8 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 		if ( childPath.getNodeCount() == 0 )
 			return ( BaseClass ) this;
 
-		String childName = childPath.dropFirstString();
-		return Voluntary.of( children.stream().filter( child -> childName.equals( child.getLocalName() ) ).findFirst() ).ifAbsentGet( () -> Exceptions.tryCatch( () -> childCreate( childName ), RuntimeException::new ) ).map( child -> child.childFindOrCreate( childPath ) ).get();
+		String childName = childPath.getStringFirst();
+		return Voluntary.of( children.stream().filter( child -> childName.equals( child.getLocalName() ) ).findFirst() ).ifAbsentMap( () -> Voluntary.notEmpty( childCreate( childName ) ) ).map( child -> child.childFindOrCreate( childPath.dropFirstAndCreate() ) ).orElseThrow( () -> new RuntimeException( "General Internal Failure" ) );
 	}
 
 	public final <C> Stream<C> collect( Function<BaseClass, C> function )
@@ -484,10 +499,10 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 	public boolean isInvalidateName( @Nullable String name )
 	{
 		if ( name == null || name.length() == 0 )
-			return true;
+			return false;
 		if ( !name.matches( "[A-Za-z0-9*_.]*" ) )
-			return true;
-		return false;
+			return false;
+		return true;
 	}
 
 	protected final int listenerAdd( ContainerListener.Container container )
@@ -655,7 +670,7 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 			}
 			else
 			{
-				targetParent = targetParent == null ? childCreate( node ) : targetParent.getChildOrCreate( Namespace.of( node ) );
+				targetParent = targetParent == null ? childCreateWithException( node ) : targetParent.getChildOrCreate( Namespace.of( node ) );
 			}
 		}
 
@@ -700,7 +715,7 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 			}
 			else
 			{
-				targetParent = targetParent == null ? childCreate( node ) : targetParent.getChildOrCreate( Namespace.of( node ) );
+				targetParent = targetParent == null ? childCreateWithException( node ) : targetParent.getChildOrCreate( Namespace.of( node ) );
 			}
 		}
 
