@@ -22,7 +22,6 @@ import io.amelia.data.TypeBase;
 import io.amelia.foundation.Kernel;
 import io.amelia.lang.ApplicationException;
 import io.amelia.net.ssl.SslRegistry;
-import io.amelia.net.web.WebService;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.internal.ConcurrentSet;
@@ -33,7 +32,6 @@ public class Networking
 
 	public static final EventLoopGroup IO_LOOP_GROUP = new NioEventLoopGroup( 0, Executors.newCachedThreadPool( new ThreadFactoryBuilder().setNameFormat( "Netty Client IO #%d" ).setDaemon( true ).build() ) );
 	public static final Set<NetworkService> NETWORK_SERVICE_LIST = new ConcurrentSet<>();
-	private static SslRegistry sslRegistry;
 
 	static
 	{
@@ -49,13 +47,6 @@ public class Networking
 	public static <Service extends NetworkService> Optional<Service> getService( Class<Service> serviceClass )
 	{
 		return NETWORK_SERVICE_LIST.stream().filter( service -> serviceClass.isAssignableFrom( service.getClass() ) ).map( service -> ( Service ) service ).findFirst();
-	}
-
-	public static SslRegistry getSslRegistry()
-	{
-		if ( sslRegistry == null )
-			sslRegistry = new SslRegistry();
-		return sslRegistry;
 	}
 
 	public static void heartbeat( long currentTicks )
