@@ -1,6 +1,6 @@
-package io.amelia.net.tcp;
+package io.amelia.lang;
 
-class PacketDecodeException extends Exception
+public class PacketDecodeException extends Exception
 {
 	public PacketDecodeException( String message )
 	{

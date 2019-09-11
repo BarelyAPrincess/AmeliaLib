@@ -21,7 +21,6 @@ import java.util.concurrent.Executors;
 import io.amelia.data.TypeBase;
 import io.amelia.foundation.Kernel;
 import io.amelia.lang.ApplicationException;
-import io.amelia.net.ssl.SslRegistry;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.internal.ConcurrentSet;

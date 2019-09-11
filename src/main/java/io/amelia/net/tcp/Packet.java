@@ -4,6 +4,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import io.amelia.lang.PacketDecodeException;
+import io.amelia.lang.PacketEncodeException;
 import io.netty.buffer.ByteBuf;
 
 public abstract class Packet

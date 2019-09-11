@@ -2,11 +2,10 @@ package io.amelia.net.tcp;
 
 import java.util.List;
 
+import io.amelia.lang.PacketDecodeException;
 import io.netty.buffer.ByteBuf;
-import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageCodec;
-import io.netty.handler.codec.MessageToMessageCodec;
 
 class TCPCodec extends ByteToMessageCodec<Packet>
 {

@@ -145,8 +145,6 @@ public class UDPWorker implements NetworkWorker<UDPWorker>
 		// Schedule a timeout that removes the packet from the awaiting map
 		Tasks.scheduleAsyncDelayedTask( Foundation.getApplication(), packet.getTimeout(), () -> awaiting.remove( packet.getPacketId() ) );
 
-
-
 		channel.writeAndFlush( new DatagramPacket( packet.getPayload(), null ) );
 		packet.sentTime = DateAndTime.epoch();
 		packet.sent = true;
