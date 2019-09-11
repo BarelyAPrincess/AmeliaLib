@@ -499,10 +499,10 @@ public abstract class ContainerBase<BaseClass extends ContainerBase<BaseClass, E
 	public boolean isInvalidateName( @Nullable String name )
 	{
 		if ( name == null || name.length() == 0 )
-			return false;
+			return true;
 		if ( !name.matches( "[A-Za-z0-9*_.]*" ) )
-			return false;
-		return true;
+			return true;
+		return false;
 	}
 
 	protected final int listenerAdd( ContainerListener.Container container )

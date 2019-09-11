@@ -34,7 +34,7 @@ import io.amelia.foundation.Kernel;
  * of code if the value is present).
  *
  * <p>Additional methods for interfacing with Java 8 features are also present, such as {@link #of(Optional)}.
- * Methods ending with "compatible" are intended in mimic the logic of similar methods found in {@link Optional}, e.g., {@link #flatMapCompatible(Function)}
+ * Methods ending with "compatible" are intended in mimic the logic of similar methods found in {@link Optional}, e.g., {@link #flatMapCompatible(FunctionWithException)}
  *
  * @apiNote This api feature is still in incubating status. Major changes to the API could happen at anytime.
  * @see Optional

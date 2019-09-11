@@ -12,7 +12,6 @@ package io.amelia.foundation;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
-import java.util.function.Function;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
