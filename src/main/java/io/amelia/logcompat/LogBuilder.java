@@ -52,6 +52,15 @@ public class LogBuilder
 
 		System.setOut( new PrintStream( new LoggerOutputStream( get( "SysOut" ), Level.INFO ), true ) );
 		System.setErr( new PrintStream( new LoggerOutputStream( get( "SysErr" ), Level.SEVERE ), true ) );
+
+		try
+		{
+			IO.forceCreateDirectory( Kernel.getPath( Kernel.PATH_LOGS ) );
+		}
+		catch ( IOException e )
+		{
+			e.printStackTrace();
+		}
 	}
 
 	public static void addFileHandler( String filename, boolean useColor, int archiveLimit, Level level )
