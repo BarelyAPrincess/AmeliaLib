@@ -2,7 +2,7 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Miss Amelia Sara (Millie) <me@missameliasara.com>
  * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
@@ -62,7 +62,6 @@ import javax.annotation.Nonnegative;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.imageio.ImageIO;
-import javax.xml.bind.DatatypeConverter;
 
 import io.amelia.foundation.Kernel;
 import io.amelia.injection.Libraries;
@@ -359,7 +358,9 @@ public class IO
 	{
 		if ( data.contains( " " ) )
 			data = data.replaceAll( " ", "" );
-		return DatatypeConverter.parseHexBinary( data );
+		//return DatatypeConverter.parseHexBinary( data );
+		// TODO NOT FOUND!????
+		return new byte[0];
 	}
 
 	public static void deleteIfExists( File file ) throws IOException

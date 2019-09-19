@@ -2,7 +2,7 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Miss Amelia Sara (Millie) <me@missameliasara.com>
  * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
@@ -11,6 +11,7 @@ package io.amelia.data.parcel;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
@@ -22,6 +23,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
+import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -47,7 +49,7 @@ public class ParcelLoader
 {
 	// TODO Implement the ability to decode directories containing files to parcels. Maybe? Technically this is implemented by the StorageConversions class.
 
-	private static final Gson gson = new GsonBuilder().serializeNulls().setLenient().create();
+	public static final Gson GSON = new GsonBuilder().serializeNulls().setLenient().create();
 	private static final DumperOptions yamlOptions = new DumperOptions();
 	private static final Representer yamlRepresenter = new YamlRepresenter();
 	private static final Yaml yaml = new Yaml( new YamlConstructor(), yamlRepresenter, yamlOptions );
@@ -132,22 +134,30 @@ public class ParcelLoader
 
 	public static Map<String, Object> decodeJsonToMap( String jsonEncoded )
 	{
-		return Maps.builder().putAll( ( Map<?, ?> ) gson.fromJson( jsonEncoded, Map.class ) ).castTo( String.class, Object.class ).hashMap();
+		java.lang.reflect.Type mapType = new TypeToken<Map<String, Object>>() {}.getType();
+		return GSON.fromJson( jsonEncoded, mapType );
+		// return Maps.builder().putAll( ( Map<?, ?> ) GSON.fromJson( jsonEncoded, Map.class ); ).castTo( String.class, Object.class ).hashMap();
 	}
 
 	public static Map<String, Object> decodeJsonToMap( Path path ) throws IOException
 	{
-		return Maps.builder().putAll( ( Map<?, ?> ) gson.fromJson( IO.readFileToString( path ), Map.class ) ).castTo( String.class, Object.class ).hashMap();
+		java.lang.reflect.Type mapType = new TypeToken<Map<String, Object>>() {}.getType();
+		return GSON.fromJson( IO.readFileToString( path ), mapType );
+		// return Maps.builder().putAll( ( Map<?, ?> ) GSON.fromJson( IO.readFileToString( path ), Map.class ) ).castTo( String.class, Object.class ).hashMap();
 	}
 
 	public static Map<String, Object> decodeJsonToMap( File file ) throws IOException
 	{
-		return Maps.builder().putAll( ( Map<?, ?> ) gson.fromJson( IO.readFileToString( file ), Map.class ) ).castTo( String.class, Object.class ).hashMap();
+		java.lang.reflect.Type mapType = new TypeToken<Map<String, Object>>() {}.getType();
+		return GSON.fromJson( IO.readFileToString( file ), mapType );
+		// return Maps.builder().putAll( ( Map<?, ?> ) GSON.fromJson( IO.readFileToString( file ), Map.class ) ).castTo( String.class, Object.class ).hashMap();
 	}
 
 	public static Map<String, Object> decodeJsonToMap( InputStream inputStream ) throws IOException
 	{
-		return Maps.builder().putAll( ( Map<?, ?> ) gson.fromJson( IO.readStreamToString( inputStream ), Map.class ) ).castTo( String.class, Object.class ).hashMap();
+		java.lang.reflect.Type mapType = new TypeToken<Map<String, Object>>() {}.getType();
+		return GSON.fromJson( IO.readStreamToString( inputStream ), mapType );
+		// return Maps.builder().putAll( ( Map<?, ?> ) GSON.fromJson( IO.readStreamToString( inputStream ), Map.class ) ).castTo( String.class, Object.class ).hashMap();
 	}
 
 	public static Parcel decodeList( String listEncoded ) throws ParcelableException.Error
@@ -365,7 +375,7 @@ public class ParcelLoader
 
 	public static String encodeJson( Parcel encoded )
 	{
-		return gson.toJson( encodeMap( encoded ) );
+		return GSON.toJson( encodeMap( encoded ) );
 	}
 
 	/* public static void encodeXml( Parcel encoded )
@@ -399,8 +409,8 @@ public class ParcelLoader
 
 	public static String hashObject( Object obj )
 	{
-		// yaml.dump( obj ) OR gson.toJson( obj )?
-		return obj == null ? null : Encrypt.md5Hex( obj instanceof String ? ( String ) obj : gson.toJson( obj ) );
+		// yaml.dump( obj ) OR GSON.toJson( obj )?
+		return obj == null ? null : Encrypt.md5Hex( obj instanceof String ? ( String ) obj : GSON.toJson( obj ) );
 	}
 
 	private ParcelLoader()

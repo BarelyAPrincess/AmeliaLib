@@ -2,7 +2,7 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Miss Amelia Sara (Millie) <me@missameliasara.com>
  * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
@@ -40,7 +40,7 @@ public interface LooperTaskTrait
 	 */
 	default TaskEntry postTask( LooperTask task )
 	{
-		Kernel.L.info( "Task entry created!\n" + Exceptions.getStackTrace() );
+		// Kernel.L.info( "Task entry created!\n" + Exceptions.getStackTrace() );
 
 		DefaultQueue queue = getQueue();
 		return queue.postEntry( new TaskEntry( queue, task, false ) );
@@ -48,7 +48,7 @@ public interface LooperTaskTrait
 
 	default TaskEntry postTaskAsync( LooperTask task )
 	{
-		Kernel.L.info( "Task entry created!\n" + Exceptions.getStackTrace() );
+		// Kernel.L.info( "Task entry created!\n" + Exceptions.getStackTrace() );
 
 		DefaultQueue queue = getQueue();
 		return queue.postEntry( new TaskEntry( queue, task, true ) );
