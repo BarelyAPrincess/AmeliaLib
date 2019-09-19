@@ -2,13 +2,20 @@
  * This software may be modified and distributed under the terms
  * of the MIT license.  See the LICENSE file for details.
  * <p>
- * Copyright (c) 2019 Amelia Sara Greene <barelyaprincess@gmail.com>
+ * Copyright (c) 2019 Miss Amelia Sara (Millie) <me@missameliasara.com>
  * Copyright (c) 2019 Penoaks Publishing LLC <development@penoaks.com>
  * <p>
  * All Rights Reserved.
  */
 package io.amelia.foundation;
 
+import org.jline.reader.Completer;
+import org.jline.reader.EndOfFileException;
+import org.jline.reader.LineReader;
+import org.jline.reader.LineReaderBuilder;
+import org.jline.reader.UserInterruptException;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
 import org.reflections.Reflections;
 import org.reflections.scanners.MethodAnnotationsScanner;
 
@@ -24,6 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
@@ -55,6 +63,7 @@ import io.amelia.support.Streams;
 import io.amelia.support.Strs;
 import io.amelia.support.Timing;
 import io.amelia.support.Voluntary;
+import io.amelia.terminal.TerminalHandler;
 import io.amelia.users.Users;
 import io.amelia.users.UsersMemory;
 
@@ -232,6 +241,7 @@ public final class Foundation
 	}
 	*/
 	private static Object runlevelTimingObject = new Object();
+	private static Terminal terminal = null;
 
 	static
 	{
@@ -772,6 +782,47 @@ public final class Foundation
 
 		// Call to make sure the INITIALIZATION runlevel is acknowledged by the application.
 		onRunlevelChange();
+	}
+
+	public static boolean requestTerminal( Consumer<String> terminalConsumer )
+	{
+		L.info( "Initializing Console" );
+
+		if ( terminal != null )
+			throw new ApplicationException.Ignorable( "Terminal has been already initialized." );
+
+		try
+		{
+			terminal = TerminalBuilder.terminal();
+
+			LineReader lineReader = LineReaderBuilder.builder().terminal( terminal ).build();
+			String prompt = " >>> ";
+
+			Kernel.getExecutorParallel().execute( () -> {
+				while ( true )
+				{
+					String line = null;
+					try
+					{
+						line = lineReader.readLine( prompt );
+					}
+					catch ( UserInterruptException | EndOfFileException e )
+					{
+						break;
+					}
+
+					terminalConsumer.accept( line );
+				}
+			} );
+
+			return true;
+		}
+		catch ( IOException e )
+		{
+			e.printStackTrace();
+		}
+
+		return false;
 	}
 
 	private static void requireApplication() throws ApplicationException.Error
