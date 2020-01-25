@@ -21,11 +21,18 @@ public class SimpleLogFormatter extends Formatter
 {
 	public static boolean debugMode = false;
 	public static int debugModeHowDeep = 1;
+	private final boolean isColorInverted;
 	private SimpleDateFormat dateFormat;
 	private SimpleDateFormat timeFormat;
 
 	public SimpleLogFormatter()
 	{
+		this( false );
+	}
+
+	public SimpleLogFormatter( boolean isColorInverted )
+	{
+		this.isColorInverted = isColorInverted;
 		dateFormat = new SimpleDateFormat( "MM-dd" );
 		timeFormat = new SimpleDateFormat( "HH:mm:ss.SSS" );
 	}
@@ -60,6 +67,6 @@ public class SimpleLogFormatter extends Formatter
 			msg.append( writer );
 		}
 
-		return EnumColor.format( record.getLevel(), msg.toString() );
+		return EnumColor.format( record.getLevel(), msg.toString(), isColorInverted );
 	}
 }

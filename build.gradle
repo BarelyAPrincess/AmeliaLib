@@ -22,5 +22,5 @@ dependencies {
 	// TODO Implement our own binding that would forward slf4j into this log implementation. Presently slf4j-simple dumps the log to the System.err stream, a temporary workaround.
 	compile group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.25'
 
-	compile project( ":AmeliaCommonLib" )
+	compile project( ":AmeliaLibCommon" )
 }

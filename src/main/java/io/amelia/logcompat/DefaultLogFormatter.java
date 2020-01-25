@@ -24,18 +24,15 @@ public class DefaultLogFormatter extends Formatter
 	public static boolean debugMode = false;
 	public static int debugModeHowDeep = 1;
 	private SimpleDateFormat dateFormat;
-	private boolean fancyConsole;
+	private boolean isFancyConsole;
+	private boolean isColorInverted;
 	private boolean formatConfigLoaded = false;
 	private SimpleDateFormat timeFormat;
 
-	public DefaultLogFormatter()
+	public DefaultLogFormatter( boolean isFancyConsole, boolean isColorInverted )
 	{
-		this( true );
-	}
-
-	public DefaultLogFormatter( boolean fancyConsole )
-	{
-		this.fancyConsole = fancyConsole;
+		this.isFancyConsole = isFancyConsole;
+		this.isColorInverted = isColorInverted;
 		dateFormat = new SimpleDateFormat( "MM-dd" );
 		timeFormat = new SimpleDateFormat( "HH:mm:ss.SSS" );
 	}
@@ -103,14 +100,19 @@ public class DefaultLogFormatter extends Formatter
 			style += writer;
 		}
 
-		if ( !fancyConsole )
+		if ( !isFancyConsole )
 			return EnumColor.removeAltColors( style );
 		else
-			return EnumColor.format( record.getLevel(), style );
+			return EnumColor.format( record.getLevel(), style, isColorInverted );
 	}
 
-	public boolean useColor()
+	public boolean isFancyColor()
 	{
-		return fancyConsole;
+		return isFancyConsole;
+	}
+
+	public boolean isColorInverted()
+	{
+		return isColorInverted;
 	}
 }

@@ -141,7 +141,7 @@ public class LibLogger
 			if ( !Objs.stackTraceAntiLoop( java.util.logging.Logger.class, "log" ) || hasErrored )
 				FAILOVER_OUTPUT_STREAM.println( "Failover Logger [" + level.getName() + "] " + message );
 			else
-				logger.log( level, ( LogBuilder.useColor() ? EnumColor.fromLevel( level ) : "" ) + message, params );
+				logger.log( level, ( LogBuilder.isFancyConsole() ? EnumColor.fromLevel( level ) : "" ) + message, params );
 		}
 		catch ( Throwable t )
 		{
@@ -168,7 +168,7 @@ public class LibLogger
 				cause.printStackTrace( FAILOVER_OUTPUT_STREAM );
 			}
 			else
-				logger.log( level, ( LogBuilder.useColor() ? EnumColor.fromLevel( level ) : "" ) + message, cause );
+				logger.log( level, ( LogBuilder.isFancyConsole() ? EnumColor.fromLevel( level ) : "" ) + message, cause );
 		}
 		catch ( Throwable tt )
 		{

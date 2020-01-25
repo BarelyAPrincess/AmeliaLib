@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashSet;
@@ -47,7 +46,7 @@ public class LogBuilder
 		for ( Handler h : rootLogger.getHandlers() )
 			rootLogger.removeHandler( h );
 
-		consoleHandler.setFormatter( new SimpleLogFormatter() );
+		consoleHandler.setFormatter( new SimpleLogFormatter( true ) );
 		addHandler( consoleHandler );
 
 		System.setOut( new PrintStream( new LoggerOutputStream( get( "SysOut" ), Level.INFO ), true ) );
@@ -63,7 +62,7 @@ public class LogBuilder
 		}
 	}
 
-	public static void addFileHandler( String filename, boolean useColor, int archiveLimit, Level level )
+	public static void addFileHandler( String filename, boolean isFancyConsole, boolean isColorInverted, int archiveLimit, Level level )
 	{
 		Path logPath = Kernel.getPath( Kernel.PATH_LOGS ).resolve( filename + ".log" );
 		try
@@ -79,7 +78,7 @@ public class LogBuilder
 
 			FileHandler fileHandler = new FileHandler( logPath.toString() );
 			fileHandler.setLevel( level );
-			fileHandler.setFormatter( new DefaultLogFormatter( useColor ) );
+			fileHandler.setFormatter( new DefaultLogFormatter( isFancyConsole, isColorInverted ) );
 
 			addHandler( fileHandler );
 		}
@@ -157,8 +156,8 @@ public class LogBuilder
 	 *
 	 * @return true if it does
 	 */
-	public static boolean useColor()
+	public static boolean isFancyConsole()
 	{
-		return consoleHandler.getFormatter() instanceof DefaultLogFormatter && ( ( DefaultLogFormatter ) consoleHandler.getFormatter() ).useColor();
+		return consoleHandler.getFormatter() instanceof DefaultLogFormatter && ( ( DefaultLogFormatter ) consoleHandler.getFormatter() ).isFancyColor();
 	}
 }

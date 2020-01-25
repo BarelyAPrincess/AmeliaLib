@@ -81,7 +81,6 @@ public class DefaultLogFactory extends InternalLoggerFactory
 			l.log( Level.FINE, msg, t );
 		}
 
-		@Override
 		public void debug( Throwable t )
 		{
 			l.log( Level.FINE, "Debugged Exception", t );
@@ -117,7 +116,6 @@ public class DefaultLogFactory extends InternalLoggerFactory
 			l.severe( msg, t );
 		}
 
-		@Override
 		public void error( Throwable t )
 		{
 			l.severe( t );
@@ -153,7 +151,6 @@ public class DefaultLogFactory extends InternalLoggerFactory
 			l.info( msg, t );
 		}
 
-		@Override
 		public void info( Throwable t )
 		{
 			l.info( t );
@@ -226,7 +223,6 @@ public class DefaultLogFactory extends InternalLoggerFactory
 			l.log( level( level ), msg, t );
 		}
 
-		@Override
 		public void log( InternalLogLevel level, Throwable t )
 		{
 			l.log( level( level ), "Encountered Exception", t );
@@ -268,7 +264,6 @@ public class DefaultLogFactory extends InternalLoggerFactory
 			l.log( Level.CONFIG, msg, t );
 		}
 
-		@Override
 		public void trace( Throwable t )
 		{
 			l.log( Level.CONFIG, "Encountered Exception", t );
@@ -304,7 +299,6 @@ public class DefaultLogFactory extends InternalLoggerFactory
 			l.warning( msg, t );
 		}
 
-		@Override
 		public void warn( Throwable t )
 		{
 			l.warning( "Encountered Exception", t );
