@@ -66,6 +66,16 @@ public abstract class BaseApplication implements VendorRegistrar, ExceptionRegis
 			optionParser.accepts( "dir-" + pathKey, "Sets the " + pathKey + " directory path." ).withRequiredArg().ofType( String.class );
 	}
 
+	public void addBooleanArgument( String arg, String desc )
+	{
+		addBooleanArgument( arg, desc, true );
+	}
+
+	public void addBooleanArgument( String arg, String desc, boolean def )
+	{
+		optionParser.accepts( arg, desc ).withOptionalArg().ofType( Boolean.class ).defaultsTo( def );
+	}
+
 	public void addArgument( String arg, String desc )
 	{
 		optionParser.accepts( arg, desc );
@@ -203,9 +213,15 @@ public abstract class BaseApplication implements VendorRegistrar, ExceptionRegis
 					if ( !Objs.isNull( optionSpec.value( optionSet ) ) )
 					{
 						if ( optionKey.startsWith( "dir-" ) )
+						{
+							Kernel.L.debug( "Setting path \"" + optionKey.substring( 4 ) + "\" to \"" + optionSpec.value( optionSet ) + "\"." );
 							Kernel.setPath( optionKey.substring( 4 ), ( String ) optionSpec.value( optionSet ) );
-						else if ( env.isValueSet( optionKey ) )
+						}
+						else if ( !env.isValueSet( optionKey ) )
+						{
+							Kernel.L.debug( "Setting environment key \"" + optionKey + "\" to \"" + optionSpec.value( optionSet ) + "\"." );
 							env.set( optionKey, optionSpec.value( optionSet ), false );
+						}
 					}
 
 			// XXX Use Encrypt::hash as an alternative to Encrypt::uuid

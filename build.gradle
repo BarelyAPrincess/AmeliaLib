@@ -19,7 +19,7 @@ dependencies {
 	}
 	testCompile 'org.hamcrest:hamcrest-library:1.3'
 
-	compile project( ':AmeliaCommonLib' )
+	compile project( ':AmeliaLibCommon' )
 
 	/* Terminal Libraries */
 	required group: 'org.jline', name: 'jline', version: '3.12.1'
