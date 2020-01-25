@@ -15,8 +15,11 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
+import java.util.logging.LogManager;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import io.amelia.foundation.LogHandler;
 
 /**
  * All supported color values for chat
@@ -137,7 +140,7 @@ public enum EnumColor
 		}
 	}
 
-	public static String format( Level level, String rawMessage )
+	public static String format( Level level, String rawMessage, boolean isColorInverted )
 	{
 		rawMessage = translateAlternateColorCodes( '&', rawMessage );
 
@@ -152,11 +155,15 @@ public enum EnumColor
 				i++;
 				EnumColor enumColor = getByChar( rawMessage.charAt( i ) );
 				if ( enumColor != null )
+				{
+					if ( isColorInverted )
+						enumColor = enumColor.invertColor();
 					if ( enumColor.isColor() )
 						lastFgColor = enumColor;
 					else if ( enumColor.isFormat() )
 						lastFormat = enumColor;
-				finalMessage.append( enumColor.getColorString() );
+					finalMessage.append( enumColor.getColorString() );
+				}
 			}
 			else if ( rawMessage.charAt( i ) == '"' )
 			{
@@ -353,6 +360,16 @@ public enum EnumColor
 		return colorString;
 	}
 
+	private EnumColor invertColor()
+	{
+		// TODO Implement additional inverted colors
+		if ( this == WHITE )
+			return DARK_GRAY;
+		if ( this == GRAY )
+			return BLACK;
+		return this;
+	}
+
 	/**
 	 * Checks if this code is a color code as opposed to a format code.
 	 */
@@ -373,4 +390,5 @@ public enum EnumColor
 	public String toString()
 	{
 		return toString;
-	}}
+	}
+}

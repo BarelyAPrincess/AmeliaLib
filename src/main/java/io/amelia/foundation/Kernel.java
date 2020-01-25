@@ -358,7 +358,7 @@ public class Kernel
 		@Override
 		public void log( Level level, Class<?> source, String message, Object... args )
 		{
-			message = EnumColor.format( level, EnumColor.DARK_GRAY + timestamp.format( new Date() ) + " [" + EnumColor.fromLevel( level ) + level.getName() + EnumColor.DARK_GRAY + "] " + EnumColor.fromLevel( level ) + ( args.length > 0 ? String.format( message, args ) : message ) );
+			message = EnumColor.format( level, EnumColor.DARK_GRAY + timestamp.format( new Date() ) + " [" + EnumColor.fromLevel( level ) + level.getName() + EnumColor.DARK_GRAY + "] " + EnumColor.fromLevel( level ) + ( args.length > 0 ? String.format( message, args ) : message ), true );
 
 			if ( level.intValue() <= Level.INFO.intValue() )
 				System.out.println( message );

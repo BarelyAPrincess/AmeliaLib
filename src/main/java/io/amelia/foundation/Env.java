@@ -106,7 +106,7 @@ public class Env
 
 	public boolean isValueSet( String key )
 	{
-		return env.containsKey( key ) && !Objs.isNull( env.get( key ) );
+		return env.containsKey( key ) && !Objs.isNotNull( env.get( key ) );
 	}
 
 	public Map<String, Object> map()
